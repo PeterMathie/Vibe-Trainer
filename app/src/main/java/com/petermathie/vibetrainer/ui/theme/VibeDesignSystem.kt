@@ -111,13 +111,13 @@ object VibeShapes {
 }
 
 private val VibeTypography = Typography(
-    headlineLarge = TextStyle(FontFamily.SansSerif, FontWeight.Bold, 32.sp, 38.sp),
-    headlineMedium = TextStyle(FontFamily.SansSerif, FontWeight.SemiBold, 26.sp, 32.sp),
-    titleLarge = TextStyle(FontFamily.SansSerif, FontWeight.SemiBold, 21.sp, 27.sp),
-    titleMedium = TextStyle(FontFamily.SansSerif, FontWeight.Medium, 17.sp, 23.sp),
-    bodyLarge = TextStyle(FontFamily.SansSerif, FontWeight.Normal, 16.sp, 23.sp),
-    bodyMedium = TextStyle(FontFamily.SansSerif, FontWeight.Normal, 14.sp, 20.sp),
-    labelLarge = TextStyle(FontFamily.SansSerif, FontWeight.SemiBold, 14.sp, 18.sp),
+    headlineLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 38.sp),
+    headlineMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 32.sp),
+    titleLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 21.sp, lineHeight = 27.sp),
+    titleMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Medium, fontSize = 17.sp, lineHeight = 23.sp),
+    bodyLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 23.sp),
+    bodyMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
+    labelLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 18.sp),
 )
 
 @Composable
