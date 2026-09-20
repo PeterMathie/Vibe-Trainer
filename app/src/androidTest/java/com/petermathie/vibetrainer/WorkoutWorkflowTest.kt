@@ -41,7 +41,7 @@ class WorkoutWorkflowTest {
     @After
     fun tearDown() = database.close()
 
-    @Test
+    @Test(timeout = 120_000)
     fun programmeToFinishedWorkoutUpdatesDerivedRecency() = runBlocking {
         val day = repository.observeProgrammeDays().first { it.isNotEmpty() }.first()
         val workoutId = repository.startWorkout(day.id)

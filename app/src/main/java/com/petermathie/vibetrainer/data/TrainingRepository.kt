@@ -50,7 +50,7 @@ class TrainingRepository @Inject constructor(
             .flatMapLatest { draft -> flow { emit(draft?.let { loadWorkout(it) }) } }
 
     suspend fun startWorkout(dayId: String): String = database.withTransaction {
-        val existing = workoutDao.observeDraft().first()
+        val existing = workoutDao.draft()
         if (existing != null) return@withTransaction existing.id
         val day = requireNotNull(programmeDao.day(dayId))
         val mode = requireNotNull(programmeDao.modeForDay(dayId))

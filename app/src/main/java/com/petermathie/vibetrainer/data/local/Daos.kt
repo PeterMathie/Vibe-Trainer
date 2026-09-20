@@ -166,6 +166,9 @@ interface WorkoutDao {
     @Query("SELECT * FROM workouts WHERE status = 'DRAFT' ORDER BY startedAt DESC LIMIT 1")
     fun observeDraft(): Flow<WorkoutEntity?>
 
+    @Query("SELECT * FROM workouts WHERE status = 'DRAFT' ORDER BY startedAt DESC LIMIT 1")
+    suspend fun draft(): WorkoutEntity?
+
     @Query("SELECT * FROM workouts WHERE id = :workoutId")
     suspend fun workout(workoutId: String): WorkoutEntity?
 
