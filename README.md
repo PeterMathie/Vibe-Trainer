@@ -1,12 +1,14 @@
 # Vibe Trainer
 
-Native Android training log for strength and flexibility.
+Native, local-first Android strength, flexibility and open-ended activity tracking.
 
 ## Current direction
 
-Vibe Trainer keeps the successful structure of the original Training Log beta while adding a top-level **Strength / Stretching** mode switch and the approved quality-of-life features.
+The greenfield architecture uses Kotlin, Jetpack Compose, Room, Hilt and an explicit domain layer. Objective workout history drives recency maps, activity heatmaps and progress calculations.
 
-The UI uses a dark, high-contrast training-focused design with a centralised theme, floating bottom navigation, active-session card, and an interactive anatomy panel.
+Visual styling is isolated behind semantic tokens and interchangeable palettes. Production builds seed application knowledge but no personal programmes or history; debug builds add removable representative data.
+
+See [`docs/PRODUCT_REQUIREMENTS.md`](docs/PRODUCT_REQUIREMENTS.md) for the product contract.
 
 ### Anatomy
 

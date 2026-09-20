@@ -20,18 +20,27 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("androidx.activity:activity-compose:1.11.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
+    implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
 
     implementation("androidx.compose.ui:ui:1.9.2")
     implementation("androidx.compose.ui:ui-tooling-preview:1.9.2")
@@ -48,4 +57,7 @@ dependencies {
 
     implementation("com.google.dagger:hilt-android:2.60.1")
     ksp("com.google.dagger:hilt-compiler:2.60.1")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.room:room-testing:2.8.1")
 }

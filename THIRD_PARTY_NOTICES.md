@@ -42,3 +42,14 @@ Scope of this license:
   well — free to use, copy, modify, and redistribute. See ASSET_PROVENANCE.md
   for details.
 
+---
+
+## Free Exercise DB
+
+Vibe Trainer includes exercise definitions derived from **Free Exercise DB**:
+https://github.com/yuhonas/free-exercise-db
+
+The dataset is released under the Unlicense/public-domain dedication. A copy of
+the licence is bundled at `app/src/main/assets/FREE_EXERCISE_DB_LICENSE.md`.
+Mappings are normalised into Vibe Trainer's canonical muscle taxonomy, with
+curated overrides for the core programme and calisthenics exercises.

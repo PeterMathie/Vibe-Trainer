@@ -1,6 +1,8 @@
 package com.petermathie.vibetrainer.ui.anatomy
 
+import android.graphics.Region
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -10,34 +12,31 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.pointer.pointerInput
 import com.petermathie.vibetrainer.domain.model.AnatomySex
-import com.petermathie.vibetrainer.ui.theme.VibeColors
+import com.petermathie.vibetrainer.domain.model.MuscleRecencyBand
+import com.petermathie.vibetrainer.ui.theme.LocalVibePalette
 import kotlin.math.min
 
 enum class AnatomyView { FRONT, BACK }
 
-private data class ParsedOutline(
-    val def: OutlinePathDef,
-    val path: Path,
-)
-
-private data class ParsedMuscle(
-    val def: MusclePathDef,
-    val path: Path,
-)
+private data class ParsedOutline(val def: OutlinePathDef, val path: Path)
+private data class ParsedMuscle(val def: MusclePathDef, val path: Path, val region: Region)
 
 @Composable
 fun MuscleMap(
     sex: AnatomySex,
     view: AnatomyView,
-    groupScores: Map<String, Float>,
+    states: Map<String, MuscleRecencyBand>,
+    onMuscleTap: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalVibePalette.current
     val diagram = when (sex to view) {
         AnatomySex.MALE to AnatomyView.FRONT -> MuscleDiagrams.MaleFront
         AnatomySex.MALE to AnatomyView.BACK -> MuscleDiagrams.MaleBack
@@ -45,66 +44,60 @@ fun MuscleMap(
         AnatomySex.FEMALE to AnatomyView.BACK -> MuscleDiagrams.FemaleBack
         else -> MuscleDiagrams.MaleFront
     }
-
     val outlines = remember(diagram.id) {
-        diagram.outline.map {
-            ParsedOutline(it, PathParser().parsePathString(it.pathData).toPath())
-        }
+        diagram.outline.map { ParsedOutline(it, PathParser().parsePathString(it.pathData).toPath()) }
     }
     val muscles = remember(diagram.id) {
-        diagram.muscles.map {
-            ParsedMuscle(it, PathParser().parsePathString(it.pathData).toPath())
+        diagram.muscles.map { definition ->
+            val path = PathParser().parsePathString(definition.pathData).toPath()
+            val clip = Region(0, 0, diagram.viewBoxWidth.toInt() + 1, diagram.viewBoxHeight.toInt() + 1)
+            ParsedMuscle(definition, path, Region().apply { setPath(path.asAndroidPath(), clip) })
         }
     }
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(diagram.viewBoxWidth / diagram.viewBoxHeight),
+            .aspectRatio(diagram.viewBoxWidth / diagram.viewBoxHeight)
+            .pointerInput(diagram.id, muscles) {
+                detectTapGestures { tap ->
+                    val scale = min(size.width / diagram.viewBoxWidth, size.height / diagram.viewBoxHeight)
+                    val offsetX = (size.width - diagram.viewBoxWidth * scale) / 2f
+                    val offsetY = (size.height - diagram.viewBoxHeight * scale) / 2f
+                    val vectorX = (tap.x - offsetX) / scale
+                    val vectorY = (tap.y - offsetY) / scale
+                    val hit = muscles.lastOrNull { item ->
+                        val direct = item.region.contains(vectorX.toInt(), vectorY.toInt())
+                        val mirroredX = 2f * diagram.centerX - vectorX
+                        direct || (item.def.side == BodySide.LEFT && item.region.contains(mirroredX.toInt(), vectorY.toInt()))
+                    }
+                    hit?.def?.group?.let(onMuscleTap)
+                }
+            },
     ) {
-        val scale = min(
-            size.width / diagram.viewBoxWidth,
-            size.height / diagram.viewBoxHeight,
-        )
-        val drawWidth = diagram.viewBoxWidth * scale
-        val drawHeight = diagram.viewBoxHeight * scale
-        val offsetX = (size.width - drawWidth) / 2f
-        val offsetY = (size.height - drawHeight) / 2f
-
+        val scale = min(size.width / diagram.viewBoxWidth, size.height / diagram.viewBoxHeight)
+        val offsetX = (size.width - diagram.viewBoxWidth * scale) / 2f
+        val offsetY = (size.height - diagram.viewBoxHeight * scale) / 2f
         withTransform({
-            translate(left = offsetX, top = offsetY)
-            scale(scaleX = scale, scaleY = scale, pivot = Offset.Zero)
+            translate(offsetX, offsetY)
+            scale(scale, scale, Offset.Zero)
         }) {
             outlines.forEach { item ->
-                drawPathWithMirror(
-                    path = item.path,
-                    side = item.def.side,
-                    centerX = diagram.centerX,
-                    color = VibeColors.DiagramBody,
-                    strokeColor = VibeColors.DiagramLine,
-                )
+                drawPathWithMirror(item.path, item.def.side, diagram.centerX, palette.diagramBody, palette.diagramLine)
             }
-
             muscles.forEach { item ->
-                val score = groupScores[item.def.group] ?: 0f
-                drawPathWithMirror(
-                    path = item.path,
-                    side = item.def.side,
-                    centerX = diagram.centerX,
-                    color = muscleColor(score),
-                    strokeColor = VibeColors.DiagramLine.copy(alpha = 0.34f),
-                    strokeWidth = 0.65f,
-                )
+                val color = when (states[item.def.group] ?: MuscleRecencyBand.NEVER) {
+                    MuscleRecencyBand.UNDER_24_HOURS -> palette.recencyUnder24
+                    MuscleRecencyBand.HOURS_24_TO_48 -> palette.recency24To48
+                    MuscleRecencyBand.HOURS_48_TO_72 -> palette.recency48To72
+                    MuscleRecencyBand.DAYS_3_TO_7 -> palette.recency3To7
+                    MuscleRecencyBand.OVER_7_DAYS -> palette.recencyOver7
+                    MuscleRecencyBand.NEVER -> palette.recencyNever
+                }
+                drawPathWithMirror(item.path, item.def.side, diagram.centerX, color, palette.diagramLine.copy(alpha = .42f), .8f)
             }
         }
     }
-}
-
-private fun muscleColor(score: Float): Color = when {
-    score >= 0.75f -> VibeColors.RecencyUnder24
-    score >= 0.50f -> VibeColors.Recency24To48
-    score >= 0.25f -> VibeColors.Recency48To72
-    else -> VibeColors.DiagramMuscleNeutral
 }
 
 private fun DrawScope.drawPathWithMirror(
@@ -116,25 +109,11 @@ private fun DrawScope.drawPathWithMirror(
     strokeWidth: Float = 1f,
 ) {
     fun drawCurrent() {
-        drawPath(path = path, color = color)
-        drawPath(
-            path = path,
-            color = strokeColor,
-            style = Stroke(width = strokeWidth.dp.toPx(), cap = StrokeCap.Round),
-        )
+        drawPath(path, color)
+        drawPath(path, strokeColor, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
     }
-
     drawCurrent()
-
     if (side == BodySide.LEFT) {
-        withTransform({
-            scale(
-                scaleX = -1f,
-                scaleY = 1f,
-                pivot = Offset(centerX, 0f),
-            )
-        }) {
-            drawCurrent()
-        }
+        withTransform({ scale(-1f, 1f, Offset(centerX, 0f)) }) { drawCurrent() }
     }
 }
