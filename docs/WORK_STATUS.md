@@ -10,8 +10,8 @@ Updated: 21 September 2026. Owner of the current pass: ChatGPT coding agent.
 - Product contract: `docs/PRODUCT_REQUIREMENTS.md`; tester walkthrough: `docs/BETA_TESTING.md`.
 - Native Kotlin / Compose / Room / Hilt app. This branch has no runnable web version.
 - User has authorised replacing the old implementation and completing the beta. No further approval is needed for ordinary implementation or tests.
-- Latest verified commit before the launch-capture follow-up: `8ce902a12c7f5a80fdd4abdfd270e873554a0e37`.
-- Verified run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35600344744. Unit tests, debug APK and Android API 35 emulator tests all passed.
+- Latest verified application/workflow commit: `6e8570f9114985aa1a47a1b15d0ea164b96813be`.
+- Verified run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35640509017. Unit tests, debug APK, Android API 35 emulator tests, APK installation and MainActivity launch all passed. `am start` reported `Status: ok`; the process remained alive, a home screenshot was captured, and the AndroidRuntime error log was empty.
 - APK artifact: `vibe-trainer-debug`; reports and generated Room schemas: `validation-reports`.
 
 ## What is implemented
@@ -41,11 +41,17 @@ Updated: 21 September 2026. Owner of the current pass: ChatGPT coding agent.
 - Added editable measurements, removable photos and photo I/O error reporting.
 - Wrote the beta walkthrough and this handoff.
 
-## Current follow-up (verify against the newest Actions run)
+## Latest verification
 
-The commit containing this handoff also bundles the existing third-party asset notices in the APK, exposes them in Settings, aligns manual circuit rest with the group rest rule, and adds an actual MainActivity launch + screenshot capture after emulator tests. These follow-up changes are not covered by the older successful run linked above. Check the newest run before calling them verified.
+The verified follow-up bundles the existing third-party asset notices in the APK, exposes them in Settings, aligns manual circuit rest with the group rest rule, and adds an actual MainActivity launch + screenshot capture after emulator tests. The launch screenshot was inspected: the home screen, front/back recency vectors, mode switch and calendar render. A visible polish issue remains: status-bar icons have poor contrast against the dark background; include this in UI-01.
 
-Run `35639647804` at commit `c071717` passed compilation, unit tests and instrumentation tests, then failed the added launch command because the test runner had uninstalled the target APK. The next workflow revision explicitly installs the built APK before launching it. This was a launch-harness failure, not an app crash; successful app launch is still awaiting verification.
+Earlier run `35639647804` at commit `c071717` passed compilation, unit tests and instrumentation tests, then failed the added launch command because the test runner had uninstalled the target APK. The verified revision explicitly installs the built APK before launching it. That launch-harness failure is resolved.
+
+Downloads for the verified build:
+- APK ZIP: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35640509017/artifacts/10658780701
+- Reports, schema and launch screenshot: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35640509017/artifacts/10658426962
+
+The documentation-only handoff update after this verified commit does not alter application code.
 
 ## Remaining work — explicit, claimable tasks
 
