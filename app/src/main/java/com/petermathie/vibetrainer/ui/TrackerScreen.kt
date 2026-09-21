@@ -51,7 +51,7 @@ fun TrackerScreen(vm: EditorViewModel) {
             }
         } } }
     }
-    edit?.let { t -> NameDialog("Habit name",t.name,{edit=null}) { vm.save(t.copy(name=it)); if(trackers.none { existing -> existing.id==t.id }) vm.save(TrackerFieldEntity(newId(),t.id,"Done","BOOLEAN",null,null,null,0)); edit=null } }
+    edit?.let { t -> NameDialog("Habit name",t.name,{edit=null}) { if(trackers.none { existing -> existing.id==t.id }) vm.createTracker(t.copy(name=it)) else vm.save(t.copy(name=it)); edit=null } }
     field?.let { f ->
         var name by remember(f.id) { mutableStateOf(f.name) }
         var type by remember(f.id) { mutableStateOf(f.valueType) }

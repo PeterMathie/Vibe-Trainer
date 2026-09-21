@@ -13,6 +13,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.domain.progress.SessionProgress
+import com.petermathie.vibetrainer.domain.model.ActivityDay
 import java.time.Instant
 import java.time.ZoneId
 
@@ -21,7 +22,7 @@ fun ProgressScreen(vm:EditorViewModel) {
     val exercises by vm.exercises.collectAsStateWithLifecycle();val workouts by vm.workouts.collectAsStateWithLifecycle();val rows by vm.workoutExercises.collectAsStateWithLifecycle()
     val sets by vm.sets.collectAsStateWithLifecycle();val links by vm.setBands.collectAsStateWithLifecycle();val bands by vm.bands.collectAsStateWithLifecycle();val variations by vm.variations.collectAsStateWithLifecycle()
     var exerciseId by remember { mutableStateOf<String?>(null) };var picker by remember { mutableStateOf(false) };var filter by remember { mutableStateOf<String?>(null) };var selected by remember { mutableStateOf<Int?>(null) }
-    val points=exerciseId?.let { SessionProgress.points(it,workouts,rows,sets,links,bands,filter) }.orEmpty()
+    val points=exerciseId?.let { SessionProgress.points(it,workouts,rows,sets,links,bands,filter,variations) }.orEmpty()
     val valid=points.map { it.performance }
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {
@@ -30,6 +31,7 @@ fun ProgressScreen(vm:EditorViewModel) {
             TextButton(onClick={filter=null;selected=null}){Text(if(filter==null)"✓ All variations" else "All variations")}
             variations.filter { it.exerciseId==exerciseId }.forEach { v -> TextButton(onClick={filter=v.id;selected=null}){Text((if(filter==v.id)"✓ " else "")+v.name)} }
             if(points.size<3)Text("Raw performance shown until three valid sessions establish a baseline of 100.")
+            if(variations.any { it.exerciseId==exerciseId })Text("Skill sessions use the hardest completed variation, then its strongest set. Band-width scores and baselines are compared only within that variation.")
             if(points.isNotEmpty()) {
                 MiniChart(points.map { it.index ?: it.score },points.map { it.trend }){selected=it}
                 val last=points.mapNotNull { it.trend }.takeLast(2)
@@ -46,6 +48,7 @@ fun ProgressScreen(vm:EditorViewModel) {
                 val best=points.maxByOrNull { it.score }
                 Text("Best scored performance: ${best?.performance?.let(::setDescription).orEmpty()}")
                 Text("Estimated 1RM: ${valid.filter { it.weightKg!=null && it.reps!=null }.maxOfOrNull { it.weightKg!!*(1+it.reps!!/30.0) } ?: "—"} kg")
+                ActivityHeatmap(points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) }) { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } }
             }
         }
         val ids=rows.filter { it.actualExerciseId==exerciseId && workouts.any { w -> w.id==it.workoutId && w.status=="FINISHED" } }.map { it.id }.toSet()

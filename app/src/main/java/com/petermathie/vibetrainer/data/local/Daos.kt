@@ -225,7 +225,10 @@ interface WorkoutDao {
         WHERE w.status = 'FINISHED' AND w.finishedAt IS NOT NULL
           AND ws.setType = 'WORKING'
           AND ws.result = 'COMPLETED'
-          AND (COALESCE(ws.reps, 0) > 0 OR COALESCE(ws.holdMillis, 0) > 0 OR COALESCE(ws.weightKg, 0) > 0)
+          AND ws.romValue IS NULL
+          AND (COALESCE(ws.reps, 0) > 0 OR COALESCE(ws.holdMillis, 0) > 0
+            OR COALESCE(ws.leftReps, 0) > 0 OR COALESCE(ws.rightReps, 0) > 0
+            OR COALESCE(ws.leftHoldMillis, 0) > 0 OR COALESCE(ws.rightHoldMillis, 0) > 0)
         ORDER BY w.finishedAt DESC
         """,
     )
@@ -250,7 +253,7 @@ interface TrackerDao {
         """
         SELECT v.epochDay, f.trackerId,
           CASE
-            WHEN f.targetComparison IS NULL THEN (v.numericValue IS NOT NULL OR v.booleanValue IS NOT NULL OR v.textValue IS NOT NULL)
+            WHEN f.targetComparison IS NULL THEN (v.numericValue IS NOT NULL OR v.booleanValue = 1 OR v.textValue IS NOT NULL)
             WHEN f.targetComparison = 'AT_LEAST' THEN COALESCE(v.numericValue, 0) >= COALESCE(f.targetValue, 0)
             WHEN f.targetComparison = 'AT_MOST' THEN COALESCE(v.numericValue, 0) <= COALESCE(f.targetValue, 0)
             WHEN f.targetComparison = 'EXACTLY' THEN COALESCE(v.numericValue, 0) = COALESCE(f.targetValue, 0)

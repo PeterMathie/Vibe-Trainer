@@ -135,7 +135,7 @@ class TrainingRepository @Inject constructor(
                         muscleId = muscleId,
                         lastTrainedAt = last,
                         band = RecencyCalculator.band(last, atMillis),
-                        contributingExerciseNames = recentRows.map { it.exerciseName }.distinct(),
+                        contributingExerciseNames = muscleRows.filter { it.finishedAt == last }.map { it.exerciseName }.distinct(),
                         setEquivalents = recentRows.sumOf { MuscleRole.valueOf(it.role).setEquivalent },
                     )
                 }
@@ -148,7 +148,7 @@ class TrainingRepository @Inject constructor(
                 val epochDay = Instant.ofEpochMilli(row.epochMillis).atZone(zoneId).toLocalDate().toEpochDay()
                 counts[epochDay] = counts.getOrDefault(epochDay, 0) + 1
             }
-            trackerRows.filter { it.targetMet }.groupBy { it.epochDay to it.trackerId }.keys.forEach { (day, _) ->
+            trackerRows.groupBy { it.epochDay to it.trackerId }.filterValues { rows -> rows.all { it.targetMet } }.keys.forEach { (day, _) ->
                 counts[day] = counts.getOrDefault(day, 0) + 1
             }
             counts.map { ActivityDay(it.key, it.value) }.sortedBy { it.epochDay }

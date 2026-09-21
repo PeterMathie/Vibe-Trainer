@@ -54,6 +54,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -119,7 +120,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
     val exercises by viewModel.exerciseResults.collectAsStateWithLifecycle()
     var destination by rememberSaveable { mutableStateOf(Destination.HOME) }
     var paletteId by rememberSaveable { mutableStateOf(prefs.getString("palette",VibePalettes.MidnightLime.id)!!) }
-    val palette = VibePalettes.builtIns[paletteId] ?: VibePalettes.MidnightLime
+    val palette = if(paletteId=="custom") VibePalettes.MidnightLime.copy(id="custom",displayName="Custom",accent=Color(prefs.getInt("accent",0xFFC2F85A.toInt())),background=Color(prefs.getInt("background",0xFF081017.toInt())),surface=Color(prefs.getInt("surface",0xFF101B23.toInt()))) else VibePalettes.builtIns[paletteId] ?: VibePalettes.MidnightLime
 
     VibeTrainerTheme(palette) {
         if (state.selectedHistoryDay != null) {
@@ -127,6 +128,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
             HistoryDayScreen(
                 state = state,
                 onBack = { viewModel.selectHistoryDay(null) },
+                onDayChange = viewModel::selectHistoryDay,
             )
             return@VibeTrainerTheme
         }
@@ -243,6 +245,7 @@ private fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinu
                         color = LocalVibePalette.current.textSecondary,
                     )
                     selected?.contributingExerciseNames?.takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(), color = LocalVibePalette.current.textFaint) }
+                    selected?.lastTrainedAt?.let { Text("Last trained: ${java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy HH:mm"))}") }
                 }
             }
         }
@@ -259,11 +262,17 @@ private fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinu
 }
 
 @Composable
-private fun ActivityHeatmap(days: List<ActivityDay>, onDayClick: (Long) -> Unit) {
+fun ActivityHeatmap(days: List<ActivityDay>, onDayClick: (Long) -> Unit) {
     val palette = LocalVibePalette.current
     val counts = days.associate { it.epochDay to it.activityCount }
-    val today = LocalDate.now().toEpochDay()
+    var offset by rememberSaveable { mutableStateOf(0L) }
+    val today = LocalDate.now().toEpochDay() + offset
     val start = today - 34
+    Row {
+        TextButton(onClick={offset-=35}){Text("Earlier")}
+        Text("${LocalDate.ofEpochDay(start)} – ${LocalDate.ofEpochDay(today)}",Modifier.weight(1f),style=MaterialTheme.typography.labelSmall)
+        TextButton(onClick={offset=(offset+35).coerceAtMost(0)},enabled=offset<0){Text("Later")}
+    }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         repeat(5) { week ->
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -524,7 +533,7 @@ private fun ExerciseLibraryScreen(exercises: List<ExerciseSummary>, onSearch: (S
 }
 
 @Composable
-private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit) {
+private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange: (Long) -> Unit) {
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     val day = state.selectedHistoryDay ?: return
     val date = LocalDate.ofEpochDay(day)
@@ -538,6 +547,13 @@ private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit) {
                     Text("Reconstructed from records up to the end of this day", color = LocalVibePalette.current.textSecondary)
                 }
             }
+        }
+        item {
+            Row {
+                TextButton(onClick={onDayChange(day-1)}){Text("Previous day")}
+                TextButton(onClick={onDayChange(day+1)},enabled=day<LocalDate.now().toEpochDay()){Text("Next day")}
+            }
+            androidx.compose.material3.Slider(value=day.toFloat(),onValueChange={onDayChange(it.toLong())},valueRange=(LocalDate.now().toEpochDay()-365).toFloat()..LocalDate.now().toEpochDay().toFloat(),steps=364)
         }
         item {
             VibeCard {
@@ -576,6 +592,11 @@ private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit) {
 
 @Composable
 private fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemoveDemo: () -> Unit) {
+    val prefs=LocalContext.current.getSharedPreferences("settings",0)
+    var accent by remember { mutableStateOf("#C2F85A") }
+    var background by remember { mutableStateOf("#081017") }
+    var surface by remember { mutableStateOf("#101B23") }
+    var invalid by remember { mutableStateOf(false) }
     ScreenList {
         item {
             Text("Style", style = MaterialTheme.typography.headlineLarge)
@@ -583,6 +604,19 @@ private fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemove
         }
         items(VibePalettes.builtIns.values.toList(), key = { it.id }) { palette ->
             PaletteCard(palette, selectedId == palette.id) { onSelect(palette.id) }
+        }
+        item {
+            VibeCard {
+                Text("Custom palette")
+                EditField("Accent hex",accent){accent=it};EditField("Background hex",background){background=it};EditField("Surface hex",surface){surface=it}
+                Button(onClick={
+                    try {
+                        prefs.edit().putInt("accent",android.graphics.Color.parseColor(accent)).putInt("background",android.graphics.Color.parseColor(background)).putInt("surface",android.graphics.Color.parseColor(surface)).apply()
+                        onSelect("custom");invalid=false
+                    }catch(_:IllegalArgumentException){invalid=true}
+                }){Text("Apply custom palette")}
+                if(invalid)Text("Use valid hex colours, for example #C2F85A")
+            }
         }
         item {
             VibeCard {

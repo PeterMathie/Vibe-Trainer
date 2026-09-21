@@ -45,6 +45,8 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
             SettingToggle("Haptics",haptic){haptic=it;prefs.edit().putBoolean("haptic",it).apply()}
             SettingToggle("Reduced motion",reduced){reduced=it;prefs.edit().putBoolean("reducedMotion",it).apply()}
             TextButton(onClick={if(Build.VERSION.SDK_INT>=33)notify.launch(Manifest.permission.POST_NOTIFICATIONS) else message="Notifications are enabled in Android settings"}){Text("Enable timer notifications")}
+            if(Build.VERSION.SDK_INT>=31) TextButton(onClick={context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:${context.packageName}")))}){Text("Allow precise background timers")}
+            if(Build.VERSION.SDK_INT>=31 && !context.getSystemService(android.app.AlarmManager::class.java).canScheduleExactAlarms()) Text("Without precise-timer permission, Android may delay background alerts.")
             TextButton(onClick={RestTimer.cancel(context);message="Timer cancelled"}){Text("Cancel rest timer")}
             Text("Plate calculator (${if(lb)"lb" else "kg"})")
             EditField("Total load",target){target=it};EditField("Bar weight",bar){bar=it}
@@ -85,6 +87,11 @@ fun MeasurementsScreen(vm:EditorViewModel) {
             val bitmap=remember(file){android.graphics.BitmapFactory.decodeFile(file.path,android.graphics.BitmapFactory.Options().apply{inSampleSize=4})}
             bitmap?.let { androidx.compose.foundation.Image(it.asImageBitmap(),contentDescription="Progress photo ${file.name}",modifier=Modifier.fillMaxWidth().height(240.dp)) }
         }
-        items(rows,key={it.id}){row->Row { Text("${row.metric}: ${row.value} ${row.unit}",Modifier.weight(1f));TextButton(onClick={vm.removeMeasurement(row.id)}){Text("Delete")} }
+        items(rows,key={it.id}) { row ->
+            Row {
+                Text("${row.metric}: ${row.value} ${row.unit}",Modifier.weight(1f))
+                TextButton(onClick={vm.removeMeasurement(row.id)}) { Text("Delete") }
+            }
+        }
     }
 }

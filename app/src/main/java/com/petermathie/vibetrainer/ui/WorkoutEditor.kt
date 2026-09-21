@@ -24,6 +24,8 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
     val definitions by vm.exercises.collectAsStateWithLifecycle()
     val measurements by vm.measurements.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var restRemaining by remember { mutableStateOf(0L) }
+    LaunchedEffect(Unit) { while(true) { restRemaining=(context.getSharedPreferences("settings",0).getLong("restEnd",0)-System.currentTimeMillis()).coerceAtLeast(0)/1000;kotlinx.coroutines.delay(500) } }
     val workout = workouts.find { it.id == workoutId }
     var add by remember { mutableStateOf(false) }
     var editNotes by remember { mutableStateOf(false) }
@@ -39,6 +41,7 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             Text(workout.name, style = MaterialTheme.typography.headlineSmall)
+            if(restRemaining>0) TextButton(onClick={RestTimer.cancel(context)}) { Text("Rest: ${restRemaining/60}:${(restRemaining%60).toString().padStart(2,'0')} · cancel") }
             if (logged.isNotEmpty()) Text("Logged duration: ${((logged.maxOf { it.loggedAt } - logged.minOf { it.loggedAt }) / 60000)} min")
             Row {
                 TextButton(onClick = { editNotes = true }) { Text("Workout notes") }
@@ -98,7 +101,13 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
             OutlinedTextField(rpe, { rpe = it }, label = { Text("RPE") }, singleLine = true, modifier = Modifier.width(70.dp))
             TextButton(onClick = {
                 val parsed = parsePerformance(emptySet(row.id, (sets.maxOfOrNull { it.ordinal } ?: 0) + 1), result, hold, exercise?.trackingType == "WEIGHT_REPS", lb)
-                if (parsed != null && (rpe.isBlank() || rpe.toDoubleOrNull()?.let { it in 0.0..10.0 } == true)) { vm.saveSet(parsed.copy(rpe = rpe.toDoubleOrNull()), emptyList()); result = ""; rpe = ""; onSaved() }
+                if (parsed != null && (rpe.isBlank() || rpe.toDoubleOrNull()?.let { it in 0.0..10.0 } == true)) {
+                    vm.saveSet(parsed.copy(rpe = rpe.toDoubleOrNull()), emptyList()); result = ""; rpe = ""; onSaved()
+                    if(context.getSharedPreferences("settings",0).getBoolean("haptic",true)) {
+                        val vibrator=context.getSystemService(android.os.Vibrator::class.java)
+                        if(android.os.Build.VERSION.SDK_INT>=26)vibrator.vibrate(android.os.VibrationEffect.createOneShot(30,android.os.VibrationEffect.DEFAULT_AMPLITUDE)) else vibrator.vibrate(30)
+                    }
+                }
             }) { Text("+") }
         }
         if (hold) TextButton(onClick = { if (timerStart == null) timerStart = android.os.SystemClock.elapsedRealtime() else { result = (elapsed / 1000.0).toString(); timerStart = null } }) { Text(if (timerStart == null) "Start hold timer" else "Stop · ${elapsed / 1000.0}s") }
@@ -175,6 +184,10 @@ private fun SetDetails(vm: EditorViewModel, original: WorkoutSetEntity, exercise
         val base = parsePerformance(original, if(failed) { if(weighted) "0 x 0" else "0" } else performance, hold, weighted, lb)
         if (rpe.isNotBlank() && (rpe.toDoubleOrNull() == null || rpe.toDouble() !in 0.0..10.0)) { error = "RPE must be 0–10" }
         else if (base == null && rom.toDoubleOrNull() == null && left.toDoubleOrNull() == null && right.toDoubleOrNull() == null) { error = "Enter a valid result" }
-        else save((base ?: original).copy(setType = if(warmup) "WARM_UP" else "WORKING", result = if(failed) "FAILED" else "COMPLETED", variationId = variant, rpe = rpe.toDoubleOrNull(), leftReps = if(!hold) left.toIntOrNull() else null, rightReps = if(!hold) right.toIntOrNull() else null, leftHoldMillis = if(hold) left.toDoubleOrNull()?.times(1000)?.toLong() else null, rightHoldMillis = if(hold) right.toDoubleOrNull()?.times(1000)?.toLong() else null, addedWeightKg = added.toDoubleOrNull(), assistanceKg = assistance.toDoubleOrNull(), romValue = rom.toDoubleOrNull(), romUnit = unit, updatedAt = System.currentTimeMillis()), selected)
+        else {
+            var saved=(base ?: original).copy(setType = if(warmup) "WARM_UP" else "WORKING", result = if(failed) "FAILED" else "COMPLETED", variationId = variant, rpe = rpe.toDoubleOrNull(), leftReps = if(!hold) left.toIntOrNull() else null, rightReps = if(!hold) right.toIntOrNull() else null, leftHoldMillis = if(hold) left.toDoubleOrNull()?.times(1000)?.toLong() else null, rightHoldMillis = if(hold) right.toDoubleOrNull()?.times(1000)?.toLong() else null, addedWeightKg = added.toDoubleOrNull(), assistanceKg = assistance.toDoubleOrNull(), romValue = rom.toDoubleOrNull(), romUnit = unit, updatedAt = System.currentTimeMillis())
+            if(failed) saved=saved.copy(reps=0,holdMillis=0,leftReps=0,rightReps=0,leftHoldMillis=0,rightHoldMillis=0,romValue=null)
+            save(saved, selected)
+        }
     }) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }
