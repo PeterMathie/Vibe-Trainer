@@ -44,6 +44,7 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                         TextButton(onClick = { vm.duplicate(p) }) { Text("Duplicate") }
                         TextButton(onClick = { vm.save(p.copy(isArchived = true)) }) { Text("Archive") }
                     }
+                    Row { TextButton(onClick={vm.moveProgramme(p.id,-1)}){Text("Move up")};TextButton(onClick={vm.moveProgramme(p.id,1)}){Text("Move down")} }
                 } }
             }
         } else if (dayId == null) {
@@ -58,7 +59,8 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                         TextButton(onClick = { editDay = d }) { Text("Rename") }
                     }
                     Row {
-                        TextButton(onClick = { val i = siblings.indexOf(d); if (i > 0) { vm.save(d.copy(position = siblings[i-1].position)); vm.save(siblings[i-1].copy(position = d.position)) } }, enabled = siblings.firstOrNull()?.id != d.id) { Text("Move up") }
+                        TextButton(onClick = { vm.moveDay(d.id,-1) }, enabled = siblings.firstOrNull()?.id != d.id) { Text("Move up") }
+                        TextButton(onClick = { vm.moveDay(d.id,1) }, enabled = siblings.lastOrNull()?.id != d.id) { Text("Down") }
                         TextButton(onClick = { vm.removeDay(d.id) }) { Text("Delete day") }
                     }
                 } }
@@ -73,7 +75,8 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                     e.supersetGroup?.let { Text("Circuit: $it") }
                     Row {
                         TextButton(onClick = { editEntry = e }) { Text("Targets") }
-                        TextButton(onClick = { val i = siblings.indexOf(e); if (i > 0) { vm.save(e.copy(position = siblings[i-1].position)); vm.save(siblings[i-1].copy(position = e.position)) } }, enabled = siblings.firstOrNull()?.id != e.id) { Text("Up") }
+                        TextButton(onClick = { vm.moveEntry(e.id,-1) }, enabled = siblings.firstOrNull()?.id != e.id) { Text("Up") }
+                        TextButton(onClick = { vm.moveEntry(e.id,1) }, enabled = siblings.lastOrNull()?.id != e.id) { Text("Down") }
                         TextButton(onClick = { vm.removeEntry(e.id) }) { Text("Remove") }
                     }
                 } }
@@ -90,9 +93,9 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
 }
 
 @Composable
-fun NameDialog(title: String, initial: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+fun NameDialog(title: String, initial: String, onDismiss: () -> Unit, allowEmpty: Boolean = false, onSave: (String) -> Unit) {
     var name by remember(initial) { mutableStateOf(initial) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { OutlinedTextField(name, { name = it }, singleLine = true) }, confirmButton = { TextButton(onClick = { onSave(name.trim()) }, enabled = name.isNotBlank()) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { OutlinedTextField(name, { name = it }, singleLine = !allowEmpty) }, confirmButton = { TextButton(onClick = { onSave(name.trim()) }, enabled = allowEmpty || name.isNotBlank()) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
 
 @Composable

@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 
 data class MainUiState(
     val mode: TrainingMode = TrainingMode.STRENGTH,
@@ -54,11 +56,12 @@ class MainViewModel @Inject constructor(
     private val selectedHistoryDay = MutableStateFlow<Long?>(null)
     private val searchQuery = MutableStateFlow("")
 
-    private val recency = combine(mode, selectedHistoryDay) { currentMode, day -> currentMode to day }
-        .flatMapLatest { (currentMode, day) ->
+    private val clock = flow { while (true) { emit(System.currentTimeMillis()); delay(30_000) } }
+    private val recency = combine(mode, selectedHistoryDay, clock) { currentMode, day, now -> Triple(currentMode, day, now) }
+        .flatMapLatest { (currentMode, day, now) ->
             val atMillis = day?.let { epochDay ->
                 LocalDate.ofEpochDay(epochDay).plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
-            } ?: System.currentTimeMillis()
+            } ?: now
             repository.observeMuscleRecency(currentMode, atMillis)
         }
 

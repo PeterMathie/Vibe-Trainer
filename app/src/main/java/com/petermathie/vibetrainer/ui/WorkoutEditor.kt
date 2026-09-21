@@ -30,6 +30,7 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
     var add by remember { mutableStateOf(false) }
     var editNotes by remember { mutableStateOf(false) }
     var bodyweight by remember { mutableStateOf(false) }
+    var editDate by remember { mutableStateOf(false) }
     if (workout == null) { Button(onClick = onChoose, modifier = Modifier.padding(16.dp)) { Text("Choose a programme") }; return }
     LaunchedEffect(workout.id, measurements) {
         if (workout.bodyweightKg == null) measurements.filter { it.metric == "Bodyweight" }.minByOrNull { kotlin.math.abs(it.recordedAt - workout.startedAt) }?.let {
@@ -47,6 +48,7 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
                 TextButton(onClick = { editNotes = true }) { Text("Workout notes") }
                 TextButton(onClick = { bodyweight = true }) { Text("Bodyweight: ${workout.bodyweightKg ?: "—"} kg") }
             }
+            if(workout.status=="FINISHED")TextButton(onClick={editDate=true}){Text("Change workout date")}
         }
         items(rows, key = { it.id }) { row ->
             val exercise = definitions.find { it.id == row.actualExerciseId }?.let { if(row.exerciseName.isNotBlank())it.copy(canonicalName=row.exerciseName,trackingType=row.trackingType) else it }
@@ -67,8 +69,15 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
             Button(onClick = { onFinish(workout.id) }, modifier = Modifier.fillMaxWidth()) { Text(if (workout.status == "FINISHED") "Done editing" else "Finish workout") }
         }
     }
-    if (editNotes) NameDialog("Workout notes", workout.notes, { editNotes = false }) { vm.save(workout.copy(notes = it)); editNotes = false }
+    if (editNotes) NameDialog("Workout notes", workout.notes, { editNotes = false }, allowEmpty = true) { vm.save(workout.copy(notes = it)); editNotes = false }
     if (bodyweight) NameDialog("Bodyweight in kg", workout.bodyweightKg?.toString().orEmpty(), { bodyweight = false }) { it.toDoubleOrNull()?.takeIf { n -> n > 0 }?.let { n -> vm.save(workout.copy(bodyweightKg = n)) }; bodyweight = false }
+    if(editDate)NameDialog("Workout date (YYYY-MM-DD)",Instant.ofEpochMilli(workout.finishedAt ?: workout.startedAt).atZone(ZoneId.systemDefault()).toLocalDate().toString(),{editDate=false}) { value ->
+        runCatching { java.time.LocalDate.parse(value) }.getOrNull()?.let { date ->
+            val old=Instant.ofEpochMilli(workout.finishedAt ?: workout.startedAt).atZone(ZoneId.systemDefault())
+            val end=date.atTime(old.toLocalTime()).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            vm.changeWorkoutDate(workout,end);editDate=false
+        }
+    }
     if (add) ExercisePicker(vm, { add = false }) { e -> vm.save(WorkoutExerciseEntity(newId(), workout.id, e.id, e.id, rows.size, "", 120, null)); add = false }
 }
 

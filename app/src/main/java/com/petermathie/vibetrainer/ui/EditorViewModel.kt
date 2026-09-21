@@ -8,6 +8,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.UUID
 
 fun newId(): String = UUID.randomUUID().toString()
@@ -37,11 +40,41 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     val values = dao.values().live()
     val measurements = dao.measurements().live()
     val error = MutableStateFlow<String?>(null)
-    private fun write(block: suspend () -> Unit) { viewModelScope.launch { try { block() } catch (e: Exception) { error.value = e.message ?: "Could not save" } } }
+    private val writes = Mutex()
+    private fun write(block: suspend () -> Unit) { viewModelScope.launch { writes.withLock { try { block() } catch (e: CancellationException) { throw e } catch (e: Exception) { error.value = e.message ?: "Could not save" } } } }
     fun save(row: ProgrammeEntity) = write { dao.programme(row) }
+    fun moveProgramme(id: String, delta: Int) = write {
+        val rows=dao.programmes().first().toMutableList()
+        val from=rows.indexOfFirst { it.id==id }; val to=from+delta
+        if(from>=0 && to in rows.indices) {
+            java.util.Collections.swap(rows,from,to)
+            db.withTransaction { rows.forEachIndexed { i,p -> dao.programme(p.copy(position=i)) } }
+        }
+    }
+    fun moveDay(id: String, delta: Int) = write {
+        val all=dao.days().first(); val selected=all.find { it.id==id } ?: return@write
+        val rows=all.filter { it.programmeId==selected.programmeId }.sortedBy { it.position }.toMutableList()
+        val from=rows.indexOfFirst { it.id==id }; val to=from+delta
+        if(to in rows.indices) { java.util.Collections.swap(rows,from,to); db.withTransaction { rows.forEachIndexed { i,d -> dao.day(d.copy(position=i)) } } }
+    }
+    fun moveEntry(id: String, delta: Int) = write {
+        val all=dao.entries().first(); val selected=all.find { it.id==id } ?: return@write
+        val rows=all.filter { it.programmeDayId==selected.programmeDayId }.sortedBy { it.position }.toMutableList()
+        val from=rows.indexOfFirst { it.id==id };val to=from+delta
+        if(to in rows.indices) {java.util.Collections.swap(rows,from,to);db.withTransaction {rows.forEachIndexed { i,e -> dao.entry(e.copy(position=i)) }}}
+    }
     fun save(row: ProgrammeDayEntity) = write { dao.day(row) }
     fun save(row: ProgrammeExerciseEntity) = write { dao.entry(row) }
     fun save(row: WorkoutEntity) = write { dao.workout(row) }
+    fun changeWorkoutDate(row: WorkoutEntity, end: Long) = write {
+        val delta=end-(row.finishedAt ?: row.startedAt)
+        val ids=dao.workoutExercises().first().filter { it.workoutId==row.id }.map { it.id }.toSet()
+        val sets=dao.sets().first().filter { it.workoutExerciseId in ids }
+        db.withTransaction {
+            dao.workout(row.copy(startedAt=row.startedAt+delta,finishedAt=end))
+            sets.forEach { dao.set(it.copy(loggedAt=it.loggedAt+delta,updatedAt=System.currentTimeMillis())) }
+        }
+    }
     fun save(row: WorkoutExerciseEntity) = write {
         db.withTransaction {
             val definition=dao.exerciseById(row.actualExerciseId)

@@ -18,6 +18,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import com.petermathie.vibetrainer.domain.model.AnatomySex
 import com.petermathie.vibetrainer.domain.model.MuscleRecencyBand
 import com.petermathie.vibetrainer.ui.theme.LocalVibePalette
@@ -60,6 +64,15 @@ fun MuscleMap(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(diagram.viewBoxWidth / diagram.viewBoxHeight)
+            .semantics {
+                contentDescription = "${sex.name.lowercase()} ${view.name.lowercase()} muscle recency map"
+                customActions = muscles.map { it.def.group }.distinct().map { group ->
+                    CustomAccessibilityAction("Inspect ${group.replace('_', ' ')}: ${(states[group] ?: MuscleRecencyBand.NEVER).name.lowercase().replace('_', ' ')}") {
+                        onMuscleTap(group)
+                        true
+                    }
+                }
+            }
             .pointerInput(diagram.id, muscles) {
                 detectTapGestures { tap ->
                     val scale = min(size.width / diagram.viewBoxWidth, size.height / diagram.viewBoxHeight)

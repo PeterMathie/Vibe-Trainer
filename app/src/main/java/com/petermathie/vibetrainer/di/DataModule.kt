@@ -23,6 +23,7 @@ object DataModule {
         Room.databaseBuilder(context, VibeDatabase::class.java, "vibe-trainer.db")
             .addMigrations(object : androidx.room.migration.Migration(1,2) {
                 override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE programmes ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
                     db.execSQL("ALTER TABLE workout_exercises ADD COLUMN exerciseName TEXT NOT NULL DEFAULT ''")
                     db.execSQL("ALTER TABLE workout_exercises ADD COLUMN trackingType TEXT NOT NULL DEFAULT ''")
                     db.execSQL("ALTER TABLE workout_exercises ADD COLUMN targets TEXT NOT NULL DEFAULT ''")

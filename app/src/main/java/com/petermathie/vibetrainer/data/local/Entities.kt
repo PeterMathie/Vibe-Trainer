@@ -103,6 +103,7 @@ data class ProgrammeEntity(
     val mode: String,
     val isDemo: Boolean,
     val isArchived: Boolean = false,
+    @androidx.room.ColumnInfo(defaultValue = "0") val position: Int = 0,
 )
 
 @Entity(

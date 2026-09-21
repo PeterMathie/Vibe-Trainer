@@ -23,7 +23,9 @@ fun ProgressScreen(vm:EditorViewModel) {
     val sets by vm.sets.collectAsStateWithLifecycle();val links by vm.setBands.collectAsStateWithLifecycle();val bands by vm.bands.collectAsStateWithLifecycle();val variations by vm.variations.collectAsStateWithLifecycle()
     var exerciseId by remember { mutableStateOf<String?>(null) };var picker by remember { mutableStateOf(false) };var filter by remember { mutableStateOf<String?>(null) };var selected by remember { mutableStateOf<Int?>(null) }
     val points=exerciseId?.let { SessionProgress.points(it,workouts,rows,sets,links,bands,filter,variations) }.orEmpty()
-    val valid=points.map { it.performance }
+    val finishedIds=workouts.filter { it.status=="FINISHED" }.map { it.id }.toSet()
+    val exerciseRows=rows.filter { it.actualExerciseId==exerciseId && it.workoutId in finishedIds }.map { it.id }.toSet()
+    val valid=sets.filter { it.workoutExerciseId in exerciseRows && SessionProgress.valid(it) && (filter==null || it.variationId==filter) }
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {
             Text("Progress",style=MaterialTheme.typography.headlineSmall)
@@ -31,13 +33,14 @@ fun ProgressScreen(vm:EditorViewModel) {
             TextButton(onClick={filter=null;selected=null}){Text(if(filter==null)"✓ All variations" else "All variations")}
             variations.filter { it.exerciseId==exerciseId }.forEach { v -> TextButton(onClick={filter=v.id;selected=null}){Text((if(filter==v.id)"✓ " else "")+v.name)} }
             if(points.size<3)Text("Raw performance shown until three valid sessions establish a baseline of 100.")
-            if(variations.any { it.exerciseId==exerciseId })Text("Skill sessions use the hardest completed variation, then its strongest set. Band-width scores and baselines are compared only within that variation.")
+            if(variations.any { it.exerciseId==exerciseId })Text("Overall skill index follows variation difficulty, with holds and assistance compared within each variation. It is a progress indicator, not a force measurement.")
             if(points.isNotEmpty()) {
                 MiniChart(points.map { it.index ?: it.score },points.map { it.trend }){selected=it}
                 val last=points.mapNotNull { it.trend }.takeLast(2)
                 if(last.size==2) Text(if(last[1]>last[0]*1.01)"Rising" else if(last[1]<last[0]*0.99)"Falling" else "Flat")
                 Text("RPE")
-                MiniChart(points.map { it.performance.rpe ?: 0.0 }){selected=it}
+                val rpePoints=points.withIndex().filter { it.value.performance.rpe!=null }
+                MiniChart(rpePoints.map { it.value.performance.rpe!! }){selected=rpePoints[it].index}
                 selected?.let { points.getOrNull(it) }?.let { p ->
                     Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")
                     Text("Bands: ${p.bands.joinToString().ifBlank { "None" }} · RPE ${p.performance.rpe ?: "not recorded"}")

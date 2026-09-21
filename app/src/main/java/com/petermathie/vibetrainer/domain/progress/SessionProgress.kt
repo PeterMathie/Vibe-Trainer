@@ -25,10 +25,19 @@ object SessionProgress {
                 score(s,w.bodyweightKg,used.sumOf { it.widthCentimetres })?.let { ProgressPoint(w.finishedAt ?: w.startedAt,it,s,rows.find { it.id==s.workoutExerciseId }?.notes.orEmpty(),s.variationId,used.map { it.name },rank=variations.find { it.id==s.variationId }?.progressionRank ?: 0) }
             }.maxWithOrNull(compareBy<ProgressPoint> { it.rank }.thenBy { it.score })
         }
-        val indexed=raw.map { point ->
-            val comparable=raw.filter { it.variation==point.variation }
-            point.copy(index=if(comparable.size<3)null else ProgressScorer.progressIndex(point.score,comparable.take(3).map { it.score }))
+        val skillLevels=variations.filter { it.exerciseId==exerciseId }.sortedBy { it.progressionRank }.map { it.id }
+        val sessionScores=raw.map { point ->
+            if(filter!=null || skillLevels.isEmpty()) point.score
+            else {
+                val peers=raw.filter { it.variation==point.variation }.take(3)
+                val reference=peers.map { it.score }.average().coerceAtLeast(0.000001)
+                val relative=point.score/reference
+                val level=(skillLevels.indexOf(point.variation)+1).coerceAtLeast(1)
+                // Ordered level dominates; duration/assistance contributes only relative to the same variation.
+                level*100.0+50.0*relative/(1.0+relative)
+            }
         }
+        val indexed=raw.mapIndexed { i,point -> point.copy(index=ProgressScorer.progressIndex(sessionScores[i],sessionScores.take(3))) }
         return indexed.mapIndexed { i,p -> val values=indexed.take(i+1).takeLast(3).mapNotNull { it.index }; p.copy(trend=if(values.size==3)values.average() else null) }
     }
 }
