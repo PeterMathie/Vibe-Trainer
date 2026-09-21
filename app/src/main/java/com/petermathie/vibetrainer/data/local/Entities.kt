@@ -209,7 +209,13 @@ data class WorkoutExerciseEntity(
     val notes: String,
     val restSeconds: Int,
     val supersetGroup: String?,
+    @androidx.room.ColumnInfo(defaultValue = "''") val exerciseName: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "''") val trackingType: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "''") val targets: String = "",
 )
+
+@Entity(tableName="workout_muscles",primaryKeys=["workoutExerciseId","muscleId"],foreignKeys=[ForeignKey(entity=WorkoutExerciseEntity::class,parentColumns=["id"],childColumns=["workoutExerciseId"],onDelete=ForeignKey.CASCADE)],indices=[Index("workoutExerciseId")])
+data class WorkoutMuscleEntity(val workoutExerciseId:String,val muscleId:String,val role:String)
 
 @Entity(
     tableName = "workout_sets",

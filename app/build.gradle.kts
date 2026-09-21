@@ -65,4 +65,6 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test:core-ktx:1.7.0")
     androidTestImplementation("androidx.room:room-testing:2.8.1")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.9.2")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.9.2")
 }

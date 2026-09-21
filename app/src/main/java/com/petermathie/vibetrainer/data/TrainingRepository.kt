@@ -59,6 +59,7 @@ class TrainingRepository @Inject constructor(
         val day = requireNotNull(programmeDao.day(dayId))
         val mode = requireNotNull(programmeDao.modeForDay(dayId))
         val exercises = programmeDao.exercisesForDay(dayId)
+        val targets = database.editorDao().programmeEntries(dayId)
         val workoutId = UUID.randomUUID().toString()
         workoutDao.insertWorkout(
             WorkoutEntity(
@@ -74,8 +75,9 @@ class TrainingRepository @Inject constructor(
                 isDemo = false,
             ),
         )
-        workoutDao.insertWorkoutExercises(exercises.map { row ->
-            WorkoutExerciseEntity(
+        exercises.forEach { row ->
+            val target=targets.find { it.id==row.id }
+            val snapshot=WorkoutExerciseEntity(
                 id = UUID.randomUUID().toString(),
                 workoutId = workoutId,
                 plannedExerciseId = row.exerciseId,
@@ -84,8 +86,13 @@ class TrainingRepository @Inject constructor(
                 notes = row.notes,
                 restSeconds = row.restSeconds,
                 supersetGroup = row.supersetGroup,
+                exerciseName = row.canonicalName,
+                trackingType = row.trackingType,
+                targets = target?.let { "${it.targetSets ?: 3} sets · ${it.targetRepsMin ?: it.targetHoldSeconds ?: 0}${if(it.targetHoldSeconds!=null) " seconds" else " reps"} · RPE ${it.targetRpe ?: "—"}" }.orEmpty(),
             )
-        })
+            workoutDao.insertWorkoutExercises(listOf(snapshot))
+            database.editorDao().workoutMuscles(database.editorDao().muscleMappings(row.exerciseId).map { com.petermathie.vibetrainer.data.local.WorkoutMuscleEntity(snapshot.id,it.muscleId,it.role) })
+        }
         workoutId
     }
 

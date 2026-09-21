@@ -5,6 +5,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EditorDao {
+    @Query("SELECT * FROM exercises WHERE id=:id") suspend fun exerciseById(id:String):ExerciseEntity?
+    @Query("SELECT * FROM exercise_muscles WHERE exerciseId=:id") suspend fun muscleMappings(id:String):List<ExerciseMuscleEntity>
+    @Query("SELECT * FROM programme_exercises WHERE programmeDayId=:day ORDER BY position") suspend fun programmeEntries(day:String):List<ProgrammeExerciseEntity>
+    @Query("DELETE FROM workout_muscles WHERE workoutExerciseId=:id") suspend fun clearWorkoutMuscles(id:String)
+    @Upsert suspend fun workoutMuscles(rows:List<WorkoutMuscleEntity>)
     @Query("SELECT * FROM programmes WHERE isArchived = 0 ORDER BY name") fun programmes(): Flow<List<ProgrammeEntity>>
     @Query("SELECT * FROM programme_days ORDER BY position") fun days(): Flow<List<ProgrammeDayEntity>>
     @Query("SELECT * FROM programme_exercises ORDER BY position") fun entries(): Flow<List<ProgrammeExerciseEntity>>

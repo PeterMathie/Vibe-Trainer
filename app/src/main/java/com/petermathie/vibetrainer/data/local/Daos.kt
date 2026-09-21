@@ -148,6 +148,8 @@ interface ProgrammeDao {
 
 @Dao
 interface WorkoutDao {
+    @Query("SELECT COUNT(*) FROM workouts WHERE isDemo = 1")
+    suspend fun demoCount(): Int
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkout(row: WorkoutEntity)
 
@@ -175,7 +177,8 @@ interface WorkoutDao {
     @Query(
         """
         SELECT we.id AS workoutExerciseId, we.plannedExerciseId, we.actualExerciseId,
-               e.canonicalName, e.trackingType, we.position, we.notes, we.restSeconds
+               COALESCE(NULLIF(we.exerciseName,''),e.canonicalName) AS canonicalName,
+               COALESCE(NULLIF(we.trackingType,''),e.trackingType) AS trackingType, we.position, we.notes, we.restSeconds
         FROM workout_exercises we
         JOIN exercises e ON e.id = we.actualExerciseId
         WHERE we.workoutId = :workoutId
@@ -214,14 +217,21 @@ interface WorkoutDao {
 
     @Query(
         """
+        WITH mappings AS (
+          SELECT workoutExerciseId,muscleId,role FROM workout_muscles
+          UNION ALL
+          SELECT we.id AS workoutExerciseId,em.muscleId,em.role FROM workout_exercises we
+          JOIN exercise_muscles em ON em.exerciseId=we.actualExerciseId
+          WHERE NOT EXISTS (SELECT 1 FROM workout_muscles wm WHERE wm.workoutExerciseId=we.id)
+        )
         SELECT w.id AS workoutId, w.finishedAt AS finishedAt, w.mode AS mode,
-               e.canonicalName AS exerciseName,
+               COALESCE(NULLIF(we.exerciseName,''),e.canonicalName) AS exerciseName,
                em.muscleId AS muscleId, em.role AS role
         FROM workouts w
         JOIN workout_exercises we ON we.workoutId = w.id
         JOIN workout_sets ws ON ws.workoutExerciseId = we.id
         JOIN exercises e ON e.id = we.actualExerciseId
-        JOIN exercise_muscles em ON em.exerciseId = we.actualExerciseId
+        JOIN mappings em ON em.workoutExerciseId = we.id
         WHERE w.status = 'FINISHED' AND w.finishedAt IS NOT NULL
           AND ws.setType = 'WORKING'
           AND ws.result = 'COMPLETED'
@@ -251,18 +261,23 @@ interface TrackerDao {
 
     @Query(
         """
-        SELECT v.epochDay, f.trackerId,
-          CASE
-            WHEN f.targetComparison IS NULL THEN (v.numericValue IS NOT NULL OR v.booleanValue = 1 OR v.textValue IS NOT NULL)
-            WHEN f.targetComparison = 'AT_LEAST' THEN COALESCE(v.numericValue, 0) >= COALESCE(f.targetValue, 0)
-            WHEN f.targetComparison = 'AT_MOST' THEN COALESCE(v.numericValue, 0) <= COALESCE(f.targetValue, 0)
-            WHEN f.targetComparison = 'EXACTLY' THEN COALESCE(v.numericValue, 0) = COALESCE(f.targetValue, 0)
-            ELSE 0
-          END AS targetMet
-        FROM tracker_daily_values v
-        JOIN tracker_fields f ON f.id = v.fieldId
-        JOIN trackers t ON t.id = f.trackerId
-        WHERE t.isArchived = 0
+        SELECT days.epochDay,days.trackerId,
+          CASE WHEN EXISTS (SELECT 1 FROM tracker_fields f WHERE f.trackerId=days.trackerId AND f.targetComparison IS NOT NULL)
+          THEN NOT EXISTS (
+            SELECT 1 FROM tracker_fields f LEFT JOIN tracker_daily_values v ON v.fieldId=f.id AND v.epochDay=days.epochDay
+            WHERE f.trackerId=days.trackerId AND f.targetComparison IS NOT NULL AND (
+              v.numericValue IS NULL OR
+              CASE f.targetComparison WHEN 'AT_LEAST' THEN v.numericValue < f.targetValue
+                WHEN 'AT_MOST' THEN v.numericValue > f.targetValue
+                WHEN 'EXACTLY' THEN v.numericValue != f.targetValue ELSE 1 END
+            )
+          ) ELSE EXISTS (
+            SELECT 1 FROM tracker_daily_values v JOIN tracker_fields f ON f.id=v.fieldId
+            WHERE f.trackerId=days.trackerId AND v.epochDay=days.epochDay
+              AND (v.numericValue IS NOT NULL OR v.booleanValue=1 OR v.textValue IS NOT NULL)
+          ) END AS targetMet
+        FROM (SELECT DISTINCT v.epochDay,f.trackerId FROM tracker_daily_values v JOIN tracker_fields f ON f.id=v.fieldId) days
+        JOIN trackers t ON t.id=days.trackerId WHERE t.isArchived=0
         """,
     )
     fun observeActivityValues(): Flow<List<ActivityTrackerRow>>

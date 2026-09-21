@@ -37,6 +37,12 @@ jobs:
       - name: Unit tests and debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace
 
+      - name: Enable emulator hardware acceleration
+        run: |
+          sudo chown "$USER":kvm /dev/kvm
+          sudo chmod 660 /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+
       - name: Verify end-to-end workflow in emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -44,6 +50,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
+          disable-linux-hw-accel: false
           script: gradle :app:connectedDebugAndroidTest --stacktrace
 
       - name: Upload debug APK
@@ -51,3 +58,14 @@ jobs:
         with:
           name: vibe-trainer-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload test reports and Room schemas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-reports
+          path: |
+            app/build/reports/tests/
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+            app/schemas/

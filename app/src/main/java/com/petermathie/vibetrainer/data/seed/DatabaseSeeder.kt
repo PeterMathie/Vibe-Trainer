@@ -51,6 +51,10 @@ class DatabaseSeeder @Inject constructor(
                 seedDemo()
                 database.metadataDao().put(SeedMetadataEntity(DEMO_KEY, DEMO_VERSION))
             }
+            if (BuildConfig.DEBUG && database.metadataDao().version("progress_demo") == null) {
+                if(database.workoutDao().demoCount() > 0) seedProgressDemo()
+                database.metadataDao().put(SeedMetadataEntity("progress_demo",1))
+            }
         }
     }
 
@@ -212,6 +216,24 @@ class DatabaseSeeder @Inject constructor(
             TrackerDailyValueEntity("demo-meditation-minutes", today - 1, 12.0, null, null, "", now),
             TrackerDailyValueEntity("demo-protein-grams", today - 2, 122.0, null, null, "", now),
         ).forEach { database.trackerDao().upsertValue(it) }
+    }
+
+    private suspend fun seedProgressDemo() {
+        val now=System.currentTimeMillis()
+        repeat(8) { index ->
+            val finished=now-(8-index)*7*86_400_000L
+            val id="demo-progress-$index"
+            database.workoutDao().insertWorkout(demoWorkout(id,"Demo — Push progression","demo-day-push",finished,TrainingMode.STRENGTH))
+            listOf("core:bench-press","core:planche").forEachIndexed { position, exercise ->
+                val row=WorkoutExerciseEntity("$id:$exercise",id,exercise,exercise,position,"Demo session ${index+1}: ${if(index%3==0)"Harder than usual" else "Controlled technique"}",180,null)
+                database.workoutDao().insertWorkoutExercises(listOf(row))
+                repeat(3) { ordinal ->
+                    val set=WorkoutSetEntity("${row.id}:$ordinal",row.id,ordinal+1,"WORKING","COMPLETED",if(position==1)"planche-tuck" else null,if(position==0)50.0+index*2.5 else null,if(position==0)6-ordinal else null,if(position==1)(6000L+index*1000-ordinal*500) else null,null,null,null,null,null,null,7.0+ordinal*.5,null,null,"",finished-600000+position*180000+ordinal*60000,finished)
+                    database.workoutDao().insertSet(set)
+                    if(position==1)database.workoutDao().insertSetBands(listOf(com.petermathie.vibetrainer.data.local.WorkoutSetBandEntity(set.id,BANDS[if(index<4)2 else 1].id,0)))
+                }
+            }
+        }
     }
 
     private fun demoWorkout(id: String, name: String, dayId: String, finishedAt: Long, mode: TrainingMode) = WorkoutEntity(

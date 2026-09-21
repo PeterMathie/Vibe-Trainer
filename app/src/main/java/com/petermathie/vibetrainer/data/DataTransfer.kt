@@ -8,7 +8,7 @@ import org.json.JSONObject
 
 /** Versioned, structured, portable records. Photos are deliberately separate. */
 object DataTransfer {
-    val tables=listOf("muscles","exercises","exercise_aliases","exercise_muscles","exercise_variations","bands","programmes","programme_days","programme_exercises","workouts","workout_exercises","workout_sets","workout_set_bands","trackers","tracker_fields","tracker_daily_values","body_measurements","seed_metadata")
+    val tables=listOf("muscles","exercises","exercise_aliases","exercise_muscles","exercise_variations","bands","programmes","programme_days","programme_exercises","workouts","workout_exercises","workout_muscles","workout_sets","workout_set_bands","trackers","tracker_fields","tracker_daily_values","body_measurements","seed_metadata")
     suspend fun export(db:VibeDatabase):String=withContext(Dispatchers.IO) {
         val root=JSONObject().put("format","vibe-trainer").put("version",1)
         val data=JSONObject()

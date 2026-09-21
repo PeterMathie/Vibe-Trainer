@@ -42,7 +42,17 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun save(row: ProgrammeDayEntity) = write { dao.day(row) }
     fun save(row: ProgrammeExerciseEntity) = write { dao.entry(row) }
     fun save(row: WorkoutEntity) = write { dao.workout(row) }
-    fun save(row: WorkoutExerciseEntity) = write { dao.workoutExercise(row) }
+    fun save(row: WorkoutExerciseEntity) = write {
+        db.withTransaction {
+            val definition=dao.exerciseById(row.actualExerciseId)
+            val changed=row.exerciseName.isBlank()
+            dao.workoutExercise(if(changed)row.copy(exerciseName=definition?.canonicalName.orEmpty(),trackingType=definition?.trackingType.orEmpty()) else row)
+            if(changed) {
+                dao.clearWorkoutMuscles(row.id)
+                dao.workoutMuscles(dao.muscleMappings(row.actualExerciseId).map { WorkoutMuscleEntity(row.id,it.muscleId,it.role) })
+            }
+        }
+    }
     fun save(row: TrackerEntity) = write { dao.tracker(row) }
     fun createTracker(row: TrackerEntity) = write {
         db.withTransaction {

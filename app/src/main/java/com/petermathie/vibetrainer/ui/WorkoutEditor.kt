@@ -49,7 +49,7 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
             }
         }
         items(rows, key = { it.id }) { row ->
-            val exercise = definitions.find { it.id == row.actualExerciseId }
+            val exercise = definitions.find { it.id == row.actualExerciseId }?.let { if(row.exerciseName.isNotBlank())it.copy(canonicalName=row.exerciseName,trackingType=row.trackingType) else it }
             val previousIds = snapshots.filter { it.actualExerciseId == row.actualExerciseId && it.workoutId != workout.id && workouts.any { w -> w.id == it.workoutId && w.status == "FINISHED" && (w.finishedAt ?: 0) < workout.startedAt } }.map { it.id }.toSet()
             val previous = sets.filter { it.workoutExerciseId in previousIds }.maxByOrNull { it.loggedAt }
             WorkoutExerciseCard(vm, row, exercise, sets.filter { it.workoutExerciseId == row.id }, previous) {
@@ -88,6 +88,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     val lb = context.getSharedPreferences("settings",0).getBoolean("lb",false)
     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(exercise?.canonicalName.orEmpty(), style = MaterialTheme.typography.titleMedium)
+        if(row.targets.isNotBlank())Text(row.targets,style=MaterialTheme.typography.bodySmall)
         previous?.let { Text("Previous: ${setDescription(it)}", style = MaterialTheme.typography.bodySmall) }
         row.supersetGroup?.let { Text("Circuit: $it · rest after round", style = MaterialTheme.typography.labelSmall) }
         sets.sortedBy { it.ordinal }.forEach { set ->
@@ -123,8 +124,8 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     } }
     if (substitute) ExercisePicker(vm, { substitute = false }) { e ->
         // Keep previously recorded results attached to their actual exercise.
-        if (sets.isEmpty()) vm.save(row.copy(actualExerciseId = e.id))
-        else vm.save(row.copy(id = newId(), actualExerciseId = e.id, position = row.position + 1, notes = ""))
+        if (sets.isEmpty()) vm.save(row.copy(actualExerciseId = e.id,exerciseName="",trackingType=""))
+        else vm.save(row.copy(id = newId(), actualExerciseId = e.id, position = row.position + 1, notes = "",exerciseName="",trackingType=""))
         substitute = false
     }
     edit?.let { SetDetails(vm, it, row.actualExerciseId, hold, exercise?.trackingType == "WEIGHT_REPS", lb, { edit = null }) { s, b -> vm.saveSet(s,b); edit = null; onSaved() } }
