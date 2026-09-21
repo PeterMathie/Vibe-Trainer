@@ -39,8 +39,7 @@ fun ProgressScreen(vm:EditorViewModel) {
                 val last=points.mapNotNull { it.trend }.takeLast(2)
                 if(last.size==2) Text(if(last[1]>last[0]*1.01)"Rising" else if(last[1]<last[0]*0.99)"Falling" else "Flat")
                 Text("RPE")
-                val rpePoints=points.withIndex().filter { it.value.performance.rpe!=null }
-                MiniChart(rpePoints.map { it.value.performance.rpe!! }){selected=rpePoints[it].index}
+                MiniChart(points.map { it.performance.rpe ?: Double.NaN }){selected=it}
                 selected?.let { points.getOrNull(it) }?.let { p ->
                     Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")
                     Text("Bands: ${p.bands.joinToString().ifBlank { "None" }} · RPE ${p.performance.rpe ?: "not recorded"}")
@@ -66,10 +65,11 @@ fun ProgressScreen(vm:EditorViewModel) {
 fun MiniChart(values:List<Double>,smooth:List<Double?> = emptyList(),onSelect:(Int)->Unit) {
     val color=MaterialTheme.colorScheme.primary; val secondary=MaterialTheme.colorScheme.secondary
     Canvas(Modifier.fillMaxWidth().height(150.dp).pointerInput(values){detectTapGestures { if(values.isNotEmpty())onSelect(((it.x/size.width)*(values.size-1)).toInt().coerceIn(values.indices)) }}) {
-        if(values.isEmpty())return@Canvas
-        val min=values.minOrNull() ?: 0.0;val max=values.maxOrNull() ?: 1.0;val span=(max-min).coerceAtLeast(1.0)
+        val finite=values.filter { it.isFinite() }
+        if(finite.isEmpty())return@Canvas
+        val min=finite.minOrNull() ?: 0.0;val max=finite.maxOrNull() ?: 1.0;val span=(max-min).coerceAtLeast(1.0)
         fun point(i:Int,v:Double)=Offset(if(values.size==1)size.width/2 else 8+(size.width-16)*i/(values.size-1),size.height-8-((v-min)/span*(size.height-16)).toFloat())
-        values.forEachIndexed { i,v -> if(i>0)drawLine(color,point(i-1,values[i-1]),point(i,v),3f);drawCircle(color,5f,point(i,v)) }
+        values.forEachIndexed { i,v -> if(v.isFinite()) { if(i>0 && values[i-1].isFinite())drawLine(color,point(i-1,values[i-1]),point(i,v),3f);drawCircle(color,5f,point(i,v)) } }
         smooth.forEachIndexed { i,v -> if(i>0 && v!=null && smooth[i-1]!=null)drawLine(secondary,point(i-1,smooth[i-1]!!),point(i,v),5f) }
     }
 }

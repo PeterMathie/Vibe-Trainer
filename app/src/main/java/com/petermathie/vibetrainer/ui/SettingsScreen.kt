@@ -73,26 +73,53 @@ private fun SettingToggle(label:String,value:Boolean,onChange:(Boolean)->Unit){R
 fun MeasurementsScreen(vm:EditorViewModel) {
     val rows by vm.measurements.collectAsStateWithLifecycle();val context=LocalContext.current;val scope=rememberCoroutineScope()
     var metric by remember{mutableStateOf("Bodyweight")};var value by remember{mutableStateOf("")};var unit by remember{mutableStateOf("kg")};var note by remember{mutableStateOf("")};var refresh by remember{mutableStateOf(0)}
+    var editing by remember { mutableStateOf<BodyMeasurementEntity?>(null) }
+    var message by remember { mutableStateOf("") }
     val directory=File(context.filesDir,"progress-photos")
-    val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch{withContext(Dispatchers.IO){directory.mkdirs();context.contentResolver.openInputStream(uri)?.use{input->File(directory,"${System.currentTimeMillis()}.jpg").outputStream().use{input.copyTo(it)}}};refresh++}}
-    val exporter=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")){uri->if(uri!=null)scope.launch{withContext(Dispatchers.IO){context.contentResolver.openOutputStream(uri)?.use { output -> ZipOutputStream(output).use { zip -> directory.listFiles().orEmpty().forEach { file -> zip.putNextEntry(ZipEntry(file.name));file.inputStream().use{it.copyTo(zip)};zip.closeEntry() } } }}}}
+    val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch{try{withContext(Dispatchers.IO){directory.mkdirs();requireNotNull(context.contentResolver.openInputStream(uri)).use{input->File(directory,"${System.currentTimeMillis()}.jpg").outputStream().use{input.copyTo(it)}}};refresh++;message="Photo added"}catch(e:Exception){message="Could not add photo: ${e.message}"}}}
+    val exporter=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        if(uri!=null) scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    requireNotNull(context.contentResolver.openOutputStream(uri)).use { output ->
+                        ZipOutputStream(output).use { zip ->
+                            directory.listFiles().orEmpty().forEach { file ->
+                                zip.putNextEntry(ZipEntry(file.name))
+                                file.inputStream().use { it.copyTo(zip) }
+                                zip.closeEntry()
+                            }
+                        }
+                    }
+                }
+                message="Photos exported"
+            } catch(e:Exception) { message="Could not export photos: ${e.message}" }
+        }
+    }
     val photos=remember(refresh){directory.listFiles().orEmpty().sortedByDescending{it.name}}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp)) {
         item {
             Text("Measurements and photos",style=MaterialTheme.typography.headlineSmall)
             EditField("Metric",metric){metric=it};EditField("Value",value){value=it};EditField("Unit",unit){unit=it};EditField("Notes",note){note=it}
-            Button(enabled=value.toDoubleOrNull()!=null&&metric.isNotBlank(),onClick={vm.save(BodyMeasurementEntity(newId(),System.currentTimeMillis(),metric,value.toDouble(),unit,note,false));value=""}){Text("Save measurement")}
+            Button(enabled=value.toDoubleOrNull()?.isFinite()==true&&metric.isNotBlank(),onClick={vm.save(BodyMeasurementEntity(newId(),System.currentTimeMillis(),metric,value.toDouble(),unit,note,false));value=""}){Text("Save measurement")}
             TextButton(onClick={picker.launch(arrayOf("image/*"))}){Text("Add progress photo")};TextButton(onClick={exporter.launch("progress-photos.zip")}){Text("Export photos separately")}
+            Text(message)
         }
         items(photos,key={it.name}){file->
             val bitmap=remember(file){android.graphics.BitmapFactory.decodeFile(file.path,android.graphics.BitmapFactory.Options().apply{inSampleSize=4})}
             bitmap?.let { androidx.compose.foundation.Image(it.asImageBitmap(),contentDescription="Progress photo ${file.name}",modifier=Modifier.fillMaxWidth().height(240.dp)) }
+            TextButton(onClick={if(file.delete()){refresh++;message="Photo removed"}else message="Could not remove photo"}){Text("Delete photo")}
         }
         items(rows,key={it.id}) { row ->
             Row {
                 Text("${row.metric}: ${row.value} ${row.unit}",Modifier.weight(1f))
+                TextButton(onClick={editing=row}) { Text("Edit") }
                 TextButton(onClick={vm.removeMeasurement(row.id)}) { Text("Delete") }
             }
         }
+    }
+    editing?.let { row ->
+        var amount by remember(row.id){mutableStateOf(row.value.toString())}
+        var notes by remember(row.id){mutableStateOf(row.notes)}
+        AlertDialog(onDismissRequest={editing=null},title={Text("${row.metric} (${row.unit})")},text={Column{EditField("Value",amount){amount=it};EditField("Notes",notes){notes=it}}},confirmButton={TextButton(enabled=amount.toDoubleOrNull()?.isFinite()==true,onClick={vm.save(row.copy(value=amount.toDouble(),notes=notes));editing=null}){Text("Save")}},dismissButton={TextButton(onClick={editing=null}){Text("Cancel")}})
     }
 }

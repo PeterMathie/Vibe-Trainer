@@ -56,7 +56,8 @@ class MainViewModel @Inject constructor(
     private val selectedHistoryDay = MutableStateFlow<Long?>(null)
     private val searchQuery = MutableStateFlow("")
 
-    private val clock = flow { while (true) { emit(System.currentTimeMillis()); delay(30_000) } }
+    private val clock = MutableStateFlow(System.currentTimeMillis())
+    init { viewModelScope.launch { while (true) { delay(30_000); clock.value=System.currentTimeMillis() } } }
     private val recency = combine(mode, selectedHistoryDay, clock) { currentMode, day, now -> Triple(currentMode, day, now) }
         .flatMapLatest { (currentMode, day, now) ->
             val atMillis = day?.let { epochDay ->
@@ -124,6 +125,7 @@ class MainViewModel @Inject constructor(
 
     fun finishWorkout(workoutId: String, onFinished: () -> Unit = {}) = viewModelScope.launch {
         repository.finishWorkout(workoutId)
+        clock.value=System.currentTimeMillis()
         onFinished()
     }
 

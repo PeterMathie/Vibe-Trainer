@@ -55,6 +55,10 @@ class DatabaseSeeder @Inject constructor(
                 if(database.workoutDao().demoCount() > 0) seedProgressDemo()
                 database.metadataDao().put(SeedMetadataEntity("progress_demo",1))
             }
+            // Demo records use the same historical snapshots as real workouts.
+            val sql=database.openHelper.writableDatabase
+            sql.execSQL("INSERT OR IGNORE INTO workout_muscles SELECT we.id,em.muscleId,em.role FROM workout_exercises we JOIN exercise_muscles em ON em.exerciseId=we.actualExerciseId WHERE we.exerciseName=''")
+            sql.execSQL("UPDATE workout_exercises SET exerciseName=(SELECT canonicalName FROM exercises WHERE id=actualExerciseId),trackingType=(SELECT trackingType FROM exercises WHERE id=actualExerciseId) WHERE exerciseName=''")
         }
     }
 

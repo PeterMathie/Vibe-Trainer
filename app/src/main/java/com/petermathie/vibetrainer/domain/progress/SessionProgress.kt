@@ -6,12 +6,15 @@ data class ProgressPoint(val date: Long, val score: Double, val performance: Wor
 
 object SessionProgress {
     fun valid(s: WorkoutSetEntity): Boolean = s.setType == "WORKING" && s.result == "COMPLETED" && s.romValue == null && ((s.reps ?: 0)>0 || (s.holdMillis ?: 0)>0 || (s.leftReps ?: 0)>0 || (s.rightReps ?: 0)>0 || (s.leftHoldMillis ?: 0)>0 || (s.rightHoldMillis ?: 0)>0)
-    fun score(s: WorkoutSetEntity, bodyweight: Double?, width: Double): Double? {
+    fun score(s: WorkoutSetEntity, bodyweight: Double?, width: Double, trackingType: String? = null): Double? {
         if(!valid(s)) return null
         val reps = s.reps ?: listOfNotNull(s.leftReps,s.rightReps).minOrNull() ?: 0
         val hold = s.holdMillis ?: listOfNotNull(s.leftHoldMillis,s.rightHoldMillis).minOrNull()
         if(hold != null && hold>0) return ProgressScorer.assistedHold(hold,width)
-        if(width>0) return ProgressScorer.assistedReps(reps,width)
+        if(width>0 || trackingType=="ASSISTED_REPS") {
+            val loadRatio=if(bodyweight!=null && bodyweight>0) ((bodyweight+(s.addedWeightKg ?: 0.0)-(s.assistanceKg ?: 0.0))/bodyweight).coerceAtLeast(0.0) else 1.0
+            return ProgressScorer.assistedReps(reps,width)*loadRatio
+        }
         val load = s.weightKg ?: bodyweight?.let { (it+(s.addedWeightKg ?: 0.0)-(s.assistanceKg ?: 0.0)).coerceAtLeast(0.0) }
         return if(load != null && load>0) ProgressScorer.weightedReps(load,reps) else reps.toDouble()
     }
@@ -22,7 +25,7 @@ object SessionProgress {
             val results=sets.filter { s -> rows.any { it.id==s.workoutExerciseId } && (filter==null || (s.variationId ?: "default")==filter) }
             results.mapNotNull { s ->
                 val used=links.filter { it.setId==s.id }.mapNotNull { l -> bands.find { it.id==l.bandId } }
-                score(s,w.bodyweightKg,used.sumOf { it.widthCentimetres })?.let { ProgressPoint(w.finishedAt ?: w.startedAt,it,s,rows.find { it.id==s.workoutExerciseId }?.notes.orEmpty(),s.variationId,used.map { it.name },rank=variations.find { it.id==s.variationId }?.progressionRank ?: 0) }
+                score(s,w.bodyweightKg,used.sumOf { it.widthCentimetres },rows.find { it.id==s.workoutExerciseId }?.trackingType)?.let { ProgressPoint(w.finishedAt ?: w.startedAt,it,s,rows.find { it.id==s.workoutExerciseId }?.notes.orEmpty(),s.variationId,used.map { it.name },rank=variations.find { it.id==s.variationId }?.progressionRank ?: 0) }
             }.maxWithOrNull(compareBy<ProgressPoint> { it.rank }.thenBy { it.score })
         }
         val skillLevels=variations.filter { it.exerciseId==exerciseId }.sortedBy { it.progressionRank }.map { it.id }

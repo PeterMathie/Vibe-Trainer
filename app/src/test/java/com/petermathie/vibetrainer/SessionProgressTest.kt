@@ -22,4 +22,11 @@ class SessionProgressTest {
         assertEquals(5,set.reps)
         assertNull(parsePerformance(set,"100 x -2",false,true,false))
     }
+    @Test fun removingLastBandKeepsTheSameAssistanceScale(){
+        val set=emptySet("e",1).copy(reps=5)
+        val band=SessionProgress.score(set,80.0,0.6,"ASSISTED_REPS")!!
+        val free=SessionProgress.score(set,80.0,0.0,"ASSISTED_REPS")!!
+        assertEquals(1.6,free/band,0.00001)
+        assertTrue(SessionProgress.score(set.copy(addedWeightKg=10.0),80.0,0.0,"ASSISTED_REPS")!!>free)
+    }
 }
