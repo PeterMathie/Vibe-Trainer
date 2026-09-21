@@ -27,7 +27,7 @@ Debug builds automatically load removable representative data: three strength pr
 - Immediate set autosave and recovery of one active draft after process death.
 - Drafts affect no history-derived view until **Finish workout**.
 - Finish immediately without incomplete-workout warnings.
-- Notes at workout, exercise and individual-set level.
+- Notes at workout and exercise level. Set logging stays deliberately compact; individual sets do not have notes.
 - Warm-up/working labels; failed/partial attempts are stored as zero and excluded from calculations.
 - Previous performance, substitutions, supersets and circuits.
 
@@ -48,7 +48,7 @@ Bands share material, thickness and length, so width is the relative assistance 
 
 Stacks add their widths. Band-assisted performance is compared only within the same exercise variation.
 
-Hold exercises provide a count-up timer that fills an editable duration. Rest timers can start automatically or manually, use group-level rules for supersets/circuits, and notify/vibrate in the Android background.
+Each set is logged in one compact row: one performance field, an optional RPE column and the relevant timer/action controls. Hold exercises provide a count-up timer that fills the editable performance field. Rest timers can start automatically or manually, use group-level rules for supersets/circuits, and notify/vibrate in the Android background.
 
 ## Muscle maps
 
@@ -75,7 +75,7 @@ The daily historical scrubber reconstructs maps from records at the end of the s
 - Skills account for structured progression level, hold/reps and assistance.
 - Raw performance only before three sessions; first three valid sessions establish index 100.
 - Rolling three-session line plus Rising/Flat/Falling label.
-- Graph points expose raw performance, RPE and notes.
+- Graph points expose raw performance, RPE and the exercise note recorded for that session.
 - PRs for weight, reps, estimated 1RM, holds and calculated performance.
 - ROM measurements live inside relevant stretches and remain separate from stretch recency.
 

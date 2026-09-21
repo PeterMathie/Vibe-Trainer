@@ -193,6 +193,16 @@ interface WorkoutDao {
     @Query("SELECT COUNT(*) FROM workout_sets")
     fun observeSetCount(): Flow<Int>
 
+    /**
+     * Observing this query invalidates the active-workout stream whenever an exercise
+     * snapshot changes, including an autosaved exercise note.
+     */
+    @Query("SELECT COUNT(*) FROM workout_exercises")
+    fun observeWorkoutExerciseChanges(): Flow<Int>
+
+    @Query("UPDATE workout_exercises SET notes = :notes WHERE id = :workoutExerciseId")
+    suspend fun updateExerciseNotes(workoutExerciseId: String, notes: String)
+
     @Query("SELECT * FROM workouts WHERE status = 'FINISHED' AND finishedAt IS NOT NULL ORDER BY finishedAt DESC")
     fun observeFinishedWorkouts(): Flow<List<WorkoutEntity>>
 

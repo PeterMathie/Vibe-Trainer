@@ -1,6 +1,7 @@
 package com.petermathie.vibetrainer.ui
 
 import android.os.SystemClock
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,6 +80,7 @@ import com.petermathie.vibetrainer.domain.model.SetDraft
 import com.petermathie.vibetrainer.domain.model.TrackingType
 import com.petermathie.vibetrainer.domain.model.TrainingMode
 import com.petermathie.vibetrainer.domain.model.WorkoutExerciseLog
+import com.petermathie.vibetrainer.domain.model.WorkoutSetLog
 import com.petermathie.vibetrainer.ui.anatomy.AnatomyView
 import com.petermathie.vibetrainer.ui.anatomy.MuscleMap
 import com.petermathie.vibetrainer.ui.theme.LocalVibePalette
@@ -107,6 +111,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
 
     VibeTrainerTheme(palette) {
         if (state.selectedHistoryDay != null) {
+            BackHandler { viewModel.selectHistoryDay(null) }
             HistoryDayScreen(
                 state = state,
                 onBack = { viewModel.selectHistoryDay(null) },
@@ -139,6 +144,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                     Destination.WORKOUT -> WorkoutScreen(
                         workout = state.activeWorkout,
                         onAddSet = viewModel::addSet,
+                        onExerciseNotesChange = viewModel::updateExerciseNotes,
                         onFinish = { id -> viewModel.finishWorkout(id) { destination = Destination.HOME } },
                         onChooseProgramme = { destination = Destination.PROGRAMMES },
                     )
@@ -205,6 +211,7 @@ private fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinu
                         states = state.recency.associate { it.muscleId to it.band },
                         onMuscleTap = { selectedMuscle = it },
                         modifier = Modifier.weight(1f),
+                        selectedMuscleId = selectedMuscle,
                     )
                     MuscleMap(
                         sex = AnatomySex.MALE,
@@ -212,6 +219,7 @@ private fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinu
                         states = state.recency.associate { it.muscleId to it.band },
                         onMuscleTap = { selectedMuscle = it },
                         modifier = Modifier.weight(1f),
+                        selectedMuscleId = selectedMuscle,
                     )
                 }
                 selectedMuscle?.let { muscle ->
@@ -293,6 +301,7 @@ private fun ProgrammeScreen(state: MainUiState, onStart: (String) -> Unit) {
 private fun WorkoutScreen(
     workout: ActiveWorkout?,
     onAddSet: (String, SetDraft) -> Unit,
+    onExerciseNotesChange: (String, String) -> Unit,
     onFinish: (String) -> Unit,
     onChooseProgramme: () -> Unit,
 ) {
@@ -313,7 +322,9 @@ private fun WorkoutScreen(
             Text(workout.name, style = MaterialTheme.typography.headlineMedium)
             Text("Every saved set is stored immediately. Recency updates only when you finish.", color = LocalVibePalette.current.textSecondary)
         }
-        items(workout.exercises, key = { it.id }) { exercise -> ExerciseLogger(exercise, onAddSet) }
+        items(workout.exercises, key = { it.id }) { exercise ->
+            ExerciseLogger(exercise, onAddSet, onExerciseNotesChange)
+        }
         item {
             Button(onClick = { onFinish(workout.id) }, modifier = Modifier.fillMaxWidth().height(54.dp)) {
                 Icon(Icons.Outlined.Check, null)
@@ -324,58 +335,86 @@ private fun WorkoutScreen(
 }
 
 @Composable
-private fun ExerciseLogger(exercise: WorkoutExerciseLog, onAddSet: (String, SetDraft) -> Unit) {
-    var weight by rememberSaveable(exercise.id) { mutableStateOf("") }
-    var reps by rememberSaveable(exercise.id) { mutableStateOf("") }
-    var seconds by rememberSaveable(exercise.id) { mutableStateOf("") }
+private fun ExerciseLogger(
+    exercise: WorkoutExerciseLog,
+    onAddSet: (String, SetDraft) -> Unit,
+    onExerciseNotesChange: (String, String) -> Unit,
+) {
+    var performance by rememberSaveable(exercise.id) { mutableStateOf("") }
     var rpe by rememberSaveable(exercise.id) { mutableStateOf("") }
-    var notes by rememberSaveable(exercise.id) { mutableStateOf("") }
+    var exerciseNotes by rememberSaveable(exercise.id) { mutableStateOf(exercise.notes) }
     val usesHold = exercise.trackingType in setOf(TrackingType.HOLD, TrackingType.SKILL_HOLD, TrackingType.ROM_MEASUREMENT)
+    val draft = parseCompactSet(exercise.trackingType, performance, rpe)
 
     VibeCard {
         Text(exercise.exerciseName, style = MaterialTheme.typography.titleLarge)
         if (exercise.sets.isNotEmpty()) {
             exercise.sets.forEach { set ->
-                Text(
-                    "Set ${set.ordinal}: " + listOfNotNull(
-                        set.weightKg?.let { "$it kg" },
-                        set.reps?.let { "× $it" },
-                        set.holdMillis?.let { "${it / 1000.0}s" },
-                        set.rpe?.let { "RPE $it" },
-                    ).joinToString(" · "),
-                    color = LocalVibePalette.current.textSecondary,
-                )
+                CompactSavedSet(set)
             }
         }
-        if (exercise.trackingType == TrackingType.WEIGHT_REPS) {
-            NumericField(weight, { weight = it }, "Weight (kg)", Modifier.fillMaxWidth())
-        }
-        if (!usesHold) NumericField(reps, { reps = it }, "Reps", Modifier.fillMaxWidth())
-        if (usesHold) {
-            HoldTimer(seconds = seconds, onSecondsChange = { seconds = it })
-        }
-        NumericField(rpe, { rpe = it }, "RPE (optional)", Modifier.fillMaxWidth())
-        OutlinedTextField(notes, { notes = it }, label = { Text("Set notes") }, modifier = Modifier.fillMaxWidth())
-        Button(
-            onClick = {
-                onAddSet(
-                    exercise.id,
-                    SetDraft(
-                        weightKg = weight.toDoubleOrNull(),
-                        reps = reps.toIntOrNull(),
-                        holdMillis = seconds.toDoubleOrNull()?.times(1000)?.toLong(),
-                        rpe = rpe.toDoubleOrNull(),
-                        notes = notes,
-                    ),
-                )
-                reps = ""; seconds = ""; rpe = ""; notes = ""
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = weight.isNotBlank() || reps.isNotBlank() || seconds.isNotBlank(),
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(Icons.Outlined.Add, null)
-            Text(" Save set")
+            OutlinedTextField(
+                value = performance,
+                onValueChange = { performance = it },
+                label = { Text(compactSetLabel(exercise.trackingType)) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedTextField(
+                value = rpe,
+                onValueChange = { value -> if (value.isEmpty() || value.matches(Regex("\\d*(\\.\\d*)?"))) rpe = value },
+                label = { Text("RPE") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.width(76.dp),
+            )
+            if (usesHold) {
+                HoldTimer(seconds = performance, onSecondsChange = { performance = it })
+            }
+            IconButton(
+                onClick = {
+                    draft?.let { onAddSet(exercise.id, it) }
+                    performance = ""
+                    rpe = ""
+                },
+                enabled = draft != null,
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(Icons.Outlined.Add, "Save set")
+            }
         }
+        OutlinedTextField(
+            value = exerciseNotes,
+            onValueChange = {
+                exerciseNotes = it
+                onExerciseNotesChange(exercise.id, it)
+            },
+            label = { Text("Exercise notes") },
+            minLines = 1,
+            maxLines = 3,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun CompactSavedSet(set: WorkoutSetLog) {
+    val performance = when {
+        set.weightKg != null && set.reps != null -> "${set.weightKg.cleanNumber()} × ${set.reps}"
+        set.holdMillis != null -> "${(set.holdMillis / 1000.0).cleanNumber()} sec"
+        set.reps != null -> "${set.reps} reps"
+        set.weightKg != null -> "${set.weightKg.cleanNumber()} kg"
+        else -> "No result"
+    }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text("${set.ordinal}", color = LocalVibePalette.current.textFaint, modifier = Modifier.width(28.dp))
+        Text(performance, color = LocalVibePalette.current.textSecondary, modifier = Modifier.weight(1f))
+        set.rpe?.let { Text("RPE ${it.cleanNumber()}", color = LocalVibePalette.current.textFaint) }
     }
 }
 
@@ -390,9 +429,7 @@ private fun HoldTimer(seconds: String, onSecondsChange: (String) -> Unit) {
             delay(50)
         }
     }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        NumericField(seconds, onSecondsChange, "Hold seconds", Modifier.weight(1f))
-        Button(onClick = {
+    IconButton(onClick = {
             if (running) {
                 displayedMillis = SystemClock.elapsedRealtime() - startedAt
                 running = false
@@ -404,10 +441,40 @@ private fun HoldTimer(seconds: String, onSecondsChange: (String) -> Unit) {
             }
         }) {
             Icon(if (running) Icons.Outlined.Stop else Icons.Outlined.PlayArrow, if (running) "Stop hold" else "Start hold")
-            Text(if (running) " %.1fs".format(displayedMillis / 1000.0) else " Timer")
+    }
+}
+
+private fun compactSetLabel(type: TrackingType): String = when (type) {
+    TrackingType.WEIGHT_REPS -> "kg × reps"
+    TrackingType.HOLD, TrackingType.SKILL_HOLD, TrackingType.ROM_MEASUREMENT -> "Seconds"
+    else -> "Reps"
+}
+
+private fun parseCompactSet(type: TrackingType, performance: String, rpe: String): SetDraft? {
+    val parsedRpe = rpe.takeIf { it.isNotBlank() }?.toDoubleOrNull() ?: if (rpe.isBlank()) null else return null
+    if (parsedRpe != null && parsedRpe !in 0.0..10.0) return null
+    val cleaned = performance.trim().lowercase().replace("kg", "").replace('×', 'x')
+    return when (type) {
+        TrackingType.WEIGHT_REPS -> {
+            val values = cleaned.split(Regex("\\s*x\\s*"), limit = 2)
+            val weight = values.getOrNull(0)?.trim()?.toDoubleOrNull()
+            val reps = values.getOrNull(1)?.trim()?.toIntOrNull()
+            if (weight == null || weight < 0 || reps == null || reps <= 0) null
+            else SetDraft(weightKg = weight, reps = reps, rpe = parsedRpe)
+        }
+        TrackingType.HOLD, TrackingType.SKILL_HOLD, TrackingType.ROM_MEASUREMENT -> {
+            val seconds = cleaned.removeSuffix("s").trim().toDoubleOrNull()
+            if (seconds == null || seconds <= 0) null
+            else SetDraft(holdMillis = (seconds * 1000).toLong(), rpe = parsedRpe)
+        }
+        else -> {
+            val reps = cleaned.toIntOrNull()
+            if (reps == null || reps <= 0) null else SetDraft(reps = reps, rpe = parsedRpe)
         }
     }
 }
+
+private fun Double.cleanNumber(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
 
 @Composable
 private fun NumericField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier) {
@@ -447,7 +514,8 @@ private fun ExerciseLibraryScreen(exercises: List<ExerciseSummary>, onSearch: (S
 private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit) {
     val day = state.selectedHistoryDay ?: return
     val date = LocalDate.ofEpochDay(day)
-    ScreenList {
+    var selectedMuscle by rememberSaveable(day) { mutableStateOf<String?>(null) }
+    ScreenList(modifier = Modifier.statusBarsPadding()) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Back") }
@@ -460,9 +528,24 @@ private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit) {
         item {
             VibeCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MuscleMap(AnatomySex.MALE, AnatomyView.FRONT, state.recency.associate { it.muscleId to it.band }, {}, Modifier.weight(1f))
-                    MuscleMap(AnatomySex.MALE, AnatomyView.BACK, state.recency.associate { it.muscleId to it.band }, {}, Modifier.weight(1f))
+                    MuscleMap(
+                        AnatomySex.MALE,
+                        AnatomyView.FRONT,
+                        state.recency.associate { it.muscleId to it.band },
+                        { selectedMuscle = it },
+                        Modifier.weight(1f),
+                        selectedMuscle,
+                    )
+                    MuscleMap(
+                        AnatomySex.MALE,
+                        AnatomyView.BACK,
+                        state.recency.associate { it.muscleId to it.band },
+                        { selectedMuscle = it },
+                        Modifier.weight(1f),
+                        selectedMuscle,
+                    )
                 }
+                selectedMuscle?.let { Text(it.replace('_', ' '), fontWeight = FontWeight.Bold) }
             }
         }
         val activities = state.historyDay?.activities.orEmpty()
@@ -527,9 +610,12 @@ private fun VibeCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun ScreenList(content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit) {
+private fun ScreenList(
+    modifier: Modifier = Modifier,
+    content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
+) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = VibeSpacing.medium, vertical = VibeSpacing.medium),
         verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
         content = content,

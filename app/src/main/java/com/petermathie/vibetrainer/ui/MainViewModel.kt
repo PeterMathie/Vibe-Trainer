@@ -115,6 +115,10 @@ class MainViewModel @Inject constructor(
         repository.addSet(workoutExerciseId, draft)
     }
 
+    fun updateExerciseNotes(workoutExerciseId: String, notes: String) = viewModelScope.launch {
+        repository.updateExerciseNotes(workoutExerciseId, notes)
+    }
+
     fun finishWorkout(workoutId: String, onFinished: () -> Unit = {}) = viewModelScope.launch {
         repository.finishWorkout(workoutId)
         onFinished()

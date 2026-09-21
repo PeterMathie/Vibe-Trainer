@@ -35,6 +35,7 @@ fun MuscleMap(
     states: Map<String, MuscleRecencyBand>,
     onMuscleTap: (String) -> Unit,
     modifier: Modifier = Modifier,
+    selectedMuscleId: String? = null,
 ) {
     val palette = LocalVibePalette.current
     val diagram = when (sex to view) {
@@ -94,7 +95,15 @@ fun MuscleMap(
                     MuscleRecencyBand.OVER_7_DAYS -> palette.recencyOver7
                     MuscleRecencyBand.NEVER -> palette.recencyNever
                 }
-                drawPathWithMirror(item.path, item.def.side, diagram.centerX, color, palette.diagramLine.copy(alpha = .42f), .8f)
+                val selected = item.def.group == selectedMuscleId
+                drawPathWithMirror(
+                    path = item.path,
+                    side = item.def.side,
+                    centerX = diagram.centerX,
+                    color = color,
+                    strokeColor = if (selected) palette.accent else palette.diagramLine.copy(alpha = .42f),
+                    strokeWidth = if (selected) 3f else .8f,
+                )
             }
         }
     }

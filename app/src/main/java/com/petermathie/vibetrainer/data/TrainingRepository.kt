@@ -46,7 +46,11 @@ class TrainingRepository @Inject constructor(
     }
 
     fun observeDraft(): Flow<ActiveWorkout?> =
-        combine(workoutDao.observeDraft(), workoutDao.observeSetCount()) { draft, _ -> draft }
+        combine(
+            workoutDao.observeDraft(),
+            workoutDao.observeSetCount(),
+            workoutDao.observeWorkoutExerciseChanges(),
+        ) { draft, _, _ -> draft }
             .flatMapLatest { draft -> flow { emit(draft?.let { loadWorkout(it) }) } }
 
     suspend fun startWorkout(dayId: String): String = database.withTransaction {
@@ -113,6 +117,9 @@ class TrainingRepository @Inject constructor(
             ),
         )
     }
+
+    suspend fun updateExerciseNotes(workoutExerciseId: String, notes: String) =
+        workoutDao.updateExerciseNotes(workoutExerciseId, notes)
 
     suspend fun finishWorkout(workoutId: String) = workoutDao.finish(workoutId, System.currentTimeMillis())
 
