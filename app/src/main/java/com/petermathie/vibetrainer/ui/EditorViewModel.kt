@@ -97,6 +97,14 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun save(row: TrackerDailyValueEntity) = write { db.trackerDao().upsertValue(row) }
     fun save(row: BodyMeasurementEntity) = write { dao.measurement(row) }
     fun save(row: ExerciseVariationEntity) = write { dao.variation(row) }
+    fun moveVariation(id: String, delta: Int) = write {
+        val all=dao.variations().first()
+        val selected=all.find { it.id==id && !it.isSeeded } ?: return@write
+        val rows=all.filter { it.exerciseId==selected.exerciseId && !it.isSeeded }.sortedBy { it.progressionRank }.toMutableList()
+        val from=rows.indexOfFirst { it.id==id }; val to=from+delta
+        val start=(all.filter { it.exerciseId==selected.exerciseId && it.isSeeded }.maxOfOrNull { it.progressionRank } ?: -1)+1
+        if(to in rows.indices) { java.util.Collections.swap(rows,from,to);db.withTransaction { rows.forEachIndexed { i,v -> dao.variation(v.copy(progressionRank=start+i)) } } }
+    }
     fun removeDay(id: String) = write { dao.deleteDay(id) }
     fun removeEntry(id: String) = write { dao.deleteEntry(id) }
     fun removeSet(id: String) = write { dao.deleteSet(id) }

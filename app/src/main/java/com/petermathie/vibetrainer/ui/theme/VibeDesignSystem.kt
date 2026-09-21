@@ -6,6 +6,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.LocalRippleConfiguration
+import androidx.compose.material3.RippleConfiguration
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -120,11 +125,21 @@ private val VibeTypography = Typography(
     labelLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 18.sp),
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VibeTrainerTheme(
     palette: VibePalette = VibePalettes.MidnightLime,
     content: @Composable () -> Unit,
 ) {
+    val preferences=LocalContext.current.getSharedPreferences("settings",0)
+    var reducedMotion by remember { mutableStateOf(preferences.getBoolean("reducedMotion",false)) }
+    DisposableEffect(preferences) {
+        val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener { p,key ->
+            if(key=="reducedMotion") reducedMotion=p.getBoolean(key,false)
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     val scheme = darkColorScheme(
         primary = palette.accent,
         onPrimary = palette.onAccent,
@@ -137,7 +152,7 @@ fun VibeTrainerTheme(
         outline = palette.border,
         error = palette.danger,
     )
-    androidx.compose.runtime.CompositionLocalProvider(LocalVibePalette provides palette) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalVibePalette provides palette, LocalRippleConfiguration provides if(reducedMotion) null else RippleConfiguration()) {
         MaterialTheme(colorScheme = scheme, typography = VibeTypography, content = content)
     }
 }

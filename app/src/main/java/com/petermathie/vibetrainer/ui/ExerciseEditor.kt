@@ -34,6 +34,15 @@ fun ExerciseEditor(vm: EditorViewModel) {
                     TextButton(onClick={variation=e.id}){Text("Add variation")}
                 }
                 if(e.isCustom) TextButton(onClick={vm.saveExercise(e.copy(isArchived=true),aliases.filter { it.exerciseId==e.id }.map { it.alias },mappings.filter { it.exerciseId==e.id }.associate { it.muscleId to it.role })}){Text("Archive")}
+                variations.filter { it.exerciseId==e.id }.sortedBy { it.progressionRank }.forEach { v ->
+                    Row {
+                        Text(v.name,Modifier.weight(1f))
+                        if(!v.isSeeded) {
+                            TextButton(onClick={vm.moveVariation(v.id,-1)}){Text("Up")}
+                            TextButton(onClick={vm.moveVariation(v.id,1)}){Text("Down")}
+                        }
+                    }
+                }
             } }
         }
     }

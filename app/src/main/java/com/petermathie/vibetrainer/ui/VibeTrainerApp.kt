@@ -129,6 +129,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                 state = state,
                 onBack = { viewModel.selectHistoryDay(null) },
                 onDayChange = viewModel::selectHistoryDay,
+                onModeChange = viewModel::setMode,
             )
             return@VibeTrainerTheme
         }
@@ -533,7 +534,7 @@ private fun ExerciseLibraryScreen(exercises: List<ExerciseSummary>, onSearch: (S
 }
 
 @Composable
-private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange: (Long) -> Unit) {
+private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange: (Long) -> Unit, onModeChange: (TrainingMode) -> Unit) {
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     val day = state.selectedHistoryDay ?: return
     val date = LocalDate.ofEpochDay(day)
@@ -549,6 +550,10 @@ private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange
             }
         }
         item {
+            Row {
+                TextButton(onClick={onModeChange(TrainingMode.STRENGTH)}){Text(if(state.mode==TrainingMode.STRENGTH)"✓ Strength" else "Strength")}
+                TextButton(onClick={onModeChange(TrainingMode.STRETCHING)}){Text(if(state.mode==TrainingMode.STRETCHING)"✓ Stretching" else "Stretching")}
+            }
             Row {
                 TextButton(onClick={onDayChange(day-1)}){Text("Previous day")}
                 TextButton(onClick={onDayChange(day+1)},enabled=day<LocalDate.now().toEpochDay()){Text("Next day")}
@@ -575,7 +580,13 @@ private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange
                         selectedMuscle,
                     )
                 }
-                selectedMuscle?.let { Text(it.replace('_', ' '), fontWeight = FontWeight.Bold) }
+                selectedMuscle?.let { muscle ->
+                    Text(muscle.replace('_', ' '), fontWeight = FontWeight.Bold)
+                    val selected=state.recency.find { it.muscleId==muscle }
+                    Text(selected?.let { "${it.band.name.replace('_',' ').lowercase()} · ${"%.1f".format(it.setEquivalents)} set-equivalents in the preceding 7 days" } ?: "Never recorded")
+                    selected?.lastTrainedAt?.let { Text("Last trained: ${java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy HH:mm"))}") }
+                    selected?.contributingExerciseNames?.let { Text(it.joinToString()) }
+                }
             }
         }
         val activities = state.historyDay?.activities.orEmpty()

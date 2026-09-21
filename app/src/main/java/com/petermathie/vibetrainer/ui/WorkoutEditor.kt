@@ -53,7 +53,8 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
         items(rows, key = { it.id }) { row ->
             val exercise = definitions.find { it.id == row.actualExerciseId }?.let { if(row.exerciseName.isNotBlank())it.copy(canonicalName=row.exerciseName,trackingType=row.trackingType) else it }
             val previousIds = snapshots.filter { it.actualExerciseId == row.actualExerciseId && it.workoutId != workout.id && workouts.any { w -> w.id == it.workoutId && w.status == "FINISHED" && (w.finishedAt ?: 0) < workout.startedAt } }.map { it.id }.toSet()
-            val previous = sets.filter { it.workoutExerciseId in previousIds }.maxByOrNull { it.loggedAt }
+            val previousRow = sets.filter { it.workoutExerciseId in previousIds }.maxByOrNull { it.loggedAt }?.workoutExerciseId
+            val previous = sets.filter { it.workoutExerciseId==previousRow }.sortedBy { it.ordinal }
             WorkoutExerciseCard(vm, row, exercise, sets.filter { it.workoutExerciseId == row.id }, previous) {
                 val group = row.supersetGroup
                 val groupRows = rows.filter { it.supersetGroup == group }
@@ -82,7 +83,7 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
 }
 
 @Composable
-private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity, exercise: ExerciseEntity?, sets: List<WorkoutSetEntity>, previous: WorkoutSetEntity?, onSaved: () -> Unit) {
+private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity, exercise: ExerciseEntity?, sets: List<WorkoutSetEntity>, previous: List<WorkoutSetEntity>, onSaved: () -> Unit) {
     var notes by rememberSaveable(row.id) { mutableStateOf(row.notes) }
     var substitute by remember { mutableStateOf(false) }
     var edit by remember { mutableStateOf<WorkoutSetEntity?>(null) }
@@ -98,7 +99,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(exercise?.canonicalName.orEmpty(), style = MaterialTheme.typography.titleMedium)
         if(row.targets.isNotBlank())Text(row.targets,style=MaterialTheme.typography.bodySmall)
-        previous?.let { Text("Previous: ${setDescription(it)}", style = MaterialTheme.typography.bodySmall) }
+        if(previous.isNotEmpty()) Text("Previous: ${previous.joinToString(" · ") { setDescription(it) }}", style = MaterialTheme.typography.bodySmall)
         row.supersetGroup?.let { Text("Circuit: $it · rest after round", style = MaterialTheme.typography.labelSmall) }
         sets.sortedBy { it.ordinal }.forEach { set ->
             Row(Modifier.fillMaxWidth()) {
@@ -193,10 +194,13 @@ private fun SetDetails(vm: EditorViewModel, original: WorkoutSetEntity, exercise
     } }, confirmButton = { TextButton(onClick = {
         val base = parsePerformance(original, if(failed) { if(weighted) "0 x 0" else "0" } else performance, hold, weighted, lb)
         if (rpe.isNotBlank() && (rpe.toDoubleOrNull() == null || rpe.toDouble() !in 0.0..10.0)) { error = "RPE must be 0–10" }
+        else if (listOf(left,right,added,assistance,rom).any { it.isNotBlank() && (it.toDoubleOrNull()?.let { n -> !n.isFinite() || n<0 } != false) }) { error = "Use finite, non-negative numbers" }
+        else if (!hold && listOf(left,right).any { it.isNotBlank() && it.toIntOrNull()==null }) { error = "Repetitions must be whole numbers" }
         else if (base == null && rom.toDoubleOrNull() == null && left.toDoubleOrNull() == null && right.toDoubleOrNull() == null) { error = "Enter a valid result" }
         else {
             var saved=(base ?: original).copy(setType = if(warmup) "WARM_UP" else "WORKING", result = if(failed) "FAILED" else "COMPLETED", variationId = variant, rpe = rpe.toDoubleOrNull(), leftReps = if(!hold) left.toIntOrNull() else null, rightReps = if(!hold) right.toIntOrNull() else null, leftHoldMillis = if(hold) left.toDoubleOrNull()?.times(1000)?.toLong() else null, rightHoldMillis = if(hold) right.toDoubleOrNull()?.times(1000)?.toLong() else null, addedWeightKg = added.toDoubleOrNull(), assistanceKg = assistance.toDoubleOrNull(), romValue = rom.toDoubleOrNull(), romUnit = unit, updatedAt = System.currentTimeMillis())
             if(failed) saved=saved.copy(reps=0,holdMillis=0,leftReps=0,rightReps=0,leftHoldMillis=0,rightHoldMillis=0,romValue=null)
+            else if(left.isNotBlank() || right.isNotBlank()) saved=saved.copy(reps=null,holdMillis=null)
             save(saved, selected)
         }
     }) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })

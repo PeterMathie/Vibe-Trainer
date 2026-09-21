@@ -43,7 +43,9 @@ fun TrackerScreen(vm: EditorViewModel) {
                         Text(f.name)
                     } else {
                         EditField("${f.name}${f.unit?.let { " ($it)" }.orEmpty()}",text) { text=it }
-                        TextButton(enabled=epoch!=null && text.isNotBlank(), onClick = { epoch?.let { d -> vm.save(TrackerDailyValueEntity(f.id,d,if(f.valueType in listOf("NUMBER","COUNT","DURATION","RATING")) text.toDoubleOrNull() else null,null,if(f.valueType in listOf("TEXT","CHOICE","DATETIME")) text else null,"",System.currentTimeMillis())) } }) { Text("Save daily total") }
+                        val numeric=f.valueType in listOf("NUMBER","COUNT","DURATION","RATING")
+                        val valid=text.isNotBlank() && (!numeric || text.toDoubleOrNull()?.let { it.isFinite() && (f.valueType!="COUNT" || it>=0 && it%1.0==0.0) && (f.valueType!="DURATION" || it>=0) }==true)
+                        TextButton(enabled=epoch!=null && valid, onClick = { epoch?.let { d -> vm.save(TrackerDailyValueEntity(f.id,d,if(numeric) text.toDoubleOrNull() else null,null,if(!numeric) text else null,"",System.currentTimeMillis())) } }) { Text("Save daily total") }
                     }
                     if(f.targetValue!=null) Text("Target: ${f.targetComparison} ${f.targetValue} ${f.unit.orEmpty()}")
                     Row { TextButton(onClick={field=f}) { Text("Edit field") }; TextButton(enabled=epoch!=null,onClick={epoch?.let { vm.clearValue(f.id,it) }}) { Text("Clear day") } }
@@ -63,6 +65,6 @@ fun TrackerScreen(vm: EditorViewModel) {
             listOf("BOOLEAN","NUMBER","COUNT","DURATION","RATING","TEXT","CHOICE","DATETIME").forEach { v -> TextButton(onClick={type=v}) { Text((if(type==v) "✓ " else "")+v.lowercase()) } }
             EditField("Optional target",target){target=it}
             listOf("AT_LEAST","AT_MOST","EXACTLY").forEach { v -> TextButton(onClick={comparison=v}) { Text((if(comparison==v) "✓ " else "")+v) } }
-        } }},confirmButton={TextButton(enabled=name.isNotBlank(),onClick={vm.save(f.copy(name=name,valueType=type,unit=unit.takeIf { it.isNotBlank() },targetValue=target.toDoubleOrNull(),targetComparison=if(target.toDoubleOrNull()==null) null else comparison));field=null}){Text("Save")}},dismissButton={TextButton(onClick={field=null}){Text("Cancel")}})
+        } }},confirmButton={TextButton(enabled=name.isNotBlank()&&(target.isBlank()||target.toDoubleOrNull()?.isFinite()==true),onClick={val numeric=type in listOf("NUMBER","COUNT","DURATION","RATING");vm.save(f.copy(name=name,valueType=type,unit=unit.takeIf { it.isNotBlank() },targetValue=if(numeric)target.toDoubleOrNull() else null,targetComparison=if(!numeric || target.toDoubleOrNull()==null) null else comparison));field=null}){Text("Save")}},dismissButton={TextButton(onClick={field=null}){Text("Cancel")}})
     }
 }

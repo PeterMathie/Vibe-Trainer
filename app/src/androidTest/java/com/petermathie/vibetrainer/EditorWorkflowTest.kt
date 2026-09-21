@@ -43,4 +43,24 @@ class EditorWorkflowTest {
         try { DataTransfer.import(db,backup.toString());fail("Expected constraint failure") } catch(_:Exception){}
         assertEquals(count,db.editorDao().days().first().size)
     }
+    @Test(timeout=120000) fun draftsDoNotColourMusclesAndDefinitionEditsPreserveFinishedHistory()=runBlocking {
+        db.openHelper.writableDatabase.execSQL("DELETE FROM workouts")
+        val repository=com.petermathie.vibetrainer.data.TrainingRepository(db,db.programmeDao(),db.workoutDao(),db.trackerDao())
+        val day=repository.observeProgrammeDays().first().first()
+        val id=repository.startWorkout(day.id)
+        val exercise=repository.observeDraft().first { it!=null }!!.exercises.first()
+        repository.addSet(exercise.id,com.petermathie.vibetrainer.domain.model.SetDraft(reps=5))
+        assertTrue(repository.observeMuscleRecency(day.mode).first().isEmpty())
+        repository.finishWorkout(id)
+        val before=repository.observeMuscleRecency(day.mode,Long.MAX_VALUE/2).first()
+        assertTrue(before.isNotEmpty())
+        val snapshot=db.editorDao().workoutExercises().first().first { it.id==exercise.id }
+        val definition=db.editorDao().exerciseById(snapshot.actualExerciseId)!!
+        db.editorDao().exercise(definition.copy(canonicalName="Renamed later"))
+        db.editorDao().clearMappings(definition.id)
+        val after=repository.observeMuscleRecency(day.mode,Long.MAX_VALUE/2).first()
+        assertEquals(before,after)
+        assertEquals(snapshot.exerciseName,db.editorDao().workoutExercises().first().first { it.id==exercise.id }.exerciseName)
+        assertTrue(com.petermathie.vibetrainer.data.DataTransfer.csv(db).contains("bandWidthCm"))
+    }
 }
