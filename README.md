@@ -10,6 +10,10 @@ Visual styling is isolated behind semantic tokens and interchangeable palettes. 
 
 See [`docs/PRODUCT_REQUIREMENTS.md`](docs/PRODUCT_REQUIREMENTS.md) for the product contract.
 
+For the current implementation, verified builds and agent-ready tasks, start with
+[`docs/WORK_STATUS.md`](docs/WORK_STATUS.md). See
+[`docs/BETA_TESTING.md`](docs/BETA_TESTING.md) for the tester walkthrough.
+
 ### Anatomy
 
 The muscle diagram uses real male/female front/back SVG muscle path data adapted from the MIT-licensed [Jsplice/MuscleMap](https://github.com/Jsplice/MuscleMap) project. The paths are parsed and drawn natively in Compose; they are not hand-sketched placeholders.

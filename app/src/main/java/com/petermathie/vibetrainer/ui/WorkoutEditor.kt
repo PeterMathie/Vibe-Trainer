@@ -55,7 +55,8 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
             val previousIds = snapshots.filter { it.actualExerciseId == row.actualExerciseId && it.workoutId != workout.id && workouts.any { w -> w.id == it.workoutId && w.status == "FINISHED" && (w.finishedAt ?: 0) < workout.startedAt } }.map { it.id }.toSet()
             val previousRow = sets.filter { it.workoutExerciseId in previousIds }.maxByOrNull { it.loggedAt }?.workoutExerciseId
             val previous = sets.filter { it.workoutExerciseId==previousRow }.sortedBy { it.ordinal }
-            WorkoutExerciseCard(vm, row, exercise, sets.filter { it.workoutExerciseId == row.id }, previous) {
+            val restSeconds=if(row.supersetGroup==null)row.restSeconds else rows.filter { it.supersetGroup==row.supersetGroup }.maxOf { it.restSeconds }
+            WorkoutExerciseCard(vm, row, exercise, sets.filter { it.workoutExerciseId == row.id }, previous,restSeconds) {
                 val group = row.supersetGroup
                 val groupRows = rows.filter { it.supersetGroup == group }
                 val roundComplete = group == null || groupRows.all { member ->
@@ -83,7 +84,7 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
 }
 
 @Composable
-private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity, exercise: ExerciseEntity?, sets: List<WorkoutSetEntity>, previous: List<WorkoutSetEntity>, onSaved: () -> Unit) {
+private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity, exercise: ExerciseEntity?, sets: List<WorkoutSetEntity>, previous: List<WorkoutSetEntity>, restSeconds: Int, onSaved: () -> Unit) {
     var notes by rememberSaveable(row.id) { mutableStateOf(row.notes) }
     var substitute by remember { mutableStateOf(false) }
     var edit by remember { mutableStateOf<WorkoutSetEntity?>(null) }
@@ -124,7 +125,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
         if (hold) TextButton(onClick = { if (timerStart == null) timerStart = android.os.SystemClock.elapsedRealtime() else { result = (elapsed / 1000.0).toString(); timerStart = null } }) { Text(if (timerStart == null) "Start hold timer" else "Stop · ${elapsed / 1000.0}s") }
         Row {
             TextButton(onClick = { edit = emptySet(row.id, (sets.maxOfOrNull { it.ordinal } ?: 0) + 1) }) { Text("Bands / details") }
-            TextButton(onClick = { RestTimer.start(context, row.restSeconds) }) { Text("Rest ${row.restSeconds}s") }
+            TextButton(onClick = { RestTimer.start(context, restSeconds) }) { Text("Rest ${restSeconds}s") }
             TextButton(onClick = { expanded = !expanded }) { Text("More") }
         }
         if (expanded) {

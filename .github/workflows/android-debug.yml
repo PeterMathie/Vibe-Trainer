@@ -51,7 +51,15 @@ jobs:
           profile: pixel_6
           disable-animations: true
           disable-linux-hw-accel: false
-          script: gradle :app:connectedDebugAndroidTest --stacktrace
+          script: |
+            gradle :app:connectedDebugAndroidTest --stacktrace
+            adb shell am start -W -n com.petermathie.vibetrainer/.MainActivity
+            sleep 5
+            adb shell pidof com.petermathie.vibetrainer
+            mkdir -p app/build/launch-check
+            adb shell screencap -p /sdcard/vibe-launch.png
+            adb pull /sdcard/vibe-launch.png app/build/launch-check/home.png
+            adb logcat -d -s AndroidRuntime:E > app/build/launch-check/runtime-errors.txt
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -69,3 +77,4 @@ jobs:
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
             app/schemas/
+            app/build/launch-check/
