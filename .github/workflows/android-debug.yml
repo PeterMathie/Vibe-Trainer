@@ -53,6 +53,7 @@ jobs:
           disable-linux-hw-accel: false
           script: |
             gradle :app:connectedDebugAndroidTest --stacktrace
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -W -n com.petermathie.vibetrainer/.MainActivity
             sleep 5
             adb shell pidof com.petermathie.vibetrainer

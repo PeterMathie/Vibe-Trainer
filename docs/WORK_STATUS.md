@@ -45,6 +45,8 @@ Updated: 21 September 2026. Owner of the current pass: ChatGPT coding agent.
 
 The commit containing this handoff also bundles the existing third-party asset notices in the APK, exposes them in Settings, aligns manual circuit rest with the group rest rule, and adds an actual MainActivity launch + screenshot capture after emulator tests. These follow-up changes are not covered by the older successful run linked above. Check the newest run before calling them verified.
 
+Run `35639647804` at commit `c071717` passed compilation, unit tests and instrumentation tests, then failed the added launch command because the test runner had uninstalled the target APK. The next workflow revision explicitly installs the built APK before launching it. This was a launch-harness failure, not an app crash; successful app launch is still awaiting verification.
+
 ## Remaining work — explicit, claimable tasks
 
 The app is an expanded beta. A green build is not evidence that every product requirement or device interaction is finished. Another agent can take one task below, record ownership here and work on a separate branch.
