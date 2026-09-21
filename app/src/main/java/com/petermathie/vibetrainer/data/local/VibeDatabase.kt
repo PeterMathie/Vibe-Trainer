@@ -28,6 +28,7 @@ import androidx.room.RoomDatabase
     exportSchema = true,
 )
 abstract class VibeDatabase : RoomDatabase() {
+    abstract fun editorDao(): EditorDao
     abstract fun catalogueDao(): CatalogueDao
     abstract fun programmeDao(): ProgrammeDao
     abstract fun workoutDao(): WorkoutDao

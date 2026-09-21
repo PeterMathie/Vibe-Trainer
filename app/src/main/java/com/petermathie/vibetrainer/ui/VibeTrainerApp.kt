@@ -5,6 +5,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,6 +64,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
@@ -98,15 +101,24 @@ private enum class Destination(val label: String, val icon: ImageVector) {
     PROGRAMMES("Programmes", Icons.Outlined.FitnessCenter),
     WORKOUT("Workout", Icons.Outlined.PlayArrow),
     EXERCISES("Exercises", Icons.Outlined.LibraryBooks),
-    SETTINGS("Style", Icons.Outlined.Palette),
+    PROGRESS("Progress", Icons.Outlined.BarChart),
+    HABITS("Habits", Icons.Outlined.Check),
+    HISTORY("History", Icons.Outlined.LibraryBooks),
+    MEASUREMENTS("Body", Icons.Outlined.FitnessCenter),
+    SETTINGS("Settings", Icons.Outlined.Palette),
+    STYLE("Style", Icons.Outlined.Palette),
 }
 
 @Composable
 fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
+    val editor: EditorViewModel = hiltViewModel()
+    val error by editor.error.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("settings",0)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exercises by viewModel.exerciseResults.collectAsStateWithLifecycle()
     var destination by rememberSaveable { mutableStateOf(Destination.HOME) }
-    var paletteId by rememberSaveable { mutableStateOf(VibePalettes.MidnightLime.id) }
+    var paletteId by rememberSaveable { mutableStateOf(prefs.getString("palette",VibePalettes.MidnightLime.id)!!) }
     val palette = VibePalettes.builtIns[paletteId] ?: VibePalettes.MidnightLime
 
     VibeTrainerTheme(palette) {
@@ -122,34 +134,34 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
         Scaffold(
             containerColor = palette.background,
             bottomBar = {
-                NavigationBar(containerColor = palette.surface, modifier = Modifier.navigationBarsPadding()) {
+                Row(Modifier.fillMaxWidth().navigationBarsPadding().horizontalScroll(rememberScrollState()).background(palette.surface)) {
                     Destination.entries.forEach { item ->
-                        NavigationBarItem(
-                            selected = destination == item,
-                            onClick = { destination = item },
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                        )
+                        TextButton(onClick = { destination = item }) { Text(if(destination == item) "• ${item.label}" else item.label) }
                     }
                 }
             },
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
                 AppHeader(state.mode, viewModel::setMode)
+                if(error != null) TextButton(onClick = { editor.error.value = null }) { Text(error.orEmpty(),color=MaterialTheme.colorScheme.error) }
                 when (destination) {
                     Destination.HOME -> HomeScreen(state, viewModel::selectHistoryDay) { destination = Destination.WORKOUT }
-                    Destination.PROGRAMMES -> ProgrammeScreen(state) { dayId ->
+                    Destination.PROGRAMMES -> ProgrammeEditor(editor, state.mode) { dayId ->
                         viewModel.startWorkout(dayId) { destination = Destination.WORKOUT }
                     }
-                    Destination.WORKOUT -> WorkoutScreen(
-                        workout = state.activeWorkout,
-                        onAddSet = viewModel::addSet,
-                        onExerciseNotesChange = viewModel::updateExerciseNotes,
+                    Destination.WORKOUT -> WorkoutEditor(
+                        vm = editor,
+                        workoutId = state.activeWorkout?.id,
                         onFinish = { id -> viewModel.finishWorkout(id) { destination = Destination.HOME } },
-                        onChooseProgramme = { destination = Destination.PROGRAMMES },
+                        onChoose = { destination = Destination.PROGRAMMES },
                     )
-                    Destination.EXERCISES -> ExerciseLibraryScreen(exercises, viewModel::setSearchQuery)
-                    Destination.SETTINGS -> StyleScreen(paletteId, { paletteId = it }, viewModel::removeDemoData)
+                    Destination.EXERCISES -> ExerciseEditor(editor)
+                    Destination.PROGRESS -> ProgressScreen(editor)
+                    Destination.HABITS -> TrackerScreen(editor)
+                    Destination.HISTORY -> HistoryScreen(editor,viewModel::selectHistoryDay)
+                    Destination.MEASUREMENTS -> MeasurementsScreen(editor)
+                    Destination.SETTINGS -> SettingsScreen(editor,{destination=Destination.STYLE},viewModel::removeDemoData)
+                    Destination.STYLE -> StyleScreen(paletteId, { paletteId = it; prefs.edit().putString("palette",it).apply() }, viewModel::removeDemoData)
                 }
             }
         }
@@ -184,6 +196,7 @@ private fun AppHeader(mode: TrainingMode, onModeChange: (TrainingMode) -> Unit) 
 
 @Composable
 private fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinue: () -> Unit) {
+    val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     var selectedMuscle by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = state.recency.firstOrNull { it.muscleId == selectedMuscle }
     ScreenList {
@@ -206,7 +219,7 @@ private fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinu
                 Text(if (state.mode == TrainingMode.STRENGTH) "MUSCLE RECENCY" else "STRETCH RECENCY", color = LocalVibePalette.current.accent, style = MaterialTheme.typography.labelLarge)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MuscleMap(
-                        sex = AnatomySex.MALE,
+                        sex = sex,
                         view = AnatomyView.FRONT,
                         states = state.recency.associate { it.muscleId to it.band },
                         onMuscleTap = { selectedMuscle = it },
@@ -214,7 +227,7 @@ private fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinu
                         selectedMuscleId = selectedMuscle,
                     )
                     MuscleMap(
-                        sex = AnatomySex.MALE,
+                        sex = sex,
                         view = AnatomyView.BACK,
                         states = state.recency.associate { it.muscleId to it.band },
                         onMuscleTap = { selectedMuscle = it },
@@ -512,6 +525,7 @@ private fun ExerciseLibraryScreen(exercises: List<ExerciseSummary>, onSearch: (S
 
 @Composable
 private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit) {
+    val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     val day = state.selectedHistoryDay ?: return
     val date = LocalDate.ofEpochDay(day)
     var selectedMuscle by rememberSaveable(day) { mutableStateOf<String?>(null) }
@@ -529,7 +543,7 @@ private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit) {
             VibeCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MuscleMap(
-                        AnatomySex.MALE,
+                        sex,
                         AnatomyView.FRONT,
                         state.recency.associate { it.muscleId to it.band },
                         { selectedMuscle = it },
@@ -537,7 +551,7 @@ private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit) {
                         selectedMuscle,
                     )
                     MuscleMap(
-                        AnatomySex.MALE,
+                        sex,
                         AnatomyView.BACK,
                         state.recency.associate { it.muscleId to it.band },
                         { selectedMuscle = it },
