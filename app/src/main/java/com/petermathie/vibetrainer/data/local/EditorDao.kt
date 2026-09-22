@@ -35,8 +35,31 @@ interface EditorDao {
     @Upsert suspend fun workout(row: WorkoutEntity)
     @Upsert suspend fun workoutExercise(row: WorkoutExerciseEntity)
     @Upsert suspend fun set(row: WorkoutSetEntity)
+    @Upsert suspend fun setBands(rows: List<WorkoutSetBandEntity>)
     @Query("DELETE FROM workout_sets WHERE id = :id") suspend fun deleteSet(id: String)
     @Query("DELETE FROM workout_set_bands WHERE setId = :id") suspend fun clearBands(id: String)
+    @Query("SELECT * FROM workout_entry_drafts WHERE workoutExerciseId = :workoutExerciseId")
+    suspend fun entryDraft(workoutExerciseId: String): WorkoutEntryDraftEntity?
+    @Upsert suspend fun entryDraft(row: WorkoutEntryDraftEntity)
+    @Query("SELECT EXISTS(SELECT 1 FROM workout_sets WHERE id = :setId)")
+    suspend fun hasSet(setId: String): Boolean
+    @Query("SELECT EXISTS(SELECT 1 FROM workout_exercises we JOIN workouts w ON w.id = we.workoutId WHERE we.id = :workoutExerciseId AND w.status = 'DRAFT')")
+    suspend fun belongsToDraftWorkout(workoutExerciseId: String): Boolean
+    @Transaction
+    suspend fun persistEntryDraft(row: WorkoutEntryDraftEntity) {
+        if (!hasSet(row.setId) && belongsToDraftWorkout(row.workoutExerciseId)) entryDraft(row)
+    }
+    @Query("DELETE FROM workout_entry_drafts WHERE workoutExerciseId = :workoutExerciseId")
+    suspend fun deleteEntryDraft(workoutExerciseId: String)
+    @Query("DELETE FROM workout_entry_drafts WHERE workoutExerciseId IN (SELECT id FROM workout_exercises WHERE workoutId = :workoutId)")
+    suspend fun deleteEntryDraftsForWorkout(workoutId: String)
+    @Transaction
+    suspend fun consumeEntryDraft(row: WorkoutSetEntity, bands: List<WorkoutSetBandEntity>) {
+        set(row)
+        clearBands(row.id)
+        setBands(bands)
+        deleteEntryDraft(row.workoutExerciseId)
+    }
     @Query("DELETE FROM workouts WHERE id = :id") suspend fun deleteWorkout(id: String)
     @Query("SELECT * FROM trackers WHERE isArchived = 0 ORDER BY name") fun trackers(): Flow<List<TrackerEntity>>
     @Query("SELECT * FROM tracker_fields ORDER BY position") fun fields(): Flow<List<TrackerFieldEntity>>

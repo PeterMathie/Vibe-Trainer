@@ -128,7 +128,10 @@ class TrainingRepository @Inject constructor(
     suspend fun updateExerciseNotes(workoutExerciseId: String, notes: String) =
         workoutDao.updateExerciseNotes(workoutExerciseId, notes)
 
-    suspend fun finishWorkout(workoutId: String) = workoutDao.finish(workoutId, System.currentTimeMillis())
+    suspend fun finishWorkout(workoutId: String) = database.withTransaction {
+        database.editorDao().deleteEntryDraftsForWorkout(workoutId)
+        workoutDao.finish(workoutId, System.currentTimeMillis())
+    }
 
     fun observeMuscleRecency(mode: TrainingMode, atMillis: Long = System.currentTimeMillis()): Flow<List<MuscleRecency>> =
         workoutDao.observeCompletedMuscleSets().map { rows ->

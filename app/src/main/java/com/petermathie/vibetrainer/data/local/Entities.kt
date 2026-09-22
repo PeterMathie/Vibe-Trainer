@@ -278,6 +278,35 @@ data class WorkoutSetBandEntity(
     val ordinal: Int,
 )
 
+@Entity(
+    tableName = "workout_entry_drafts",
+    foreignKeys = [ForeignKey(
+        entity = WorkoutExerciseEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["workoutExerciseId"],
+        onDelete = ForeignKey.CASCADE,
+    )],
+)
+data class WorkoutEntryDraftEntity(
+    @androidx.room.PrimaryKey val workoutExerciseId: String,
+    val setId: String,
+    val ordinal: Int,
+    val performance: String,
+    val rpe: String,
+    val detailsOpen: Boolean,
+    val warmUp: Boolean,
+    val failed: Boolean,
+    val bandIds: String,
+    val variationId: String?,
+    val leftValue: String,
+    val rightValue: String,
+    val addedWeight: String,
+    val assistance: String,
+    val romValue: String,
+    val romUnit: String,
+    val updatedAt: Long,
+)
+
 @Entity(tableName = "trackers", primaryKeys = ["id"])
 data class TrackerEntity(
     val id: String,

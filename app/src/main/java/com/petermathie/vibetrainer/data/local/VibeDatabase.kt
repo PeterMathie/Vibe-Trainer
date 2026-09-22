@@ -20,12 +20,13 @@ import androidx.room.RoomDatabase
         WorkoutMuscleEntity::class,
         WorkoutSetEntity::class,
         WorkoutSetBandEntity::class,
+        WorkoutEntryDraftEntity::class,
         TrackerEntity::class,
         TrackerFieldEntity::class,
         TrackerDailyValueEntity::class,
         BodyMeasurementEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class VibeDatabase : RoomDatabase() {

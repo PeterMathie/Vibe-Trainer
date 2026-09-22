@@ -97,6 +97,12 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun save(row: TrackerDailyValueEntity) = write { db.trackerDao().upsertValue(row) }
     fun save(row: BodyMeasurementEntity) = write { dao.measurement(row) }
     fun save(row: ExerciseVariationEntity) = write { dao.variation(row) }
+    suspend fun entryDraft(workoutExerciseId: String) = dao.entryDraft(workoutExerciseId)
+    fun saveEntryDraft(row: WorkoutEntryDraftEntity) = write {
+        if (!row.detailsOpen && row.performance.isBlank() && row.rpe.isBlank()) dao.deleteEntryDraft(row.workoutExerciseId)
+        else dao.persistEntryDraft(row)
+    }
+    fun discardEntryDraft(workoutExerciseId: String) = write { dao.deleteEntryDraft(workoutExerciseId) }
     fun moveVariation(id: String, delta: Int) = write {
         val all=dao.variations().first()
         val selected=all.find { it.id==id && !it.isSeeded } ?: return@write
@@ -117,6 +123,10 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
             dao.clearBands(row.id)
             db.workoutDao().insertSetBands(bandIds.mapIndexed { index, id -> WorkoutSetBandEntity(row.id, id, index) })
         }
+    }
+    fun submitEntryDraft(row: WorkoutSetEntity, bandIds: List<String>, onSaved: () -> Unit) = write {
+        dao.consumeEntryDraft(row, bandIds.mapIndexed { index, id -> WorkoutSetBandEntity(row.id, id, index) })
+        onSaved()
     }
     fun duplicate(programme: ProgrammeEntity) = write {
         val sourceDays = dao.days().first().filter { it.programmeId == programme.id }

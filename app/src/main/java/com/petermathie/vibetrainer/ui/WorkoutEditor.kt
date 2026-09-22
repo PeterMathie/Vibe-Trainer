@@ -11,10 +11,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
+import org.json.JSONArray
 import java.time.Instant
 import java.time.ZoneId
 
 fun emptySet(id: String, ordinal: Int) = WorkoutSetEntity(newId(), id, ordinal, "WORKING", "COMPLETED", null, null, null, null, null, null, null, null, null, null, null, null, null, "", System.currentTimeMillis(), System.currentTimeMillis())
+fun emptyEntryDraft(id: String, ordinal: Int) = WorkoutEntryDraftEntity(id, newId(), ordinal, "", "", false, false, false, "[]", null, "", "", "", "", "", "cm", System.currentTimeMillis())
 
 @Composable
 fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit, onFinish: (String) -> Unit) {
@@ -88,15 +90,39 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     var notes by rememberSaveable(row.id) { mutableStateOf(row.notes) }
     var substitute by remember { mutableStateOf(false) }
     var edit by remember { mutableStateOf<WorkoutSetEntity?>(null) }
+    var entryDraft by remember(row.id) { mutableStateOf<WorkoutEntryDraftEntity?>(null) }
+    var detailsDraft by remember(row.id) { mutableStateOf<WorkoutEntryDraftEntity?>(null) }
+    var draftLoaded by remember(row.id) { mutableStateOf(false) }
+    var submitting by remember(row.id) { mutableStateOf(false) }
     var expanded by rememberSaveable(row.id) { mutableStateOf(false) }
-    var result by rememberSaveable(row.id) { mutableStateOf("") }
-    var rpe by rememberSaveable(row.id) { mutableStateOf("") }
+    var result by remember(row.id) { mutableStateOf("") }
+    var rpe by remember(row.id) { mutableStateOf("") }
     val context = LocalContext.current
     val hold = exercise?.trackingType in listOf("HOLD", "SKILL_HOLD")
     var timerStart by rememberSaveable { mutableStateOf<Long?>(null) }
     var elapsed by remember { mutableStateOf(0L) }
     LaunchedEffect(timerStart) { while (timerStart != null) { elapsed = android.os.SystemClock.elapsedRealtime() - timerStart!!; kotlinx.coroutines.delay(100) } }
+    LaunchedEffect(row.id) {
+        val recovered = vm.entryDraft(row.id) ?: emptyEntryDraft(row.id, (sets.maxOfOrNull { it.ordinal } ?: 0) + 1)
+        entryDraft = recovered
+        result = recovered.performance
+        rpe = recovered.rpe
+        if (recovered.detailsOpen) detailsDraft = recovered
+        draftLoaded = true
+    }
     val lb = context.getSharedPreferences("settings",0).getBoolean("lb",false)
+    fun updateCompact(performance: String = result, exertion: String = rpe) {
+        val updated = entryDraft?.copy(performance = performance, rpe = exertion, updatedAt = System.currentTimeMillis()) ?: return
+        entryDraft = updated
+        vm.saveEntryDraft(updated)
+    }
+    fun resetDraft(ordinal: Int) {
+        entryDraft = emptyEntryDraft(row.id, ordinal)
+        detailsDraft = null
+        result = ""
+        rpe = ""
+        submitting = false
+    }
     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(exercise?.canonicalName.orEmpty(), style = MaterialTheme.typography.titleMedium)
         if(row.targets.isNotBlank())Text(row.targets,style=MaterialTheme.typography.bodySmall)
@@ -109,12 +135,17 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            OutlinedTextField(result, { result = it }, label = { Text(if (hold) "Seconds" else if (exercise?.trackingType == "WEIGHT_REPS") "${if (lb) "lb" else "kg"} × reps" else "Reps") }, singleLine = true, modifier = Modifier.weight(1f))
-            OutlinedTextField(rpe, { rpe = it }, label = { Text("RPE") }, singleLine = true, modifier = Modifier.width(70.dp))
-            TextButton(onClick = {
-                val parsed = parsePerformance(emptySet(row.id, (sets.maxOfOrNull { it.ordinal } ?: 0) + 1), result, hold, exercise?.trackingType == "WEIGHT_REPS", lb)
+            OutlinedTextField(result, { result = it; updateCompact(performance = it) }, enabled = draftLoaded && !submitting, label = { Text(if (hold) "Seconds" else if (exercise?.trackingType == "WEIGHT_REPS") "${if (lb) "lb" else "kg"} × reps" else "Reps") }, singleLine = true, modifier = Modifier.weight(1f))
+            OutlinedTextField(rpe, { rpe = it; updateCompact(exertion = it) }, enabled = draftLoaded && !submitting, label = { Text("RPE") }, singleLine = true, modifier = Modifier.width(70.dp))
+            TextButton(enabled = draftLoaded && !submitting, onClick = {
+                val pending = entryDraft ?: return@TextButton
+                val parsed = parsePerformance(emptySet(row.id, pending.ordinal).copy(id = pending.setId), result, hold, exercise?.trackingType == "WEIGHT_REPS", lb)
                 if (parsed != null && (rpe.isBlank() || rpe.toDoubleOrNull()?.let { it in 0.0..10.0 } == true)) {
-                    vm.saveSet(parsed.copy(rpe = rpe.toDoubleOrNull()), emptyList()); result = ""; rpe = ""; onSaved()
+                    submitting = true
+                    vm.submitEntryDraft(parsed.copy(rpe = rpe.toDoubleOrNull()), emptyList()) {
+                        resetDraft(pending.ordinal + 1)
+                        onSaved()
+                    }
                     if(context.getSharedPreferences("settings",0).getBoolean("haptic",true)) {
                         val vibrator=context.getSystemService(android.os.Vibrator::class.java)
                         if(android.os.Build.VERSION.SDK_INT>=26)vibrator.vibrate(android.os.VibrationEffect.createOneShot(30,android.os.VibrationEffect.DEFAULT_AMPLITUDE)) else vibrator.vibrate(30)
@@ -122,9 +153,22 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                 }
             }) { Text("+") }
         }
-        if (hold) TextButton(onClick = { if (timerStart == null) timerStart = android.os.SystemClock.elapsedRealtime() else { result = (elapsed / 1000.0).toString(); timerStart = null } }) { Text(if (timerStart == null) "Start hold timer" else "Stop · ${elapsed / 1000.0}s") }
+        if (hold) TextButton(onClick = {
+            if (timerStart == null) timerStart = android.os.SystemClock.elapsedRealtime()
+            else {
+                result = (elapsed / 1000.0).toString()
+                updateCompact(performance = result)
+                timerStart = null
+            }
+        }) { Text(if (timerStart == null) "Start hold timer" else "Stop · ${elapsed / 1000.0}s") }
         Row {
-            TextButton(onClick = { edit = emptySet(row.id, (sets.maxOfOrNull { it.ordinal } ?: 0) + 1) }) { Text("Bands / details") }
+            TextButton(enabled = draftLoaded && !submitting, onClick = {
+                entryDraft?.copy(detailsOpen = true, updatedAt = System.currentTimeMillis())?.let {
+                    entryDraft = it
+                    detailsDraft = it
+                    vm.saveEntryDraft(it)
+                }
+            }) { Text("Bands / details") }
             TextButton(onClick = { RestTimer.start(context, restSeconds) }) { Text("Rest ${restSeconds}s") }
             TextButton(onClick = { expanded = !expanded }) { Text("More") }
         }
@@ -140,6 +184,18 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
         substitute = false
     }
     edit?.let { SetDetails(vm, it, row.actualExerciseId, hold, exercise?.trackingType == "WEIGHT_REPS", lb, { edit = null }) { s, b -> vm.saveSet(s,b); edit = null; onSaved() } }
+    detailsDraft?.let { pending ->
+        DraftSetDetails(vm, pending, row.actualExerciseId, hold, exercise?.trackingType == "WEIGHT_REPS", lb, {
+            vm.discardEntryDraft(row.id)
+            resetDraft(pending.ordinal)
+        }) { s, b ->
+            submitting = true
+            vm.submitEntryDraft(s, b) {
+                resetDraft(pending.ordinal + 1)
+                onSaved()
+            }
+        }
+    }
 }
 
 fun parsePerformance(base: WorkoutSetEntity, text: String, hold: Boolean, weighted: Boolean, lb: Boolean): WorkoutSetEntity? {
@@ -158,6 +214,110 @@ fun setDescription(s: WorkoutSetEntity): String = when {
     s.holdMillis != null -> "${s.holdMillis/1000.0}s"
     else -> "${s.weightKg?.let { "$it kg × " }.orEmpty()}${s.reps ?: 0} reps"
 } + (if (s.setType == "WARM_UP") " · warm-up" else "") + s.addedWeightKg?.let { " +${it}kg" }.orEmpty() + s.assistanceKg?.let { " −${it}kg" }.orEmpty()
+
+private fun bandIds(value: String): List<String> {
+    val values = JSONArray(value)
+    return (0 until values.length()).map(values::getString)
+}
+
+private fun encodeBandIds(values: List<String>): String =
+    JSONArray().apply { values.forEach { put(it) } }.toString()
+
+@Composable
+private fun DraftSetDetails(
+    vm: EditorViewModel,
+    original: WorkoutEntryDraftEntity,
+    exerciseId: String,
+    hold: Boolean,
+    weighted: Boolean,
+    lb: Boolean,
+    dismiss: () -> Unit,
+    save: (WorkoutSetEntity, List<String>) -> Unit,
+) {
+    val bands by vm.bands.collectAsStateWithLifecycle()
+    val variations by vm.variations.collectAsStateWithLifecycle()
+    var draft by remember(original.workoutExerciseId, original.setId) { mutableStateOf(original) }
+    var error by remember { mutableStateOf<String?>(null) }
+    fun update(transform: (WorkoutEntryDraftEntity) -> WorkoutEntryDraftEntity) {
+        draft = transform(draft).copy(updatedAt = System.currentTimeMillis())
+        vm.saveEntryDraft(draft)
+    }
+    val selected = bandIds(draft.bandIds)
+    AlertDialog(
+        onDismissRequest = dismiss,
+        title = { Text("Set details") },
+        text = {
+            LazyColumn {
+                item {
+                    EditField(if (hold) "Seconds" else if (weighted) "Weight × reps" else "Reps", draft.performance) { update { row -> row.copy(performance = it) } }
+                    EditField("RPE (optional)", draft.rpe) { update { row -> row.copy(rpe = it) } }
+                    Row { Checkbox(draft.warmUp, { checked -> update { it.copy(warmUp = checked) } }); Text("Warm-up") }
+                    Row { Checkbox(draft.failed, { checked -> update { it.copy(failed = checked) } }); Text("Failed/partial — store zero") }
+                    Text("Bands: ${selected.sumOf { id -> bands.find { it.id == id }?.widthCentimetres ?: 0.0 }} cm total")
+                    bands.forEach { band ->
+                        Row {
+                            Checkbox(band.id in selected, { checked ->
+                                update { row -> row.copy(bandIds = encodeBandIds(if (checked) selected + band.id else selected - band.id)) }
+                            })
+                            Text("${band.name} (${band.widthCentimetres}cm)")
+                        }
+                    }
+                    Text("Variation")
+                    TextButton(onClick = { update { it.copy(variationId = null) } }) { Text(if (draft.variationId == null) "✓ Default" else "Default") }
+                    variations.filter { it.exerciseId == exerciseId }.forEach { variation ->
+                        TextButton(onClick = { update { it.copy(variationId = variation.id) } }) {
+                            Text((if (draft.variationId == variation.id) "✓ " else "") + variation.name)
+                        }
+                    }
+                    EditField("Left ${if (hold) "seconds" else "reps"}", draft.leftValue) { update { row -> row.copy(leftValue = it) } }
+                    EditField("Right ${if (hold) "seconds" else "reps"}", draft.rightValue) { update { row -> row.copy(rightValue = it) } }
+                    EditField("Added weight (kg)", draft.addedWeight) { update { row -> row.copy(addedWeight = it) } }
+                    EditField("Assistance (kg)", draft.assistance) { update { row -> row.copy(assistance = it) } }
+                    EditField("ROM measurement (optional)", draft.romValue) { update { row -> row.copy(romValue = it) } }
+                    EditField("ROM unit", draft.romUnit) { update { row -> row.copy(romUnit = it) } }
+                    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val base = emptySet(draft.workoutExerciseId, draft.ordinal).copy(id = draft.setId)
+                val parsed = parsePerformance(base, if (draft.failed) { if (weighted) "0 x 0" else "0" } else draft.performance, hold, weighted, lb)
+                val sideValues = listOf(draft.leftValue, draft.rightValue)
+                val numericValues = sideValues + listOf(draft.addedWeight, draft.assistance, draft.romValue)
+                if (draft.rpe.isNotBlank() && (draft.rpe.toDoubleOrNull() == null || draft.rpe.toDouble() !in 0.0..10.0)) {
+                    error = "RPE must be 0–10"
+                } else if (numericValues.any { it.isNotBlank() && (it.toDoubleOrNull()?.let { number -> !number.isFinite() || number < 0 } != false) }) {
+                    error = "Use finite, non-negative numbers"
+                } else if (!hold && sideValues.any { it.isNotBlank() && it.toIntOrNull() == null }) {
+                    error = "Repetitions must be whole numbers"
+                } else if (parsed == null && draft.romValue.toDoubleOrNull() == null && draft.leftValue.toDoubleOrNull() == null && draft.rightValue.toDoubleOrNull() == null) {
+                    error = "Enter a valid result"
+                } else {
+                    var saved = (parsed ?: base).copy(
+                        setType = if (draft.warmUp) "WARM_UP" else "WORKING",
+                        result = if (draft.failed) "FAILED" else "COMPLETED",
+                        variationId = draft.variationId,
+                        rpe = draft.rpe.toDoubleOrNull(),
+                        leftReps = if (!hold) draft.leftValue.toIntOrNull() else null,
+                        rightReps = if (!hold) draft.rightValue.toIntOrNull() else null,
+                        leftHoldMillis = if (hold) draft.leftValue.toDoubleOrNull()?.times(1000)?.toLong() else null,
+                        rightHoldMillis = if (hold) draft.rightValue.toDoubleOrNull()?.times(1000)?.toLong() else null,
+                        addedWeightKg = draft.addedWeight.toDoubleOrNull(),
+                        assistanceKg = draft.assistance.toDoubleOrNull(),
+                        romValue = draft.romValue.toDoubleOrNull(),
+                        romUnit = draft.romUnit,
+                        updatedAt = System.currentTimeMillis(),
+                    )
+                    if (draft.failed) saved = saved.copy(reps = 0, holdMillis = 0, leftReps = 0, rightReps = 0, leftHoldMillis = 0, rightHoldMillis = 0, romValue = null)
+                    else if (draft.leftValue.isNotBlank() || draft.rightValue.isNotBlank()) saved = saved.copy(reps = null, holdMillis = null)
+                    save(saved, selected)
+                }
+            }) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } },
+    )
+}
 
 @Composable
 private fun SetDetails(vm: EditorViewModel, original: WorkoutSetEntity, exerciseId: String, hold: Boolean, weighted: Boolean, lb: Boolean, dismiss: () -> Unit, save: (WorkoutSetEntity, List<String>) -> Unit) {

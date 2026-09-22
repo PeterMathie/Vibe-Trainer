@@ -29,10 +29,21 @@ android {
         buildConfig = true
     }
     sourceSets.getByName("androidTest").assets.srcDir(rootProject.file("docs/examples"))
+    sourceSets.getByName("androidTest").assets.srcDir(file("schemas"))
 }
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+configurations.configureEach {
+    if (name.endsWith("AndroidTestRuntimeClasspath")) {
+        resolutionStrategy.force(
+            "org.jetbrains.kotlinx:kotlinx-serialization-bom:1.8.1",
+            "org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1",
+            "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.8.1",
+        )
+    }
 }
 
 dependencies {
