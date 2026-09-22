@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: none. **STYLE-01 — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, 22 September 2026. Commit `94cb902` makes semantic colours refresh immediately after edit/restore, rejects editable/restored custom palettes below WCAG AA text contrast, and propagates reduced motion through the theme while disabling ripple. No app-owned animated transition APIs currently require additional handling.
+Current implementation task: **UI-01b — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: API 35 Compose interaction and persisted-state evidence for programme create, rename, duplicate, reorder and archive, with focused fixes for any defects found. Compact logging, history/SVG accessibility and real-phone QA remain separate.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 

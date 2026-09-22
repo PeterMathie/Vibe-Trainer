@@ -45,7 +45,9 @@ Verification: commit `39739ff69ae4c081771f9eb5b31ab9f1e473a812`, [run 3570564551
 
 ### UI-01 — Full interaction and accessibility checks
 
-UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/greenfield-foundation`, 22 September 2026. Commit `8ddccb5` selects light system icons; the launch screenshot from successful [run 35705645513](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513) shows them readable on the dark home screen. The other UI-01 checks remain unclaimed and unverified.
+UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/greenfield-foundation`, 22 September 2026. Commit `8ddccb5` selects light system icons; the launch screenshot from successful [run 35705645513](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513) shows them readable on the dark home screen.
+
+UI-01b (programme controls): **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026. Acceptance: exercise create, rename, duplicate, reorder and archive with API 35 Compose interaction plus persisted-state assertions; fix concrete defects and capture test artifacts. This bounded slice does not claim compact logging, history/SVG accessibility or real-phone QA.
 
 - [x] Fix the known low-contrast status-bar icons on the dark home screen.
 - [ ] Exercise every programme create/edit/duplicate/reorder/archive control.
