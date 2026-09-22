@@ -53,14 +53,14 @@ UI-01c (compact/detailed logging): **COMPLETED**. Owner: GitHub Copilot session 
 
 UI-01d (history navigation and map modes): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `dd3bf1a` adds an API 35 Compose test that opens seeded strength history, moves to the preceding day, switches to the seeded stretching map with selected-state semantics, and returns from the historical view. History mode controls now use the same accessible segmented pattern as the app header. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 31 instrumentation tests. SVG region and selected-outline coverage remains a separate slice.
 
-UI-01e (body-map regions and TalkBack): **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026. Acceptance: enumerate every relevant front/back body-map region in API 35 semantics, exercise representative selection from each view, verify selected-state/outline evidence and useful TalkBack actions, and fix only concrete accessibility or interaction defects. This slice does not substitute for QA-01 real-phone testing.
+UI-01e (body-map regions and TalkBack): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `8af0d1a` enumerates all 13 front and 14 back muscle groups for both male and female diagrams through API 35 accessibility actions, invokes representative chest and lat actions, and verifies selection moves between views. The selected muscle already drives the accent outline; the map now also exposes that selection as a state description for TalkBack. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 32 instrumentation tests. This slice does not substitute for QA-01 real-phone testing.
 
 - [x] Fix the known low-contrast status-bar icons on the dark home screen.
 - [x] Exercise every programme create/edit/duplicate/reorder/archive control.
 - [x] Check compact logging with keyboard open, large fonts and narrow screens.
 - [x] Check substitutions, stacked bands, unilateral values, hold corrections and notes.
 - [x] Check history navigation and both historical map modes.
-- [ ] Check every relevant SVG region, selected outlines and TalkBack actions.
+- [x] Check every relevant SVG region, selected outlines and TalkBack actions.
 - [ ] Capture screenshots and report concrete defects; add focused regression coverage.
 
 ### QA-01 — Real-phone timers

@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **UI-01e — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: enumerate front/back body-map region semantics, exercise representative selection from both views, verify selected-state/outline evidence and useful TalkBack actions, and make only demonstrated accessibility or interaction fixes. Real-phone QA remains separate.
+Current implementation task: **UI-01e — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. Commit `8af0d1a` enumerates every front/back region for both anatomy variants, invokes representative front/back TalkBack actions and verifies selection state follows the existing accent outline. Real-phone QA remains separate.
 
-UI-01d completed at `4bbb0e6`; full local validation after implementation commit `dd3bf1a` passed with 17 unit tests and 31 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: inspect `MuscleMap` semantics and existing SVG region definitions before adding focused UI-01e coverage.
+Full local validation after `8af0d1a`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 32 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: claim the remaining emulator screenshot/artifact review slice without conflating it with QA-01.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
@@ -16,7 +16,7 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Product contract: `docs/PRODUCT_REQUIREMENTS.md`; tester walkthrough: `docs/BETA_TESTING.md`.
 - Native Kotlin / Compose / Room / Hilt app. This branch has no runnable web version.
 - User has authorised replacing the old implementation and completing the beta. No further approval is needed for ordinary implementation or tests.
-- Latest locally verified implementation commit: `dd3bf1a`.
+- Latest locally verified implementation commit: `8af0d1a`.
 - Verified run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513. Unit tests, debug APK, Android API 35 emulator tests, APK installation and MainActivity launch all passed. `am start` reported `Status: ok`; the process remained alive, a home screenshot was captured, and the AndroidRuntime error log was empty.
 - APK artifact: `vibe-trainer-debug`; reports and generated Room schemas: `validation-reports`.
 
@@ -53,6 +53,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Wrote the beta walkthrough and this handoff.
 
 ## Latest verification
+
+Local UI-01e verification at commit `8af0d1a`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 32 API 35 instrumentation tests. `MuscleMapUiTest` inventories all 13 front and 14 back region actions on male/female maps, invokes representative chest/lat actions, and verifies TalkBack selection state follows the selected outline.
 
 Local UI-01d verification at commit `dd3bf1a`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 31 API 35 instrumentation tests. `HistoryUiTest` navigates seeded strength and stretching history, verifies selected mode semantics, changes historical day and returns from the historical view.
 
