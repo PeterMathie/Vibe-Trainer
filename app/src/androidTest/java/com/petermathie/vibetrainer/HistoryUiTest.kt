@@ -72,7 +72,12 @@ class HistoryUiTest {
         }
 
         compose.onNodeWithText("Previous day").performClick()
-        compose.onNodeWithText(firstDay.minusDays(1).format(DATE_FORMAT), useUnmergedTree = true).assertExists()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithText(
+                firstDay.minusDays(1).format(DATE_FORMAT),
+                useUnmergedTree = true,
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText("Stretching").performClick()
         compose.onNodeWithText("Stretching").assertIsSelected()
         compose.waitUntil(15_000) {
