@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **LOG-01 — IN PROGRESS**, owned by GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. The plan is to persist one pending entry per workout exercise, restore compact and detailed fields after process recreation, atomically consume drafts on set submission, clear them on details cancellation/workout finish/deletion, and add Room v2 → v3 migration coverage plus interruption/no-duplicate regressions. Draft-derived-view gating and the no-per-set-notes decision remain unchanged.
+Current implementation task: **LOG-01 — COMPLETED LOCALLY**, owned by GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3` on `pmathie-cicpilot-persist-workout-drafts`, 22 September 2026. Commit `f868c50` persists compact and detailed pending entry fields, restores them after database/process recreation, atomically consumes a stable pending-set ID, and clears drafts after details cancellation, workout finish or parent deletion. Late writes are rejected once a workout is finished. Draft-derived-view gating and the no-per-set-notes decision remain unchanged.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
@@ -33,6 +33,7 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 
 ## Fixes completed in this continuation
 
+- Added Room-backed recovery for unfinished compact and Bands/details workout input. Added a v2 → v3 migration, stable idempotent set submission and cleanup on cancellation/finish/deletion.
 - Fixed CI KVM access so emulator verification actually runs.
 - Added programme ordering and history date corrections.
 - Serialised editor writes; retained historical exercise/muscle snapshots.
@@ -46,6 +47,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Wrote the beta walkthrough and this handoff.
 
 ## Latest verification
+
+Local LOG-01 verification at commit `f868c50`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 12 unit tests and 17 API 35 emulator tests. The instrumentation total includes three `WorkoutEntryDraftTest` cases for process/database recreation, transactional no-duplicate submission, cancellation/finish/deletion cleanup and finished-workout stale-write rejection, plus `VibeDatabaseMigrationTest` for v2 → v3 data preservation and schema validation. Pushes are currently blocked by HTTP 403 (`Permission to PeterMathie/Vibe-Trainer.git denied to pmathie_cicpilot`), so this local result has no GitHub Actions URL.
 
 Run `35705645513` at commit `39739ff` passed unit tests, debug assembly, API 35 instrumentation tests, APK installation and MainActivity launch. Its instrumentation reports include all seven `ImportValidationTest` cases, establishing DATA-02's scoped domain validation, transactional rollback, seeded-definition protection and published-example import. The captured home screenshot was inspected and shows readable light status-bar icons on the dark palette, establishing UI-01a only. The remaining programme, compact logging, history, SVG and TalkBack checks under UI-01 are still unverified.
 

@@ -64,11 +64,13 @@ UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/g
 
 ## Remaining implementation and polish
 
-- [ ] **LOG-01:** Persist unfinished entry drafts beyond Compose saved state if unsubmitted text must survive crashes. Test interruption and recovery without duplicate sets.
+- [x] **LOG-01:** Persist unfinished entry drafts beyond Compose saved state if unsubmitted text must survive crashes. Test interruption and recovery without duplicate sets.
 
-  Status: **IN PROGRESS**. Owner: GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026.
+  Status: **COMPLETED LOCALLY**. Owner: GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026.
 
-  Acceptance plan: store one durable pending entry per workout exercise, including compact performance/RPE input and unsaved Bands/details fields; restore it after ViewModel/process recreation; atomically consume it when a set is submitted so retries cannot duplicate the set; clear it when the details entry is cancelled, its workout is finished, or its workout/exercise is deleted; preserve existing databases with a tested Room v2 → v3 migration. Draft workouts remain excluded from derived views and no per-set notes UI will be added.
+  Evidence: commit `f868c50` stores one durable pending entry per workout exercise, including compact performance/RPE and Bands/details fields. Submission consumes the stable pending-set ID transactionally and is idempotent; cancellation, finish and parent deletion clear drafts, and late writes cannot recreate drafts for finished workouts. Room v2 → v3 migration schemas and migration coverage preserve existing workout data. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 12 unit tests and 17 API 35 instrumentation tests, including three recovery/clearing/no-duplicate tests and one migration test. Draft-derived-view gating remains covered and no per-set notes UI was added.
+
+  Remote limitation: all three push attempts returned HTTP 403, `Permission to PeterMathie/Vibe-Trainer.git denied to pmathie_cicpilot`, so no GitHub Actions run exists for this branch yet.
 - [ ] **HABIT-01:** Add configured choice/date-time input, range targets and field archival/reordering. Preserve historical daily values.
 - [ ] **PROGRESS-01:** Add chart axes/date labels, desktop hover, ROM separation by unit, explicit PR presentation and clearer skill-index explanation.
 - [ ] **DATA-03:** Define and test historical behaviour when variation order, band definitions or habit targets change; some calculations still read live definitions.
