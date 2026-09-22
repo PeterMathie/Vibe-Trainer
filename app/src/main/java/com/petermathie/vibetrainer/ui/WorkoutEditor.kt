@@ -102,9 +102,6 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     var compactEntry by remember(row.id) { mutableStateOf(CompactEntryForm()) }
     val context = LocalContext.current
     val hold = exercise?.trackingType in listOf("HOLD", "SKILL_HOLD")
-    var timerStart by rememberSaveable { mutableStateOf<Long?>(null) }
-    var elapsed by remember { mutableStateOf(0L) }
-    LaunchedEffect(timerStart) { while (timerStart != null) { elapsed = android.os.SystemClock.elapsedRealtime() - timerStart!!; kotlinx.coroutines.delay(100) } }
     LaunchedEffect(row.id) {
         val recovered = vm.entryDraft(row.id) ?: emptyEntryDraft(row.id, (sets.maxOfOrNull { it.ordinal } ?: 0) + 1)
         entryDraft = recovered
@@ -160,13 +157,11 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                 }
             }) { Text("+") }
         }
-        if (hold) TextButton(onClick = {
-            if (timerStart == null) timerStart = android.os.SystemClock.elapsedRealtime()
-            else {
-                updateCompact(compactEntry.copy(performance = (elapsed / 1000.0).toString()))
-                timerStart = null
+        if (hold) {
+            HoldTimerButton { seconds ->
+                updateCompact(compactEntry.copy(performance = seconds))
             }
-        }) { Text(if (timerStart == null) "Start hold timer" else "Stop · ${elapsed / 1000.0}s") }
+        }
         Row {
             TextButton(
                 enabled = draftLoaded && !submitting,
