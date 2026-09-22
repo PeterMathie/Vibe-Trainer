@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
 import com.petermathie.vibetrainer.domain.model.TrainingMode
+import com.petermathie.vibetrainer.domain.programme.ProgrammeEntryForm
 
 @Composable
 fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -> Unit) {
@@ -121,21 +122,19 @@ fun ExercisePicker(vm: EditorViewModel, onDismiss: () -> Unit, onChoose: (Exerci
 
 @Composable
 private fun EntryDialog(e: ProgrammeExerciseEntity, onDismiss: () -> Unit, onSave: (ProgrammeExerciseEntity) -> Unit) {
-    var sets by remember { mutableStateOf(e.targetSets?.toString().orEmpty()) }
-    var reps by remember { mutableStateOf(e.targetRepsMin?.toString().orEmpty()) }
-    var maxReps by remember { mutableStateOf(e.targetRepsMax?.toString().orEmpty()) }
-    var hold by remember { mutableStateOf(e.targetHoldSeconds?.toString().orEmpty()) }
-    var rest by remember { mutableStateOf(e.restSeconds.toString()) }
-    var rpe by remember { mutableStateOf(e.targetRpe?.toString().orEmpty()) }
-    var group by remember { mutableStateOf(e.supersetGroup.orEmpty()) }
-    var notes by remember { mutableStateOf(e.notes) }
+    var form by remember(e) { mutableStateOf(ProgrammeEntryForm.from(e)) }
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Targets and rest") }, text = {
         LazyColumn { item {
-            EditField("Sets", sets) { sets = it }; EditField("Reps minimum", reps) { reps = it }; EditField("Reps maximum", maxReps) { maxReps = it }
-            EditField("Hold seconds", hold) { hold = it }; EditField("Rest seconds", rest) { rest = it }; EditField("Target RPE", rpe) { rpe = it }
-            EditField("Circuit/group name (optional)", group) { group = it }; EditField("Exercise notes", notes) { notes = it }
+            EditField("Sets", form.sets) { form = form.copy(sets = it) }
+            EditField("Reps minimum", form.minimumReps) { form = form.copy(minimumReps = it) }
+            EditField("Reps maximum", form.maximumReps) { form = form.copy(maximumReps = it) }
+            EditField("Hold seconds", form.holdSeconds) { form = form.copy(holdSeconds = it) }
+            EditField("Rest seconds", form.restSeconds) { form = form.copy(restSeconds = it) }
+            EditField("Target RPE", form.targetRpe) { form = form.copy(targetRpe = it) }
+            EditField("Circuit/group name (optional)", form.group) { form = form.copy(group = it) }
+            EditField("Exercise notes", form.notes) { form = form.copy(notes = it) }
         } }
-    }, confirmButton = { TextButton(onClick = { onSave(e.copy(targetSets = sets.toIntOrNull(), targetRepsMin = reps.toIntOrNull(), targetRepsMax = maxReps.toIntOrNull(), targetHoldSeconds = hold.toIntOrNull(), restSeconds = rest.toIntOrNull()?.coerceAtLeast(0) ?: 120, targetRpe = rpe.toDoubleOrNull()?.coerceIn(0.0,10.0), supersetGroup = group.takeIf { it.isNotBlank() }, notes = notes)) }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+    }, confirmButton = { TextButton(onClick = { onSave(form.applyTo(e)) }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
 
 @Composable
