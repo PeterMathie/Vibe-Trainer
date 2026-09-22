@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **UI-01f — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. The current APK installed/launched with `Status: ok`; phone-sized home/history screenshots under session artifacts `files/ui-01f/` show no clipping, overlap or unreadable controls, and the captured runtime-error log has no AndroidRuntime/FATAL entries. Real-phone QA remains separate.
+Current implementation task: **ARCH-01a — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: remove only the unreachable private programme/workout/logger composables and their exclusive helpers from `VibeTrainerApp.kt`. Current navigation already uses `ProgrammeEditor` and `WorkoutEditor`; no visual or navigation change is intended.
 
-All emulator-automatable UI-01 slices are complete. Full local validation after `8af0d1a` passed with 17 unit tests and 32 API 35 instrumentation tests; current APK installation/launch and screenshot inspection also passed. Generated `.gradle/` and `app/build/` content remains ignored and untracked. QA-01 remains open for a real Android phone; the next implementation phase is a separately claimed, behavior-preserving ARCH-01 slice.
+All emulator-automatable UI-01 slices are complete. Full local validation after `8af0d1a` passed with 17 unit tests and 32 API 35 instrumentation tests; current APK installation/launch and screenshot inspection also passed. Generated `.gradle/` and `app/build/` content remains ignored and untracked. ARCH-01a acceptance is focused programme/logging/history Compose coverage followed by the full suite; QA-01 remains open for a real Android phone.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
