@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **ARCH-01e — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. Commit `a92bb2c` centralises the pure item lookup/bounds/swap algorithm behind five `EditorViewModel` move operations while preserving their filters, rank offsets and Room transactions.
+Current implementation task: **RELEASE-01a — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: document versioning, migration/backup release gates, reproducible unsigned release-build checks and explicit signing/publishing blockers without adding secrets or publishing.
 
-ARCH-01e pure ordering tests plus focused programme/habit persistence tests passed, followed by full validation with 21 unit tests and 32 API 35 instrumentation tests. ARCH-01 is intentionally paused at a safe boundary: coupled workout-detail, tracker-screen and heterogeneous editor-persistence seams remain open for separately designed slices. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step is feasible RELEASE-01 documentation/build readiness; QA-01 remains open for a real Android phone.
+ARCH-01e pure ordering tests plus focused programme/habit persistence tests passed, followed by full validation with 21 unit tests and 32 API 35 instrumentation tests. ARCH-01 is intentionally paused at a safe boundary: coupled workout-detail, tracker-screen and heterogeneous editor-persistence seams remain open for separately designed slices. Generated `.gradle/` and `app/build/` content remains ignored and untracked. RELEASE-01a must prove unsigned release assembly only; QA-01 remains open for a real Android phone.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 

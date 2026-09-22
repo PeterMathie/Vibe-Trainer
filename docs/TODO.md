@@ -116,6 +116,8 @@ UI-01f (emulator screenshot review): **COMPLETED**. Owner: GitHub Copilot sessio
   ARCH-01 remains open after five safe slices: `WorkoutEditor.kt` still couples compact-entry recovery, timer behavior and two detailed-set forms; `TrackerScreen.kt` still combines list, daily input and field configuration; `EditorViewModel.kt` still owns heterogeneous editor persistence. These seams are coupled enough to require separately designed acceptance tests; do not combine them into a rewrite.
 - [ ] **RELEASE-01:** Release signing/versioning, full dependency notices, upgrade policy and store preparation.
 
+  RELEASE-01a (versioning, migration and unsigned build readiness): **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026. Scope: document the version-code/name policy, Room migration and backup/restore release gates, reproducible unsigned release-build checks, and the exact signing/publishing work that cannot be completed without release credentials/store configuration. Acceptance: documentation matches the current `0.3.0`/code `2` and Room v5 implementation, `assembleRelease` succeeds without adding secrets, and no artifact is signed or published. Full dependency-license inventory remains a separate bounded slice.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.
