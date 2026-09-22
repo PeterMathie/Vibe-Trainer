@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
 import com.petermathie.vibetrainer.data.local.*
+import com.petermathie.vibetrainer.data.TrackerEditorStore
 import com.petermathie.vibetrainer.domain.editor.moveItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -22,6 +23,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     suspend fun importJson(text: String) = com.petermathie.vibetrainer.data.DataTransfer.import(db, text)
     suspend fun exportCsv() = com.petermathie.vibetrainer.data.DataTransfer.csv(db)
     private val dao = db.editorDao()
+    private val trackerStore = TrackerEditorStore(db, ::newId)
     private fun <T> Flow<List<T>>.live() = stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val programmes = dao.programmes().live()
     val days = dao.days().live()
@@ -86,24 +88,11 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
             }
         }
     }
-    fun save(row: TrackerEntity) = write { dao.tracker(row) }
-    fun createTracker(row: TrackerEntity) = write {
-        db.withTransaction {
-            dao.tracker(row)
-            dao.field(TrackerFieldEntity(newId(),row.id,"Done","BOOLEAN",null,null,null,0))
-        }
-    }
-    fun save(row: TrackerFieldEntity) = write { dao.field(row) }
-    fun moveTrackerField(id: String, delta: Int) = write {
-        val selected = dao.fieldById(id) ?: return@write
-        val siblings = dao.fields().first()
-            .filter { it.trackerId == selected.trackerId && !it.isArchived }
-            .sortedBy { it.position }
-        moveItem(siblings, id, delta) { it.id }?.let { rows ->
-            db.withTransaction { rows.forEachIndexed { index, row -> dao.field(row.copy(position = index)) } }
-        }
-    }
-    fun save(row: TrackerDailyValueEntity) = write { db.trackerDao().upsertValue(row) }
+    fun save(row: TrackerEntity) = write { trackerStore.saveTracker(row) }
+    fun createTracker(row: TrackerEntity) = write { trackerStore.createTracker(row) }
+    fun save(row: TrackerFieldEntity) = write { trackerStore.saveField(row) }
+    fun moveTrackerField(id: String, delta: Int) = write { trackerStore.moveField(id, delta) }
+    fun save(row: TrackerDailyValueEntity) = write { trackerStore.saveValue(row) }
     fun save(row: BodyMeasurementEntity) = write { dao.measurement(row) }
     fun save(row: ExerciseVariationEntity) = write { dao.variation(row) }
     suspend fun entryDraft(workoutExerciseId: String) = dao.entryDraft(workoutExerciseId)
@@ -125,7 +114,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun removeEntry(id: String) = write { dao.deleteEntry(id) }
     fun removeSet(id: String) = write { dao.deleteSet(id) }
     fun removeWorkout(id: String) = write { dao.deleteWorkout(id) }
-    fun clearValue(id: String, day: Long) = write { db.trackerDao().clearValue(id, day) }
+    fun clearValue(id: String, day: Long) = write { trackerStore.clearValue(id, day) }
     fun removeMeasurement(id: String) = write { dao.deleteMeasurement(id) }
     fun saveSet(row: WorkoutSetEntity, bandIds: List<String>) = write {
         dao.saveSetWithSnapshots(row, bandIds, consumeDraft = false)
