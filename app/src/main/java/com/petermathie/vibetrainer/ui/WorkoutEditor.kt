@@ -8,6 +8,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
@@ -162,7 +164,10 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
             }
         }) { Text(if (timerStart == null) "Start hold timer" else "Stop · ${elapsed / 1000.0}s") }
         Row {
-            TextButton(enabled = draftLoaded && !submitting, onClick = {
+            TextButton(
+                enabled = draftLoaded && !submitting,
+                modifier = Modifier.semantics { contentDescription = "Set details for ${exercise?.canonicalName.orEmpty()}" },
+                onClick = {
                 entryDraft?.copy(detailsOpen = true, updatedAt = System.currentTimeMillis())?.let {
                     entryDraft = it
                     detailsDraft = it
