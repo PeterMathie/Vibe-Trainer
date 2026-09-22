@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **ARCH-01f — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: centralise the duplicated detailed-set string state, validation and entity conversion used by recovered-entry and saved-set dialogs without changing persistence, visuals or navigation.
+Current implementation task: **ARCH-01g — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: extract the duplicated detailed-set controls into one stateless composable driven by `SetDetailsForm`, retaining each dialog's current persistence/state ownership.
 
 RELEASE-01b is complete at `f6174cd`: repository and bundled notices inventory the resolved release runtime families and explicit transitive helpers, both notice copies are byte-identical, and the unsigned APK contains the notices. Exact upstream NOTICE/licence-text packaging plus legal/store approval remain external release gates. Generated `.gradle/` and `app/build/` content remains ignored and untracked; QA-01 remains open for a real Android phone.
 
@@ -53,6 +53,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Wrote the beta walkthrough and this handoff.
 
 ## Latest verification
+
+Local ARCH-01f verification at commit `2ef436f`: five `SetDetailsFormTest` cases plus `SessionProgressTest` passed; focused `WorkoutLoggingUiTest` and `WorkoutEntryDraftTest` passed; then `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest :app:assembleRelease` passed with 26 unit tests and 32 API 35 instrumentation tests.
 
 Local RELEASE-01b verification at commit `f6174cd`: `releaseRuntimeClasspath` and `coreLibraryDesugaring` resolved successfully, the repository and asset notices matched byte-for-byte, `gradle :app:assembleRelease` passed, and APK inspection found `assets/THIRD_PARTY_NOTICES.md` plus `assets/FREE_EXERCISE_DB_LICENSE.md`.
 
