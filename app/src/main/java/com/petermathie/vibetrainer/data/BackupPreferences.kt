@@ -1,6 +1,7 @@
 package com.petermathie.vibetrainer.data
 
 import android.content.SharedPreferences
+import com.petermathie.vibetrainer.domain.style.PaletteContrast
 import org.json.JSONObject
 
 /** Only durable profile and presentation choices belong in a backup, never running timers. */
@@ -26,6 +27,11 @@ object BackupPreferences {
                 "palette" -> value is String
                 else -> false
             }) { "Invalid preference: $key" }
+        }
+        if (values.optString("palette") == "custom" && colours.all(values::has)) {
+            require(PaletteContrast.customPaletteError(values.getInt("accent"), values.getInt("background"), values.getInt("surface")) == null) {
+                "Restored custom palette does not meet text contrast requirements"
+            }
         }
         return values
     }

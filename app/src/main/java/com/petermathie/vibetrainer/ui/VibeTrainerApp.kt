@@ -56,9 +56,11 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -67,6 +69,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import com.petermathie.vibetrainer.domain.style.PaletteContrast
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -120,7 +123,14 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
     val exercises by viewModel.exerciseResults.collectAsStateWithLifecycle()
     var destination by rememberSaveable { mutableStateOf(Destination.HOME) }
     var paletteId by rememberSaveable { mutableStateOf(prefs.getString("palette",VibePalettes.MidnightLime.id)!!) }
-    val palette = if(paletteId=="custom") VibePalettes.MidnightLime.copy(id="custom",displayName="Custom",accent=Color(prefs.getInt("accent",0xFFC2F85A.toInt())),background=Color(prefs.getInt("background",0xFF081017.toInt())),surface=Color(prefs.getInt("surface",0xFF101B23.toInt()))) else VibePalettes.builtIns[paletteId] ?: VibePalettes.MidnightLime
+    val palette = rememberVibePalette(prefs)
+    DisposableEffect(prefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { preferences, key ->
+            if (key == "palette") paletteId = preferences.getString(key, VibePalettes.MidnightLime.id)!!
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     VibeTrainerTheme(palette) {
         if (state.selectedHistoryDay != null) {
@@ -142,6 +152,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                         TextButton(onClick = { destination = item }) { Text(if(destination == item) "• ${item.label}" else item.label) }
                     }
                 }
+
             },
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
@@ -169,6 +180,27 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
             }
         }
     }
+}
+
+@Composable
+internal fun rememberVibePalette(prefs: android.content.SharedPreferences): VibePalette {
+    var revision by remember { mutableIntStateOf(0) }
+    DisposableEffect(prefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key in setOf("palette", "accent", "background", "surface")) revision++
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+    revision
+    val id = prefs.getString("palette", VibePalettes.MidnightLime.id)!!
+    return if (id == "custom") VibePalettes.MidnightLime.copy(
+        id = "custom",
+        displayName = "Custom",
+        accent = Color(prefs.getInt("accent", 0xFFC2F85A.toInt())),
+        background = Color(prefs.getInt("background", 0xFF081017.toInt())),
+        surface = Color(prefs.getInt("surface", 0xFF101B23.toInt())),
+    ) else VibePalettes.builtIns[id] ?: VibePalettes.MidnightLime
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -602,12 +634,14 @@ private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange
 }
 
 @Composable
-private fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemoveDemo: () -> Unit) {
+internal fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemoveDemo: () -> Unit) {
     val prefs=LocalContext.current.getSharedPreferences("settings",0)
-    var accent by remember { mutableStateOf("#C2F85A") }
-    var background by remember { mutableStateOf("#081017") }
-    var surface by remember { mutableStateOf("#101B23") }
-    var invalid by remember { mutableStateOf(false) }
+    fun storedHex(key: String, fallback: Int) = String.format("#%06X", 0xFFFFFF and prefs.getInt(key, fallback))
+    var accent by remember { mutableStateOf(storedHex("accent",0xFFC2F85A.toInt())) }
+    var background by remember { mutableStateOf(storedHex("background",0xFF081017.toInt())) }
+    var surface by remember { mutableStateOf(storedHex("surface",0xFF101B23.toInt())) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var applied by remember { mutableStateOf(false) }
     ScreenList {
         item {
             Text("Style", style = MaterialTheme.typography.headlineLarge)
@@ -622,11 +656,18 @@ private fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemove
                 EditField("Accent hex",accent){accent=it};EditField("Background hex",background){background=it};EditField("Surface hex",surface){surface=it}
                 Button(onClick={
                     try {
-                        prefs.edit().putInt("accent",android.graphics.Color.parseColor(accent)).putInt("background",android.graphics.Color.parseColor(background)).putInt("surface",android.graphics.Color.parseColor(surface)).apply()
-                        onSelect("custom");invalid=false
-                    }catch(_:IllegalArgumentException){invalid=true}
+                        val accentValue=android.graphics.Color.parseColor(accent)
+                        val backgroundValue=android.graphics.Color.parseColor(background)
+                        val surfaceValue=android.graphics.Color.parseColor(surface)
+                        error=PaletteContrast.customPaletteError(accentValue,backgroundValue,surfaceValue)
+                        if(error==null) {
+                            prefs.edit().putInt("accent",accentValue).putInt("background",backgroundValue).putInt("surface",surfaceValue).apply()
+                            onSelect("custom");applied=true
+                        }
+                    }catch(_:IllegalArgumentException){error="Use valid hex colours, for example #C2F85A"}
                 }){Text("Apply custom palette")}
-                if(invalid)Text("Use valid hex colours, for example #C2F85A")
+                error?.let { Text(it, color=MaterialTheme.colorScheme.error) }
+                if(applied && error==null)Text("Custom palette applied")
             }
         }
         item {

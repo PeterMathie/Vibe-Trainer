@@ -101,6 +101,7 @@ object VibePalettes {
 }
 
 val LocalVibePalette = staticCompositionLocalOf { VibePalettes.MidnightLime }
+val LocalVibeReducedMotion = staticCompositionLocalOf { false }
 
 object VibeSpacing {
     val xSmall = 4.dp
@@ -152,7 +153,7 @@ fun VibeTrainerTheme(
         outline = palette.border,
         error = palette.danger,
     )
-    androidx.compose.runtime.CompositionLocalProvider(LocalVibePalette provides palette, LocalRippleConfiguration provides if(reducedMotion) null else RippleConfiguration()) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalVibePalette provides palette, LocalVibeReducedMotion provides reducedMotion, LocalRippleConfiguration provides if(reducedMotion) null else RippleConfiguration()) {
         MaterialTheme(colorScheme = scheme, typography = VibeTypography, content = content)
     }
 }
