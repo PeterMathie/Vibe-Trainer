@@ -256,33 +256,18 @@ private fun DraftSetDetails(
         text = {
             LazyColumn {
                 item {
-                    EditField(if (hold) "Seconds" else if (weighted) "Weight × reps" else "Reps", form.performance) { update { row -> row.copy(performance = it) } }
-                    EditField("RPE (optional)", form.rpe) { update { row -> row.copy(rpe = it) } }
-                    Row { Checkbox(form.warmUp, { checked -> update { it.copy(warmUp = checked) } }); Text("Warm-up") }
-                    Row { Checkbox(form.failed, { checked -> update { it.copy(failed = checked) } }); Text("Failed/partial — store zero") }
-                    Text("Bands: ${selected.sumOf { id -> bands.find { it.id == id }?.widthCentimetres ?: 0.0 }} cm total")
-                    bands.forEach { band ->
-                        Row {
-                            Checkbox(band.id in selected, { checked ->
-                                updateBands(if (checked) selected + band.id else selected - band.id)
-                            })
-                            Text("${band.name} (${band.widthCentimetres}cm)")
-                        }
-                    }
-                    Text("Variation")
-                    TextButton(onClick = { update { it.copy(variationId = null) } }) { Text(if (form.variationId == null) "✓ Default" else "Default") }
-                    variations.filter { it.exerciseId == exerciseId }.forEach { variation ->
-                        TextButton(onClick = { update { it.copy(variationId = variation.id) } }) {
-                            Text((if (form.variationId == variation.id) "✓ " else "") + variation.name)
-                        }
-                    }
-                    EditField("Left ${if (hold) "seconds" else "reps"}", form.leftValue) { update { row -> row.copy(leftValue = it) } }
-                    EditField("Right ${if (hold) "seconds" else "reps"}", form.rightValue) { update { row -> row.copy(rightValue = it) } }
-                    EditField("Added weight (kg)", form.addedWeight) { update { row -> row.copy(addedWeight = it) } }
-                    EditField("Assistance (kg)", form.assistance) { update { row -> row.copy(assistance = it) } }
-                    EditField("ROM measurement (optional)", form.romValue) { update { row -> row.copy(romValue = it) } }
-                    EditField("ROM unit", form.romUnit) { update { row -> row.copy(romUnit = it) } }
-                    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    SetDetailsFields(
+                        form = form,
+                        hold = hold,
+                        weighted = weighted,
+                        bands = bands,
+                        selectedBandIds = selected,
+                        variations = variations,
+                        exerciseId = exerciseId,
+                        error = error,
+                        onFormChange = { next -> update { next } },
+                        onBandSelectionChange = ::updateBands,
+                    )
                 }
             }
         },
@@ -308,18 +293,18 @@ private fun SetDetails(vm: EditorViewModel, original: WorkoutSetEntity, exercise
     var error by remember { mutableStateOf<String?>(null) }
     AlertDialog(onDismissRequest = dismiss, title = { Text("Set details") }, text = { LazyColumn {
         item {
-            EditField(if (hold) "Seconds" else if (weighted) "Weight × reps" else "Reps", form.performance) { form = form.copy(performance = it) }
-            EditField("RPE (optional)", form.rpe) { form = form.copy(rpe = it) }
-            Row { Checkbox(form.warmUp, { form = form.copy(warmUp = it) }); Text("Warm-up") }; Row { Checkbox(form.failed, { form = form.copy(failed = it) }); Text("Failed/partial — store zero") }
-            Text("Bands: ${selected.sumOf { id -> bands.find { it.id == id }?.widthCentimetres ?: 0.0 }} cm total")
-            bands.forEach { band -> Row { Checkbox(band.id in selected, { checked -> selected = if(checked) selected + band.id else selected - band.id }); Text("${band.name} (${band.widthCentimetres}cm)") } }
-            Text("Variation")
-            TextButton(onClick = { form = form.copy(variationId = null) }) { Text(if (form.variationId == null) "✓ Default" else "Default") }
-            variations.filter { it.exerciseId == exerciseId }.forEach { v -> TextButton(onClick = { form = form.copy(variationId = v.id) }) { Text((if(form.variationId == v.id) "✓ " else "") + v.name) } }
-            EditField("Left ${if(hold) "seconds" else "reps"}",form.leftValue) { form = form.copy(leftValue = it) }; EditField("Right ${if(hold) "seconds" else "reps"}",form.rightValue) { form = form.copy(rightValue = it) }
-            EditField("Added weight (kg)",form.addedWeight) { form = form.copy(addedWeight = it) }; EditField("Assistance (kg)",form.assistance) { form = form.copy(assistance = it) }
-            EditField("ROM measurement (optional)",form.romValue) { form = form.copy(romValue = it) }; EditField("ROM unit",form.romUnit) { form = form.copy(romUnit = it) }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            SetDetailsFields(
+                form = form,
+                hold = hold,
+                weighted = weighted,
+                bands = bands,
+                selectedBandIds = selected,
+                variations = variations,
+                exerciseId = exerciseId,
+                error = error,
+                onFormChange = { form = it },
+                onBandSelectionChange = { selected = it },
+            )
         }
     } }, confirmButton = { TextButton(onClick = {
         val result = form.buildSet(original, hold, weighted, lb)
