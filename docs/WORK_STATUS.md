@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **RELEASE-01b — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: inventory the resolved release runtime components, map them to authoritative licence families/sources, and reconcile repository/bundled notices without claiming legal approval.
+Current implementation task: **ARCH-01f — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: centralise the duplicated detailed-set string state, validation and entity conversion used by recovered-entry and saved-set dialogs without changing persistence, visuals or navigation.
 
-RELEASE-01a `gradle :app:assembleRelease` passed and produced the expected unsigned APK without adding signing configuration or credentials. `docs/RELEASE.md` now defines version, migration, backup, real-device and external signing/store gates. Generated `.gradle/` and `app/build/` content remains ignored and untracked. RELEASE-01b must use the resolved release runtime graph and preserve existing asset notices; QA-01 remains open for a real Android phone.
+RELEASE-01b is complete at `f6174cd`: repository and bundled notices inventory the resolved release runtime families and explicit transitive helpers, both notice copies are byte-identical, and the unsigned APK contains the notices. Exact upstream NOTICE/licence-text packaging plus legal/store approval remain external release gates. Generated `.gradle/` and `app/build/` content remains ignored and untracked; QA-01 remains open for a real Android phone.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
@@ -53,6 +53,10 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Wrote the beta walkthrough and this handoff.
 
 ## Latest verification
+
+Local RELEASE-01b verification at commit `f6174cd`: `releaseRuntimeClasspath` and `coreLibraryDesugaring` resolved successfully, the repository and asset notices matched byte-for-byte, `gradle :app:assembleRelease` passed, and APK inspection found `assets/THIRD_PARTY_NOTICES.md` plus `assets/FREE_EXERCISE_DB_LICENSE.md`.
+
+GitHub Actions run `35740721923` at `ba3274f` failed one of 32 instrumentation tests because `HistoryUiTest` queried a date in the merged semantics tree while the runner reported the node only in the unmerged tree; the other 31 tests passed. Both date assertions now explicitly use the unmerged tree, and the focused test passes locally on the API 35 emulator.
 
 Local RELEASE-01a verification: `gradle :app:assembleRelease` passed for version `0.3.0`/code `2`, including release lint, and produced `app/build/outputs/apk/release/app-release-unsigned.apk`. The artifact is intentionally unsigned and untracked.
 

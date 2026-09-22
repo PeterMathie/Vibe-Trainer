@@ -65,14 +65,14 @@ class HistoryUiTest {
             }
         }
 
-        compose.onNodeWithText(firstDay.format(DATE_FORMAT)).assertExists()
+        compose.onNodeWithText(firstDay.format(DATE_FORMAT), useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Strength").assertIsSelected()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Monday — Planche + Push").fetchSemanticsNodes().isNotEmpty()
         }
 
         compose.onNodeWithText("Previous day").performClick()
-        compose.onNodeWithText(firstDay.minusDays(1).format(DATE_FORMAT)).assertExists()
+        compose.onNodeWithText(firstDay.minusDays(1).format(DATE_FORMAT), useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Stretching").performClick()
         compose.onNodeWithText("Stretching").assertIsSelected()
         compose.waitUntil(15_000) {
