@@ -66,11 +66,11 @@ UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/g
 
 - [x] **LOG-01:** Persist unfinished entry drafts beyond Compose saved state if unsubmitted text must survive crashes. Test interruption and recovery without duplicate sets.
 
-  Status: **COMPLETED LOCALLY**. Owner: GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026.
+  Status: **COMPLETED**. Owner: GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026.
 
   Evidence: commit `f868c50` stores one durable pending entry per workout exercise, including compact performance/RPE and Bands/details fields. Submission consumes the stable pending-set ID transactionally and is idempotent; cancellation, finish and parent deletion clear drafts, and late writes cannot recreate drafts for finished workouts. Room v2 → v3 migration schemas and migration coverage preserve existing workout data. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 12 unit tests and 17 API 35 instrumentation tests, including three recovery/clearing/no-duplicate tests and one migration test. Draft-derived-view gating remains covered and no per-set notes UI was added.
 
-  Remote limitation: all three push attempts returned HTTP 403, `Permission to PeterMathie/Vibe-Trainer.git denied to pmathie_cicpilot`, so no GitHub Actions run exists for this branch yet.
+  Remote status: commits `6cfe3f0` through `e00cdee` were pushed after writable authentication was restored. The branch is intentionally long-lived and must not be merged without a new explicit user instruction.
 - [ ] **HABIT-01:** Add configured choice/date-time input, range targets and field archival/reordering. Preserve historical daily values.
 - [ ] **PROGRESS-01:** Add chart axes/date labels, desktop hover, ROM separation by unit, explicit PR presentation and clearer skill-index explanation.
 - [ ] **DATA-03:** Define and test historical behaviour when variation order, band definitions or habit targets change; some calculations still read live definitions.
