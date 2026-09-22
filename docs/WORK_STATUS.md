@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: none. **UI-01b — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, 22 September 2026. Commit `708129e` exercises programme create, rename, duplicate, reorder and archive through API 35 Compose interaction and verifies persisted Room state. Compact logging, history/SVG accessibility and real-phone QA remain separate.
+Current implementation task: **UI-01c — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: API 35 Compose interaction for compact/detailed set entry, stacked bands, unilateral values, hold correction, substitution and exercise notes, including keyboard-open persistence and narrow-width/large-font configuration where the test harness can establish it. History/SVG accessibility and real-phone QA remain separate.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 

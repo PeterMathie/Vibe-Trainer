@@ -49,6 +49,8 @@ UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/g
 
 UI-01b (programme controls): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `708129e` drives programme create, rename, duplicate, reorder and archive through API 35 Compose UI and asserts Room state after each operation. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 26 instrumentation tests; Gradle XML/HTML interaction reports are retained as generated build artifacts and CI will publish its standard test artifacts. This bounded slice does not claim compact logging, history/SVG accessibility or real-phone QA.
 
+UI-01c (compact/detailed logging): **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026. Acceptance: exercise the compact entry and detailed editor on an API 35 emulator for stacked bands, unilateral values, hold correction, substitution and exercise notes; verify persisted sets remain correct with the keyboard open. Add a narrow-width/large-font Compose configuration where the harness supports it, report any configuration not established, and make focused accessibility/layout fixes only when evidence demonstrates a defect.
+
 - [x] Fix the known low-contrast status-bar icons on the dark home screen.
 - [x] Exercise every programme create/edit/duplicate/reorder/archive control.
 - [ ] Check compact logging with keyboard open, large fonts and narrow screens.
