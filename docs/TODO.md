@@ -35,6 +35,8 @@ Status: **IN PROGRESS**. Owner: ChatGPT coding agent. Branch: `codex/greenfield-
 
 Progress: validation is implemented in `ImportValidation.kt` and integrated transactionally in `DataTransfer.kt`. `ImportValidationTest.kt` covers invalid numeric/enumerated values, seeded records, relationships, habit fields, duplicate keys, multiple drafts, rollback and valid imports. `IMPORT_FORMAT.md` and `examples/historical-workout.json` are written. Android compilation/tests are the next gate; acceptance boxes remain open until they pass.
 
+Verification log: run `35705199759` failed compilation on a missing closing brace in the new validator. The brace is corrected in the follow-up; validation is being rerun. This is not a completed task yet.
+
 - [ ] Validate enums and reject non-finite or invalid numerical values.
 - [ ] Validate exercise/variation ownership and band references.
 - [ ] Protect seeded definitions from unintended import modification.

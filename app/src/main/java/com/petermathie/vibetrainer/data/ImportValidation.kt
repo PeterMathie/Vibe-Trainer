@@ -79,7 +79,9 @@ internal object ImportValidation {
         val keys = columns.filter { it.key }.map { it.name }
         return sql.query("SELECT * FROM `$table` WHERE ${keys.joinToString(" AND ") { "`$it`=?" }}", keys.map { row.get(it) }.toTypedArray()).use { c ->
             if (!c.moveToFirst()) null else JSONObject().also { result ->
-                c.columnNames.forEachIndexed { i, name -> result.put(name, when (c.getType(i)) { 0 -> JSONObject.NULL; 1 -> c.getLong(i); 2 -> c.getDouble(i); else -> c.getString(i) })
+                c.columnNames.forEachIndexed { i, name ->
+                    result.put(name, when (c.getType(i)) { 0 -> JSONObject.NULL; 1 -> c.getLong(i); 2 -> c.getDouble(i); else -> c.getString(i) })
+                }
             }
         }
     }
