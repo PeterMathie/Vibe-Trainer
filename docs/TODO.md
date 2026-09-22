@@ -43,6 +43,8 @@ Progress: validation is implemented in `ImportValidation.kt` and integrated tran
 
 ### UI-01 — Full interaction and accessibility checks
 
+UI-01a (status-bar contrast only): **IN PROGRESS**, ChatGPT coding agent, `codex/greenfield-foundation`, 22 September 2026. Acceptance: light system icons remain readable on the dark home screen in the new emulator launch screenshot. The other UI-01 checks remain unclaimed.
+
 - [ ] Fix the known low-contrast status-bar icons on the dark home screen.
 - [ ] Exercise every programme create/edit/duplicate/reorder/archive control.
 - [ ] Check compact logging with keyboard open, large fonts and narrow screens.
