@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: none. **DATA-03 — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, 22 September 2026. Commits `e6f969f` and `885a6f6` snapshot variation order, selected band definitions and tracker daily target outcomes, migrate/backfill v4 data, preserve snapshots through backup/legacy import, and make progress/activity/CSV derive from stable history.
+Current implementation task: **STYLE-01 — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: immediate semantic-palette refresh after custom edits and preference restore, contrast validation for editable custom colours, and consistent reduced-motion propagation with focused tests and emulator interaction evidence. Existing accent/background/surface controls remain the intended custom surface unless testing reveals a required semantic-token gap.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
