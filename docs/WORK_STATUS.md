@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **UI-01c — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: API 35 Compose interaction for compact/detailed set entry, stacked bands, unilateral values, hold correction, substitution and exercise notes, including keyboard-open persistence and narrow-width/large-font configuration where the test harness can establish it. History/SVG accessibility and real-phone QA remain separate.
+Current implementation task: **UI-01c — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. Commits `e20322e` and `6ad1a68` cover compact/detailed set entry, stacked bands, unilateral values, hold correction, substitution after saved history, keyboard-open exercise notes, and a 320dp/2.0-font-scale configuration. History/SVG accessibility and real-phone QA remain separate.
 
-Checkpoint `e20322e`: focused `WorkoutLoggingUiTest` passes on API 35 and proves keyboard-open exercise-note persistence plus a unilateral weighted result with two stacked bands. The details action now exposes an exercise-specific TalkBack description. Next executable step: add hold-correction and substitution-after-history interaction cases, then run a supported narrow-width/large-font configuration and the full suite.
+Full local validation after `6ad1a68`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 30 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: claim a bounded UI-01 history-navigation/map-mode slice before implementation.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
@@ -16,7 +16,7 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Product contract: `docs/PRODUCT_REQUIREMENTS.md`; tester walkthrough: `docs/BETA_TESTING.md`.
 - Native Kotlin / Compose / Room / Hilt app. This branch has no runnable web version.
 - User has authorised replacing the old implementation and completing the beta. No further approval is needed for ordinary implementation or tests.
-- Latest verified branch commit: `39739ff69ae4c081771f9eb5b31ab9f1e473a812`.
+- Latest locally verified implementation commit: `6ad1a68`.
 - Verified run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513. Unit tests, debug APK, Android API 35 emulator tests, APK installation and MainActivity launch all passed. `am start` reported `Status: ok`; the process remained alive, a home screenshot was captured, and the AndroidRuntime error log was empty.
 - APK artifact: `vibe-trainer-debug`; reports and generated Room schemas: `validation-reports`.
 
@@ -53,6 +53,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Wrote the beta walkthrough and this handoff.
 
 ## Latest verification
+
+Local UI-01c verification at commit `6ad1a68`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 30 API 35 instrumentation tests. `WorkoutLoggingUiTest` covers keyboard-open notes, unilateral values, stacked bands, hold correction, substitution after saved history, and a 320dp-wide/2.0-font-scale layout. Persisted Room assertions prove corrected/substituted entries do not rewrite or duplicate the previously saved set.
 
 Local UI-01b verification at commit `708129e`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 26 API 35 instrumentation tests. `ProgrammeUiTest` now covers the complete top-level programme lifecycle, including order and archive persistence; generated Gradle XML/HTML reports remain ignored build artifacts.
 
