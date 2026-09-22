@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **ARCH-01a — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: remove only the unreachable private programme/workout/logger composables and their exclusive helpers from `VibeTrainerApp.kt`. Current navigation already uses `ProgrammeEditor` and `WorkoutEditor`; no visual or navigation change is intended.
+Current implementation task: **ARCH-01a — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. Commit `dd1beb9` removes 226 lines of unreachable private programme/workout/logger UI and exclusive helpers from `VibeTrainerApp.kt`; current `ProgrammeEditor`/`WorkoutEditor` navigation and behavior are unchanged.
 
-All emulator-automatable UI-01 slices are complete. Full local validation after `8af0d1a` passed with 17 unit tests and 32 API 35 instrumentation tests; current APK installation/launch and screenshot inspection also passed. Generated `.gradle/` and `app/build/` content remains ignored and untracked. ARCH-01a acceptance is focused programme/logging/history Compose coverage followed by the full suite; QA-01 remains open for a real Android phone.
+ARCH-01a focused programme/logging/history Compose suites passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` validation with 17 unit tests and 32 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: claim a small validation/state extraction from one remaining dense editor; QA-01 remains open for a real Android phone.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
@@ -53,6 +53,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Wrote the beta walkthrough and this handoff.
 
 ## Latest verification
+
+Local ARCH-01a verification at commit `dd1beb9`: focused `ProgrammeUiTest`, `WorkoutLoggingUiTest` and `HistoryUiTest` passed, then the full unit/instrumentation/build command passed with 17 unit tests and 32 API 35 instrumentation tests. The removed private screens and helpers had no callers, and the reachable editors retained their existing UI coverage.
 
 Local UI-01e verification at commit `8af0d1a`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 32 API 35 instrumentation tests. `MuscleMapUiTest` inventories all 13 front and 14 back region actions on male/female maps, invokes representative chest/lat actions, and verifies TalkBack selection state follows the selected outline.
 
