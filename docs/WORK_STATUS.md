@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: none. **LOG-01 — COMPLETED**, owned by GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3` on `pmathie-cicpilot-persist-workout-drafts`, 22 September 2026. Commit `f868c50` persists compact and detailed pending entry fields, restores them after database/process recreation, atomically consumes a stable pending-set ID, and clears drafts after details cancellation, workout finish or parent deletion. Late writes are rejected once a workout is finished. Draft-derived-view gating and the no-per-set-notes decision remain unchanged.
+Current implementation task: **HABIT-01 — IN PROGRESS**, owned by GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: configured CHOICE options, DATE_TIME picker input, inclusive range targets, field archival/reordering with historical values retained, Room migration coverage, and focused target/history tests.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 

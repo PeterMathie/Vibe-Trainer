@@ -72,6 +72,10 @@ UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/g
 
   Remote status: commits `6cfe3f0` through `e00cdee` were pushed after writable authentication was restored. The branch is intentionally long-lived and must not be merged without a new explicit user instruction.
 - [ ] **HABIT-01:** Add configured choice/date-time input, range targets and field archival/reordering. Preserve historical daily values.
+
+  Status: **IN PROGRESS**. Owner: GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026.
+
+  Acceptance: configure reusable options for CHOICE fields and select rather than free-type daily values; use a date/time picker for DATE_TIME fields; support inclusive numeric range targets; archive and reorder fields without deleting historical values; preserve existing data through a Room migration; cover target evaluation, history preservation and migration in focused emulator tests.
 - [ ] **PROGRESS-01:** Add chart axes/date labels, desktop hover, ROM separation by unit, explicit PR presentation and clearer skill-index explanation.
 - [ ] **DATA-03:** Define and test historical behaviour when variation order, band definitions or habit targets change; some calculations still read live definitions.
 - [ ] **STYLE-01:** Fix immediate palette refresh after editing/restoring; check contrast and other Material motion. Extend custom palette controls if useful.
