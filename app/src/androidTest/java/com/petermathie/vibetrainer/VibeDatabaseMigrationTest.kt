@@ -45,29 +45,29 @@ class VibeDatabaseMigrationTest {
                 assertEquals(0, it.getInt(0))
             }
         }
+    }
 
-        @Test
-        fun migrate3To4PreservesFieldsAndAddsRicherConfiguration() {
-            helper.createDatabase(databaseName, 3).apply {
-                execSQL("INSERT INTO trackers (id, name, isDemo, isArchived) VALUES ('habit', 'Habit', 0, 0)")
-                execSQL(
-                    """
+    @Test
+    fun migrate3To4PreservesFieldsAndAddsRicherConfiguration() {
+        helper.createDatabase(databaseName, 3).apply {
+            execSQL("INSERT INTO trackers (id, name, isDemo, isArchived) VALUES ('habit', 'Habit', 0, 0)")
+            execSQL(
+                """
                     INSERT INTO tracker_fields
                         (id, trackerId, name, valueType, unit, targetComparison, targetValue, position)
                     VALUES ('field', 'habit', 'Existing field', 'NUMBER', 'units', 'AT_LEAST', 5, 0)
-                    """.trimIndent(),
-                )
-                close()
-            }
+                """.trimIndent(),
+            )
+            close()
+        }
 
-            helper.runMigrationsAndValidate(databaseName, 4, true, MIGRATION_3_4).use { migrated ->
-                migrated.query("SELECT name, choiceOptions, targetMaxValue, isArchived FROM tracker_fields WHERE id='field'").use {
-                    assertEquals(true, it.moveToFirst())
-                    assertEquals("Existing field", it.getString(0))
-                    assertEquals("", it.getString(1))
-                    assertEquals(true, it.isNull(2))
-                    assertEquals(0, it.getInt(3))
-                }
+        helper.runMigrationsAndValidate(databaseName, 4, true, MIGRATION_3_4).use { migrated ->
+            migrated.query("SELECT name, choiceOptions, targetMaxValue, isArchived FROM tracker_fields WHERE id='field'").use {
+                assertEquals(true, it.moveToFirst())
+                assertEquals("Existing field", it.getString(0))
+                assertEquals("", it.getString(1))
+                assertEquals(true, it.isNull(2))
+                assertEquals(0, it.getInt(3))
             }
         }
     }
