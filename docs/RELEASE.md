@@ -66,8 +66,9 @@ Before a signed release:
 
 - Configure signing outside the repository using protected CI/store secrets.
 - Build and verify the signed App Bundle or APK in the release environment.
-- Complete the dependency-license inventory and reconcile the bundled
-  `THIRD_PARTY_NOTICES.md` with the resolved release runtime graph.
+- Regenerate the dependency inventory, reconcile the bundled
+  `THIRD_PARTY_NOTICES.md` with the exact resolved release runtime graph, and
+  complete legal review of required full licence/NOTICE distribution.
 - Complete QA-01 on a real Android phone, including locked-screen timer,
   notification-denial and vibration behavior.
 - Resolve DATA-01 for any release expected to upgrade an authentic v1 install.

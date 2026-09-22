@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **ARCH-01l — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: extract the per-exercise hold timer into a focused stateful component with an injectable monotonic clock, retaining its start/elapsed/stop labels and compact-draft callback.
+Current implementation task: **paused at a pushed completion boundary** on `pmathie-cicpilot-persist-workout-drafts`. ARCH-01 and the repository-controlled portions of RELEASE-01 are complete; no further slice is claimed.
 
-RELEASE-01b is complete at `f6174cd`: repository and bundled notices inventory the resolved release runtime families and explicit transitive helpers, both notice copies are byte-identical, and the unsigned APK contains the notices. Exact upstream NOTICE/licence-text packaging plus legal/store approval remain external release gates. Generated `.gradle/` and `app/build/` content remains ignored and untracked; QA-01 remains open for a real Android phone.
+ARCH-01 stopped at the safe behavior-preserving boundary after tracker daily/configuration separation, tracker persistence extraction, compact-entry state extraction and hold-timer extraction. Further work would redistribute tightly coupled exercise-card lifecycle state or cross-aggregate Room transactions and requires a new task with dedicated acceptance coverage. RELEASE-01 is complete only for repository-controlled readiness. Exact upstream NOTICE/licence-text decisions, legal approval, signing credentials, store configuration and publication remain external gates. Generated `.gradle/` and `app/build/` content remains ignored and untracked; QA-01 remains open for a real Android phone.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
@@ -16,8 +16,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Product contract: `docs/PRODUCT_REQUIREMENTS.md`; tester walkthrough: `docs/BETA_TESTING.md`.
 - Native Kotlin / Compose / Room / Hilt app. This branch has no runnable web version.
 - User has authorised replacing the old implementation and completing the beta. No further approval is needed for ordinary implementation or tests.
-- Latest locally verified implementation commit: `8af0d1a`.
-- Verified run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513. Unit tests, debug APK, Android API 35 emulator tests, APK installation and MainActivity launch all passed. `am start` reported `Status: ok`; the process remained alive, a home screenshot was captured, and the AndroidRuntime error log was empty.
+- Latest locally verified implementation commit: `562bb0b`.
+- Latest successful branch run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35744137335. A replacement run for the final architecture checkpoint should be recorded after it completes.
 - APK artifact: `vibe-trainer-debug`; reports and generated Room schemas: `validation-reports`.
 
 ## What is implemented
@@ -53,6 +53,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Wrote the beta walkthrough and this handoff.
 
 ## Latest verification
+
+Local ARCH-01l verification at commit `562bb0b`: `HoldTimerButtonTest` and focused `WorkoutLoggingUiTest`/`WorkoutEntryDraftTest` passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest :app:assembleRelease` validation with 33 unit tests and 36 API 35 instrumentation tests.
 
 Local ARCH-01k verification at commit `d5e0fcd`: three `CompactEntryFormTest` cases plus `SetDetailsFormTest`, `WorkoutLoggingUiTest` and `WorkoutEntryDraftTest` passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` validation with 33 unit tests and 35 API 35 instrumentation tests.
 
@@ -110,19 +112,17 @@ Downloads for the verified build:
 
 The documentation-only handoff update after this verified commit does not alter application code.
 
-## Remaining work — explicit, claimable tasks
+## Remaining external or evidence-blocked work
 
-The app is an expanded beta. A green build is not evidence that every product requirement or device interaction is finished. Another agent can take one task below, record ownership here and work on a separate branch.
+The repository-controlled beta implementation and readiness work is complete. These gates cannot be truthfully closed by emulator or repository changes alone:
 
 | ID | Priority | Task and acceptance criteria | Main files |
 |---|---|---|---|
 | QA-01 | High | Install the newest APK on a real Android phone. Check background rest notification/sound/vibration while locked, denied permissions, timer replacement and auto/manual circuits. Record device/version/results. | `ui/RestTimer.kt`, `ui/WorkoutEditor.kt` |
 | DATA-01 | High | Add an actual v1 → v2 upgrade test using an exported v1 schema/fixture. Verify user records survive, Room validates the migrated schema, and snapshots/ordering exist. Current tests use fresh in-memory databases. | `di/DataModule.kt`, `data/local/Entities.kt`, `androidTest` |
-| DATA-02 | High | Harden structured import beyond columns/FKs: validate enum values, finite numeric ranges, set/variation ownership, bands and protected seeded definitions. Add rollback tests for invalid domain data. Publish an example import file/schema for externally formatted notes. | `data/DataTransfer.kt`, `data/BackupPreferences.kt` |
-| UI-01 | High | Run the full tester walkthrough and capture phone-sized screenshots. Check large fonts, narrow layouts, keyboard, history return, all programme controls, SVG selection and TalkBack. Existing Compose coverage is limited to programme creation/navigation. | `ui/*`, `androidTest/ProgrammeUiTest.kt` |
-| LOG-01 | Medium | Improve unfinished input recovery. Saved sets persist immediately; unsaved quick-entry text/details use Compose saved state rather than durable database storage. Persist unfinished input if crash recovery is intended to include text not yet submitted as a set. | `ui/WorkoutEditor.kt`, `ui/EditorViewModel.kt` |
-| HABIT-01 | Medium | Complete richer field configuration. Current choice/date-time fields are text entry, not configured choice/date widgets; targets support at least/at most/exact, not ranges. Add field archival/reordering while preserving historical values. | `ui/TrackerScreen.kt`, `data/local/Entities.kt`, `Daos.kt` |
-| PROGRESS-01 | Medium | Improve graph axes/date labels, hover support for desktop input, ROM unit separation and PR presentation. Rep PR currently appears as best scored performance, not a distinct badge. Explain the heuristic overall skill scale in the UI. | `ui/ProgressScreen.kt`, `domain/progress/*` |
+| Release external gates | High | Review exact dependency licence/NOTICE distribution requirements, obtain legal approval, provide protected signing credentials, configure the store listing/data-safety declaration, verify a signed artifact and publish only with explicit authorization. | `docs/RELEASE.md`, `THIRD_PARTY_NOTICES.md`, external CI/store configuration |
+
+Future architecture work is not an active task. Splitting `WorkoutEditor` exercise-card orchestration or the remaining cross-aggregate `EditorViewModel` operations would alter lifecycle/transaction boundaries and should begin only with a new bounded claim and purpose-built regression coverage.
 | DATA-03 | Medium | Review history immutability for variation ordering/band definitions and habit-target edits. Exercise names/types/muscle mappings are snapshotted, but some derived history still reads live definitions. Decide and test historical policy before widening editors. | `data/local/*`, `domain/progress/SessionProgress.kt` |
 | STYLE-01 | Medium | Expand custom palette controls beyond accent/background/surface if desired. Verify contrast and make restored/custom palette changes refresh immediately. Reduced motion currently disables ripples; review other Material animations. | `ui/theme/VibeDesignSystem.kt`, `ui/VibeTrainerApp.kt` |
 | ARCH-01 | Medium | Refactor dense editor composables into smaller screens/state holders and move persistence/validation out of UI-facing code. Remove superseded private screens in `VibeTrainerApp.kt`. Preserve behaviour and avoid a new visual redesign. | `ui/*`, `ui/EditorViewModel.kt` |
