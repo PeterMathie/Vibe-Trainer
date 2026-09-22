@@ -33,26 +33,40 @@ object DataTransfer {
     suspend fun import(db:VibeDatabase,text:String)=withContext(Dispatchers.IO) {
         require(text.length<50_000_000){"Import exceeds 50 MB"}
         val root=JSONObject(text)
-        require(root.optString("format")=="vibe-trainer" && root.optInt("version")==1){"Unsupported backup format"}
+        require(root.optString("format")=="vibe-trainer" && (root.opt("version") as? Number)?.toDouble()==1.0){"Unsupported backup format"}
+        require(root.keys().asSequence().all { it in setOf("format","version","tables","preferences") }) { "Unknown top-level import field" }
+        if(root.has("preferences")) {
+            require(root.get("preferences") is JSONObject) { "preferences must be an object" }
+            BackupPreferences.validate(text)
+        }
         val data=root.getJSONObject("tables")
         require(data.keys().asSequence().all { it in tables }){"Unknown table in import"}
         val sql=db.openHelper.writableDatabase
         sql.beginTransaction()
         try {
             tables.forEach { table ->
-                val rows=data.optJSONArray(table) ?: return@forEach
-                val columns=mutableListOf<String>();val keys=mutableListOf<String>()
-                sql.query("PRAGMA table_info(`$table`)").use { c -> while(c.moveToNext()){columns+=c.getString(c.getColumnIndexOrThrow("name"));if(c.getInt(c.getColumnIndexOrThrow("pk"))>0)keys+=c.getString(c.getColumnIndexOrThrow("name"))} }
+                if(!data.has(table)) return@forEach
+                require(data.get(table) is JSONArray) { "$table must be an array" }
+                val rows=data.getJSONArray(table)
+                val schema=ImportValidation.columns(sql,table)
+                val columns=schema.map { it.name };val keys=schema.filter { it.key }.map { it.name }
+                val seen=mutableSetOf<List<Any>>()
                 repeat(rows.length()) { i ->
                     val row=rows.getJSONObject(i)
-                    require(row.keys().asSequence().toSet()==columns.toSet()) { "Invalid columns in $table record $i" }
+                    ImportValidation.row(table,row,schema)
+                    require(seen.add(keys.map { row.get(it) })) { "Duplicate key in $table record $i" }
+                    // Application seeding state is not portable personal data.
+                    if(table=="seed_metadata") return@repeat
+                    val existing=ImportValidation.existing(sql,table,row,schema)
+                    ImportValidation.protectCatalogue(sql,table,row,existing)
                     val args=columns.map { if(row.isNull(it))null else row.get(it) }.toTypedArray()
-                    sql.execSQL("INSERT OR IGNORE INTO `$table` (${columns.joinToString { "`$it`" }}) VALUES (${columns.joinToString { "?" }})",args)
                     val updateColumns=columns.filter { it !in keys }
-                    if(updateColumns.isNotEmpty()) sql.execSQL("UPDATE `$table` SET ${updateColumns.joinToString { "`$it`=?" }} WHERE ${keys.joinToString(" AND ") { "`$it`=?" }}",(updateColumns+keys).map { if(row.isNull(it))null else row.get(it) }.toTypedArray())
+                    if(existing==null) sql.execSQL("INSERT INTO `$table` (${columns.joinToString { "`$it`" }}) VALUES (${columns.joinToString { "?" }})",args)
+                    else if(updateColumns.isNotEmpty()) sql.execSQL("UPDATE `$table` SET ${updateColumns.joinToString { "`$it`=?" }} WHERE ${keys.joinToString(" AND ") { "`$it`=?" }}",(updateColumns+keys).map { if(row.isNull(it))null else row.get(it) }.toTypedArray())
                 }
             }
             sql.query("PRAGMA foreign_key_check").use { require(!it.moveToFirst()){ "Import contains broken references" } }
+            ImportValidation.relationships(sql)
             sql.setTransactionSuccessful()
         } finally { sql.endTransaction() }
         db.invalidationTracker.refreshVersionsAsync()

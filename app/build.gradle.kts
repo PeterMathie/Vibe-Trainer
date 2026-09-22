@@ -28,6 +28,7 @@ android {
         compose = true
         buildConfig = true
     }
+    sourceSets.getByName("androidTest").assets.srcDir(rootProject.file("docs/examples"))
 }
 
 ksp {
