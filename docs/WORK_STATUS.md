@@ -54,13 +54,13 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 
 ## Latest verification
 
-Local ARCH-01g verification at commit `89bb498`: focused `SetDetailsFormTest`, `WorkoutLoggingUiTest` and `WorkoutEntryDraftTest` passed, then `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest :app:assembleRelease` passed with 26 unit tests and 32 API 35 instrumentation tests.
+Local ARCH-01g verification at commit `89bb498`: focused `SetDetailsFormTest`, `WorkoutLoggingUiTest` and `WorkoutEntryDraftTest` passed, then `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest :app:assembleRelease` passed with 26 unit tests and 32 API 35 instrumentation tests. History date navigation subsequently passed three consecutive focused emulator runs at `3ab8eee`; GitHub Actions run `35744137335` passed for that commit.
 
 Local ARCH-01f verification at commit `2ef436f`: five `SetDetailsFormTest` cases plus `SessionProgressTest` passed; focused `WorkoutLoggingUiTest` and `WorkoutEntryDraftTest` passed; then `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest :app:assembleRelease` passed with 26 unit tests and 32 API 35 instrumentation tests.
 
 Local RELEASE-01b verification at commit `f6174cd`: `releaseRuntimeClasspath` and `coreLibraryDesugaring` resolved successfully, the repository and asset notices matched byte-for-byte, `gradle :app:assembleRelease` passed, and APK inspection found `assets/THIRD_PARTY_NOTICES.md` plus `assets/FREE_EXERCISE_DB_LICENSE.md`.
 
-GitHub Actions run `35740721923` at `ba3274f` failed one of 32 instrumentation tests because `HistoryUiTest` queried a date in the merged semantics tree while the runner reported the node only in the unmerged tree; the other 31 tests passed. Both date assertions now explicitly use the unmerged tree, and the focused test passes locally on the API 35 emulator.
+GitHub Actions runs `35740721923` and `35742800627` exposed two stages of the same `HistoryUiTest` race: the navigated date required the unmerged semantics tree and an explicit wait for asynchronous `StateFlow` recomposition. Commit `3ab8eee` applies both corrections; three consecutive focused local runs and replacement GitHub Actions run `35744137335` passed.
 
 Local RELEASE-01a verification: `gradle :app:assembleRelease` passed for version `0.3.0`/code `2`, including release lint, and produced `app/build/outputs/apk/release/app-release-unsigned.apk`. The artifact is intentionally unsigned and untracked.
 
