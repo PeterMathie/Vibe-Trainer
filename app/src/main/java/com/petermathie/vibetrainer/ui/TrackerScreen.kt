@@ -180,7 +180,7 @@ private fun HabitFieldDialog(vm: EditorViewModel, field: TrackerFieldEntity, dis
     var targetMax by remember(field.id) { mutableStateOf(field.targetMaxValue?.toString().orEmpty()) }
     var comparison by remember(field.id) { mutableStateOf(field.targetComparison ?: "AT_LEAST") }
     val numeric = type in listOf("NUMBER", "COUNT", "DURATION", "RATING")
-    val choiceValues = options.lineSequence().map(String::trim).filter(String::isNotBlank).toList()
+    val choiceValues = options.split(',', '\n').map(String::trim).filter(String::isNotBlank)
     val targetValid = target.isBlank() || target.toDoubleOrNull()?.isFinite() == true
     val rangeValid = comparison != "RANGE" || target.isBlank() || (
         targetMax.toDoubleOrNull()?.isFinite() == true && targetMax.toDouble() >= target.toDouble()
@@ -198,7 +198,7 @@ private fun HabitFieldDialog(vm: EditorViewModel, field: TrackerFieldEntity, dis
                         TextButton(onClick = { type = value }) { Text((if (type == value) "✓ " else "") + value.lowercase()) }
                     }
                     if (type == "CHOICE") {
-                        EditField("Choices (one per line)", options) { options = it }
+                        EditField("Choices (comma-separated)", options) { options = it }
                         if (!choicesValid) Text("Enter at least two unique choices", color = MaterialTheme.colorScheme.error)
                     }
                     if (numeric) {
