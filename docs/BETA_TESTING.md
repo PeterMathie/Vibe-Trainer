@@ -2,6 +2,9 @@
 
 Use the `vibe-trainer-debug` artifact from the latest successful Android Actions run on PR #1. Unzip it and install `app-debug.apk` on Android. This is a debug beta, not a signed store release.
 
+Release versioning, migration gates and unsigned build checks are documented in
+[RELEASE.md](RELEASE.md).
+
 Debug installs include sample programmes, stretches, habits and history. Production installs contain only the exercise catalogue and supporting definitions. Settings → Remove demo data removes sample personal records. JSON backup should be used before replacing existing records during an import.
 
 ## Main workflows to try
