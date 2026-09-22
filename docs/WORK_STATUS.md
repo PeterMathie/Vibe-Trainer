@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **DATA-02 — IN PROGRESS**, owned by ChatGPT coding agent on `codex/greenfield-foundation`. See TODO.md for acceptance checks. Other tasks remain available unless explicitly claimed.
+Current implementation task: none. **DATA-02** and the status-bar-only **UI-01a** scope completed on `codex/greenfield-foundation` at commit `39739ff69ae4c081771f9eb5b31ab9f1e473a812`; other tasks remain available unless explicitly claimed.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
@@ -14,8 +14,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Product contract: `docs/PRODUCT_REQUIREMENTS.md`; tester walkthrough: `docs/BETA_TESTING.md`.
 - Native Kotlin / Compose / Room / Hilt app. This branch has no runnable web version.
 - User has authorised replacing the old implementation and completing the beta. No further approval is needed for ordinary implementation or tests.
-- Latest verified branch commit: `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433` (same application code as `6e8570f`).
-- Verified run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673. Unit tests, debug APK, Android API 35 emulator tests, APK installation and MainActivity launch all passed. `am start` reported `Status: ok`; the process remained alive, a home screenshot was captured, and the AndroidRuntime error log was empty.
+- Latest verified branch commit: `39739ff69ae4c081771f9eb5b31ab9f1e473a812`.
+- Verified run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513. Unit tests, debug APK, Android API 35 emulator tests, APK installation and MainActivity launch all passed. `am start` reported `Status: ok`; the process remained alive, a home screenshot was captured, and the AndroidRuntime error log was empty.
 - APK artifact: `vibe-trainer-debug`; reports and generated Room schemas: `validation-reports`.
 
 ## What is implemented
@@ -47,13 +47,13 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 
 ## Latest verification
 
-The verified follow-up bundles the existing third-party asset notices in the APK, exposes them in Settings, aligns manual circuit rest with the group rest rule, and adds an actual MainActivity launch + screenshot capture after emulator tests. The launch screenshot was inspected: the home screen, front/back recency vectors, mode switch and calendar render. A visible polish issue remains: status-bar icons have poor contrast against the dark background; include this in UI-01.
+Run `35705645513` at commit `39739ff` passed unit tests, debug assembly, API 35 instrumentation tests, APK installation and MainActivity launch. Its instrumentation reports include all seven `ImportValidationTest` cases, establishing DATA-02's scoped domain validation, transactional rollback, seeded-definition protection and published-example import. The captured home screenshot was inspected and shows readable light status-bar icons on the dark palette, establishing UI-01a only. The remaining programme, compact logging, history, SVG and TalkBack checks under UI-01 are still unverified.
 
 Earlier run `35639647804` at commit `c071717` passed compilation, unit tests and instrumentation tests, then failed the added launch command because the test runner had uninstalled the target APK. The verified revision explicitly installs the built APK before launching it. That launch-harness failure is resolved.
 
 Downloads for the verified build:
-- APK ZIP: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673/artifacts/10682633925
-- Reports, schema and launch screenshot: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673/artifacts/10682594156
+- APK ZIP: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513/artifacts/10684382510
+- Reports, schema and launch screenshot: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513/artifacts/10684731891
 
 The documentation-only handoff update after this verified commit does not alter application code.
 

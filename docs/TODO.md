@@ -31,23 +31,23 @@ Tasks are unclaimed unless an owner is recorded below. Before starting, add your
 
 ### DATA-02 — Import validation
 
-Status: **IN PROGRESS**. Owner: ChatGPT coding agent. Branch: `codex/greenfield-foundation`. Started: 22 September 2026. Implementation and rollback tests are the current work; completion requires a passing Android test run.
+Status: **COMPLETED**. Owner: ChatGPT coding agent. Branch: `codex/greenfield-foundation`. Completed: 22 September 2026.
 
-Progress: validation is implemented in `ImportValidation.kt` and integrated transactionally in `DataTransfer.kt`. `ImportValidationTest.kt` covers invalid numeric/enumerated values, seeded records, relationships, habit fields, duplicate keys, multiple drafts, rollback and valid imports. `IMPORT_FORMAT.md` and `examples/historical-workout.json` are written. Android compilation/tests are the next gate; acceptance boxes remain open until they pass.
+Evidence: validation is implemented in `ImportValidation.kt` and integrated transactionally in `DataTransfer.kt`. `ImportValidationTest.kt` covers invalid numeric/enumerated values, seeded records, relationships, habit fields, duplicate keys, multiple drafts, rollback and valid imports. `IMPORT_FORMAT.md` and `examples/historical-workout.json` document and exercise the versioned format.
 
-Verification log: run `35705199759` failed compilation on a missing closing brace in the new validator. The brace is corrected in the follow-up; validation is being rerun. This is not a completed task yet.
+Verification: commit `39739ff69ae4c081771f9eb5b31ab9f1e473a812`, [run 35705645513](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513). Unit tests, debug assembly, API 35 instrumentation tests, APK install and MainActivity launch passed. The import instrumentation report includes all seven `ImportValidationTest` cases. This establishes the scoped DATA-02 validation; it does not supply the authentic v1 fixture required by DATA-01.
 
-- [ ] Validate enums and reject non-finite or invalid numerical values.
-- [ ] Validate exercise/variation ownership and band references.
-- [ ] Protect seeded definitions from unintended import modification.
-- [ ] Test transaction rollback for each invalid-domain case, alongside the existing foreign-key test.
-- [ ] Publish a well-formed import example and versioned format documentation.
+- [x] Validate enums and reject non-finite or invalid numerical values.
+- [x] Validate exercise/variation ownership and band references.
+- [x] Protect seeded definitions from unintended import modification.
+- [x] Test transaction rollback for each invalid-domain case, alongside the existing foreign-key test.
+- [x] Publish a well-formed import example and versioned format documentation.
 
 ### UI-01 — Full interaction and accessibility checks
 
-UI-01a (status-bar contrast only): **IN PROGRESS**, ChatGPT coding agent, `codex/greenfield-foundation`, 22 September 2026. Acceptance: light system icons remain readable on the dark home screen in the new emulator launch screenshot. The other UI-01 checks remain unclaimed.
+UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/greenfield-foundation`, 22 September 2026. Commit `8ddccb5` selects light system icons; the launch screenshot from successful [run 35705645513](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513) shows them readable on the dark home screen. The other UI-01 checks remain unclaimed and unverified.
 
-- [ ] Fix the known low-contrast status-bar icons on the dark home screen.
+- [x] Fix the known low-contrast status-bar icons on the dark home screen.
 - [ ] Exercise every programme create/edit/duplicate/reorder/archive control.
 - [ ] Check compact logging with keyboard open, large fonts and narrow screens.
 - [ ] Check substitutions, stacked bands, unilateral values, hold corrections and notes.
