@@ -11,7 +11,10 @@ import com.petermathie.vibetrainer.ui.EditorViewModel
 import com.petermathie.vibetrainer.ui.ProgrammeEditor
 import com.petermathie.vibetrainer.ui.theme.VibeTrainerTheme
 import com.petermathie.vibetrainer.domain.model.TrainingMode
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.*
+import org.junit.Assert.*
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -37,4 +40,43 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Back").performClick()
         compose.onNodeWithText("Push").assertExists()
     }
+
+    @Test fun createRenameDuplicateReorderAndArchiveProgramme() {
+        db=Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(),VibeDatabase::class.java).build()
+        val vm=EditorViewModel(db)
+        compose.setContent { VibeTrainerTheme { ProgrammeEditor(vm,TrainingMode.STRENGTH,{}) } }
+
+        createProgramme("Alpha")
+        createProgramme("Beta")
+        compose.waitUntil(15_000) { activeProgrammes().size == 2 }
+
+        compose.onAllNodesWithText("Move up")[1].performClick()
+        compose.waitUntil(15_000) { activeProgrammes().sortedBy { it.position }.map { it.name } == listOf("Beta","Alpha") }
+
+        compose.onAllNodesWithText("Rename")[0].performClick()
+        compose.onNode(hasSetTextAction()).performTextClearance()
+        compose.onNode(hasSetTextAction()).performTextInput("Gamma")
+        compose.onNodeWithText("Save").performClick()
+        compose.waitUntil(15_000) { activeProgrammes().any { it.name == "Gamma" } }
+
+        compose.onAllNodesWithText("Duplicate")[0].performClick()
+        compose.waitUntil(15_000) { activeProgrammes().any { it.name == "Gamma (copy)" } }
+
+        compose.onAllNodesWithText("Archive")[1].performClick()
+        compose.waitUntil(15_000) { activeProgrammes().size == 2 }
+        assertEquals(listOf("Gamma","Alpha"),activeProgrammes().sortedBy { it.position }.map { it.name })
+        db.openHelper.readableDatabase.query("SELECT isArchived FROM programmes WHERE name='Gamma (copy)'").use {
+            assertTrue(it.moveToFirst())
+            assertEquals(1,it.getInt(0))
+        }
+    }
+
+    private fun createProgramme(name:String) {
+        compose.onNodeWithText("Create programme").performClick()
+        compose.onNode(hasSetTextAction()).performTextInput(name)
+        compose.onNodeWithText("Save").performClick()
+        compose.waitUntil(15_000) { activeProgrammes().any { it.name == name } }
+    }
+
+    private fun activeProgrammes()=runBlocking { db.editorDao().programmes().first() }
 }
