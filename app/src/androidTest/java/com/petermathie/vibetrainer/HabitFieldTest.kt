@@ -80,6 +80,21 @@ class HabitFieldTest {
         assertEquals("First", trackerDao.observeHistoryValues().first().single().fieldName)
     }
 
+    @Test
+    fun changingTargetDoesNotRewriteSavedDayOutcome() = runBlocking {
+        val dao = database.trackerDao()
+        dao.insertTrackers(listOf(TrackerEntity("tracker", "Tracker", false)))
+        val field = TrackerFieldEntity("range", "tracker", "Range", "NUMBER", null, "AT_LEAST", 5.0, 0)
+        dao.insertFields(listOf(field))
+        dao.upsertValue(value(1, 6.0))
+
+        dao.insertFields(listOf(field.copy(targetValue = 10.0)))
+
+        assertTrue(dao.observeActivityValues().first().single().targetMet)
+        dao.upsertValue(value(1, 6.0))
+        assertFalse(dao.observeActivityValues().first().single().targetMet)
+    }
+
     private fun value(day: Long, numeric: Double) =
         TrackerDailyValueEntity("range", day, numeric, null, null, "", day)
 }

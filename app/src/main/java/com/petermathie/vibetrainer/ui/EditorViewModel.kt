@@ -128,17 +128,13 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun removeEntry(id: String) = write { dao.deleteEntry(id) }
     fun removeSet(id: String) = write { dao.deleteSet(id) }
     fun removeWorkout(id: String) = write { dao.deleteWorkout(id) }
-    fun clearValue(id: String, day: Long) = write { dao.clearValue(id, day) }
+    fun clearValue(id: String, day: Long) = write { db.trackerDao().clearValue(id, day) }
     fun removeMeasurement(id: String) = write { dao.deleteMeasurement(id) }
     fun saveSet(row: WorkoutSetEntity, bandIds: List<String>) = write {
-        db.withTransaction {
-            dao.set(row)
-            dao.clearBands(row.id)
-            db.workoutDao().insertSetBands(bandIds.mapIndexed { index, id -> WorkoutSetBandEntity(row.id, id, index) })
-        }
+        dao.saveSetWithSnapshots(row, bandIds, consumeDraft = false)
     }
     fun submitEntryDraft(row: WorkoutSetEntity, bandIds: List<String>, onSaved: () -> Unit) = write {
-        dao.consumeEntryDraft(row, bandIds.mapIndexed { index, id -> WorkoutSetBandEntity(row.id, id, index) })
+        dao.saveSetWithSnapshots(row, bandIds, consumeDraft = true)
         onSaved()
     }
     fun duplicate(programme: ProgrammeEntity) = write {

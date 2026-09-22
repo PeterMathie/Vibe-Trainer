@@ -8,7 +8,7 @@ import org.json.JSONObject
 
 /** Versioned, structured, portable records. Photos are deliberately separate. */
 object DataTransfer {
-    val tables=listOf("muscles","exercises","exercise_aliases","exercise_muscles","exercise_variations","bands","programmes","programme_days","programme_exercises","workouts","workout_exercises","workout_muscles","workout_sets","workout_set_bands","trackers","tracker_fields","tracker_daily_values","body_measurements","seed_metadata")
+    val tables=listOf("muscles","exercises","exercise_aliases","exercise_muscles","exercise_variations","bands","programmes","programme_days","programme_exercises","workouts","workout_exercises","workout_muscles","workout_sets","workout_set_bands","trackers","tracker_fields","tracker_daily_values","tracker_day_outcomes","body_measurements","seed_metadata")
     suspend fun export(db:VibeDatabase):String=withContext(Dispatchers.IO) {
         val root=JSONObject().put("format","vibe-trainer").put("version",1)
         val data=JSONObject()
@@ -74,7 +74,7 @@ object DataTransfer {
     suspend fun csv(db:VibeDatabase):String=withContext(Dispatchers.IO) {
         fun quote(s:String)="\""+s.replace("\"","\"\"")+"\""
         val out=StringBuilder()
-        db.openHelper.readableDatabase.query("SELECT w.name AS workout,w.finishedAt,w.notes AS workoutNotes,COALESCE(NULLIF(we.exerciseName,''),e.canonicalName) AS exercise,we.notes AS exerciseNotes,v.name AS variation,(SELECT GROUP_CONCAT(b.name, ' + ') FROM workout_set_bands sb JOIN bands b ON b.id=sb.bandId WHERE sb.setId=s.id) AS bands,(SELECT SUM(b.widthCentimetres) FROM workout_set_bands sb JOIN bands b ON b.id=sb.bandId WHERE sb.setId=s.id) AS bandWidthCm,s.* FROM workout_sets s JOIN workout_exercises we ON we.id=s.workoutExerciseId JOIN exercises e ON e.id=we.actualExerciseId JOIN workouts w ON w.id=we.workoutId LEFT JOIN exercise_variations v ON v.id=s.variationId WHERE w.status='FINISHED' ORDER BY w.finishedAt,s.ordinal").use { c ->
+        db.openHelper.readableDatabase.query("SELECT w.name AS workout,w.finishedAt,w.notes AS workoutNotes,COALESCE(NULLIF(we.exerciseName,''),e.canonicalName) AS exercise,we.notes AS exerciseNotes,v.name AS variation,(SELECT GROUP_CONCAT(COALESCE(NULLIF(sb.nameSnapshot,''),b.name), ' + ') FROM workout_set_bands sb JOIN bands b ON b.id=sb.bandId WHERE sb.setId=s.id) AS bands,(SELECT SUM(CASE WHEN sb.widthCentimetresSnapshot>0 THEN sb.widthCentimetresSnapshot ELSE b.widthCentimetres END) FROM workout_set_bands sb JOIN bands b ON b.id=sb.bandId WHERE sb.setId=s.id) AS bandWidthCm,s.* FROM workout_sets s JOIN workout_exercises we ON we.id=s.workoutExerciseId JOIN exercises e ON e.id=we.actualExerciseId JOIN workouts w ON w.id=we.workoutId LEFT JOIN exercise_variations v ON v.id=s.variationId WHERE w.status='FINISHED' ORDER BY w.finishedAt,s.ordinal").use { c ->
             out.appendLine(c.columnNames.joinToString(",",transform=::quote))
             while(c.moveToNext())out.appendLine(c.columnNames.indices.joinToString(","){quote(if(c.isNull(it))"" else c.getString(it))})
         };out.toString()

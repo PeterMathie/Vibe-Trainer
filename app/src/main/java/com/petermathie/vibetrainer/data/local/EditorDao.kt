@@ -18,6 +18,7 @@ interface EditorDao {
     @Query("SELECT * FROM exercise_muscles") fun mappings(): Flow<List<ExerciseMuscleEntity>>
     @Query("SELECT * FROM exercise_aliases") fun aliases(): Flow<List<ExerciseAliasEntity>>
     @Query("SELECT * FROM exercise_variations ORDER BY progressionRank") fun variations(): Flow<List<ExerciseVariationEntity>>
+    @Query("SELECT * FROM exercise_variations WHERE id=:id") suspend fun variationById(id: String): ExerciseVariationEntity?
     @Upsert suspend fun programme(row: ProgrammeEntity)
     @Upsert suspend fun day(row: ProgrammeDayEntity)
     @Upsert suspend fun entry(row: ProgrammeExerciseEntity)
@@ -32,6 +33,7 @@ interface EditorDao {
     @Query("SELECT * FROM workout_sets ORDER BY ordinal") fun sets(): Flow<List<WorkoutSetEntity>>
     @Query("SELECT * FROM workout_set_bands ORDER BY ordinal") fun setBands(): Flow<List<WorkoutSetBandEntity>>
     @Query("SELECT * FROM bands ORDER BY widthCentimetres") fun bands(): Flow<List<BandEntity>>
+    @Query("SELECT * FROM bands WHERE id=:id") suspend fun bandById(id: String): BandEntity?
     @Upsert suspend fun workout(row: WorkoutEntity)
     @Upsert suspend fun workoutExercise(row: WorkoutExerciseEntity)
     @Upsert suspend fun set(row: WorkoutSetEntity)
@@ -59,6 +61,16 @@ interface EditorDao {
         clearBands(row.id)
         setBands(bands)
         deleteEntryDraft(row.workoutExerciseId)
+    }
+    @Transaction
+    suspend fun saveSetWithSnapshots(row: WorkoutSetEntity, bandIds: List<String>, consumeDraft: Boolean) {
+        val saved = row.copy(variationRankSnapshot = row.variationId?.let { variationById(it)?.progressionRank })
+        set(saved)
+        clearBands(saved.id)
+        setBands(bandIds.mapIndexedNotNull { index, id ->
+            bandById(id)?.let { WorkoutSetBandEntity(saved.id, id, index, it.name, it.widthCentimetres) }
+        })
+        if (consumeDraft) deleteEntryDraft(saved.workoutExerciseId)
     }
     @Query("DELETE FROM workouts WHERE id = :id") suspend fun deleteWorkout(id: String)
     @Query("SELECT * FROM trackers WHERE isArchived = 0 ORDER BY name") fun trackers(): Flow<List<TrackerEntity>>

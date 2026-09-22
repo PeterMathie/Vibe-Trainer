@@ -31,11 +31,13 @@ object SessionProgress {
             val rows=exercises.filter { it.workoutId==w.id && it.actualExerciseId==exerciseId }
             val results=sets.filter { s -> rows.any { it.id==s.workoutExerciseId } && (filter==null || (s.variationId ?: "default")==filter) }
             results.mapNotNull { s ->
-                val used=links.filter { it.setId==s.id }.mapNotNull { l -> bands.find { it.id==l.bandId } }
-                score(s,w.bodyweightKg,used.sumOf { it.widthCentimetres },rows.find { it.id==s.workoutExerciseId }?.trackingType)?.let { ProgressPoint(w.finishedAt ?: w.startedAt,it,s,rows.find { it.id==s.workoutExerciseId }?.notes.orEmpty(),s.variationId,used.map { it.name },rank=variations.find { it.id==s.variationId }?.progressionRank ?: 0) }
+                val used=links.filter { it.setId==s.id }
+                val width=used.sumOf { link -> link.widthCentimetresSnapshot.takeIf { it > 0 } ?: bands.find { it.id==link.bandId }?.widthCentimetres ?: 0.0 }
+                val names=used.map { link -> link.nameSnapshot.ifBlank { bands.find { it.id==link.bandId }?.name.orEmpty() } }
+                score(s,w.bodyweightKg,width,rows.find { it.id==s.workoutExerciseId }?.trackingType)?.let { ProgressPoint(w.finishedAt ?: w.startedAt,it,s,rows.find { it.id==s.workoutExerciseId }?.notes.orEmpty(),s.variationId,names,rank=s.variationRankSnapshot ?: variations.find { it.id==s.variationId }?.progressionRank ?: 0) }
             }.maxWithOrNull(compareBy<ProgressPoint> { it.rank }.thenBy { it.score })
         }
-        val skillLevels=variations.filter { it.exerciseId==exerciseId }.sortedBy { it.progressionRank }.map { it.id }
+        val skillLevels=raw.mapNotNull { it.variation?.let { id -> id to it.rank } }.distinct().sortedBy { it.second }.map { it.first }
         val sessionScores=raw.map { point ->
             if(filter!=null || skillLevels.isEmpty()) point.score
             else {

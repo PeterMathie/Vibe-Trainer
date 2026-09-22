@@ -1,6 +1,7 @@
 package com.petermathie.vibetrainer
 
 import com.petermathie.vibetrainer.domain.progress.SessionProgress
+import com.petermathie.vibetrainer.data.local.*
 import com.petermathie.vibetrainer.ui.emptySet
 import com.petermathie.vibetrainer.ui.parsePerformance
 import org.junit.Test
@@ -50,5 +51,19 @@ class SessionProgressTest {
         assertEquals(12,records.reps)
         assertEquals(higherScore.id,records.scoredPerformance?.performance?.id)
         assertEquals(110.0,records.estimatedOneRepMaxKg!!,0.0001)
+    }
+    @Test fun savedVariationRankAndBandDefinitionRemainHistorical(){
+        val workout=WorkoutEntity("w",null,"Workout","STRENGTH","FINISHED",1,2,"",80.0,false)
+        val exercise=WorkoutExerciseEntity("we","w","e","e",0,"",60,null,"Exercise","ASSISTED_REPS","")
+        val set=emptySet("we",1).copy(reps=5,variationId="variation",variationRankSnapshot=2)
+        val link=WorkoutSetBandEntity(set.id,"band",0,"Original",0.6)
+        val changedBand=BandEntity("band","Changed",3.1,0)
+        val changedVariation=ExerciseVariationEntity("variation","e","Variation",9,false)
+
+        val point=SessionProgress.points("e",listOf(workout),listOf(exercise),listOf(set),listOf(link),listOf(changedBand),variations=listOf(changedVariation)).single()
+
+        assertEquals(2,point.rank)
+        assertEquals(listOf("Original"),point.bands)
+        assertEquals(SessionProgress.score(set,80.0,0.6,"ASSISTED_REPS"),point.score)
     }
 }

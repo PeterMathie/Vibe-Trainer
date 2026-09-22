@@ -251,6 +251,7 @@ data class WorkoutSetEntity(
     val notes: String,
     val loggedAt: Long,
     val updatedAt: Long,
+    val variationRankSnapshot: Int? = null,
 )
 
 @Entity(
@@ -276,6 +277,8 @@ data class WorkoutSetBandEntity(
     val setId: String,
     val bandId: String,
     val ordinal: Int,
+    @androidx.room.ColumnInfo(defaultValue = "''") val nameSnapshot: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "0") val widthCentimetresSnapshot: Double = 0.0,
 )
 
 @Entity(
@@ -359,6 +362,23 @@ data class TrackerDailyValueEntity(
     val textValue: String?,
     val notes: String,
     val updatedAt: Long,
+)
+
+@Entity(
+    tableName = "tracker_day_outcomes",
+    primaryKeys = ["trackerId", "epochDay"],
+    foreignKeys = [ForeignKey(
+        entity = TrackerEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["trackerId"],
+        onDelete = ForeignKey.CASCADE,
+    )],
+    indices = [Index("trackerId"), Index("epochDay")],
+)
+data class TrackerDayOutcomeEntity(
+    val trackerId: String,
+    val epochDay: Long,
+    val targetMet: Boolean,
 )
 
 @Entity(tableName = "body_measurements", primaryKeys = ["id"], indices = [Index("recordedAt")])

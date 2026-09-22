@@ -257,29 +257,66 @@ interface TrackerDao {
     suspend fun insertFields(rows: List<TrackerFieldEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertValue(row: TrackerDailyValueEntity)
+    suspend fun persistValue(row: TrackerDailyValueEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun persistOutcome(row: TrackerDayOutcomeEntity)
+
+    @Query("DELETE FROM tracker_day_outcomes WHERE trackerId=:trackerId AND epochDay=:epochDay")
+    suspend fun deleteOutcome(trackerId: String, epochDay: Long)
+
+    @Query("DELETE FROM tracker_daily_values WHERE fieldId=:fieldId AND epochDay=:epochDay")
+    suspend fun deleteValue(fieldId: String, epochDay: Long)
+
+    @Query("SELECT * FROM tracker_fields WHERE trackerId=:trackerId AND isArchived=0")
+    suspend fun activeFields(trackerId: String): List<TrackerFieldEntity>
+
+    @Query("SELECT * FROM tracker_daily_values WHERE epochDay=:epochDay AND fieldId IN (SELECT id FROM tracker_fields WHERE trackerId=:trackerId)")
+    suspend fun valuesForDay(trackerId: String, epochDay: Long): List<TrackerDailyValueEntity>
+
+    @Transaction
+    suspend fun upsertValue(row: TrackerDailyValueEntity) {
+        persistValue(row)
+        updateOutcome(activeFieldsForValue(row.fieldId), row.epochDay)
+    }
+
+    @Transaction
+    suspend fun clearValue(fieldId: String, epochDay: Long) {
+        val trackerId = activeFieldsForValue(fieldId)
+        deleteValue(fieldId, epochDay)
+        updateOutcome(trackerId, epochDay)
+    }
+
+    suspend fun updateOutcome(trackerId: String, epochDay: Long) {
+        val fields = activeFields(trackerId)
+        val values = valuesForDay(fields.firstOrNull()?.trackerId ?: return, epochDay)
+        if (values.isEmpty()) {
+            deleteOutcome(trackerId, epochDay)
+            return
+        }
+        val targets = fields.filter { it.targetComparison != null }
+        val targetMet = if (targets.isEmpty()) values.any { it.numericValue != null || it.booleanValue == true || it.textValue != null }
+        else targets.all { field ->
+            val value = values.find { it.fieldId == field.id }?.numericValue ?: return@all false
+            when (field.targetComparison) {
+                "AT_LEAST" -> value >= field.targetValue!!
+                "AT_MOST" -> value <= field.targetValue!!
+                "EXACTLY" -> value == field.targetValue!!
+                "RANGE" -> value >= field.targetValue!! && value <= field.targetMaxValue!!
+                else -> false
+            }
+        }
+        persistOutcome(TrackerDayOutcomeEntity(trackerId, epochDay, targetMet))
+    }
+
+    @Query("SELECT trackerId FROM tracker_fields WHERE id=:fieldId")
+    suspend fun activeFieldsForValue(fieldId: String): String
 
     @Query(
         """
-        SELECT days.epochDay,days.trackerId,
-          CASE WHEN EXISTS (SELECT 1 FROM tracker_fields f WHERE f.trackerId=days.trackerId AND f.isArchived=0 AND f.targetComparison IS NOT NULL)
-          THEN NOT EXISTS (
-            SELECT 1 FROM tracker_fields f LEFT JOIN tracker_daily_values v ON v.fieldId=f.id AND v.epochDay=days.epochDay
-            WHERE f.trackerId=days.trackerId AND f.isArchived=0 AND f.targetComparison IS NOT NULL AND (
-              v.numericValue IS NULL OR
-              CASE f.targetComparison WHEN 'AT_LEAST' THEN v.numericValue < f.targetValue
-                WHEN 'AT_MOST' THEN v.numericValue > f.targetValue
-                WHEN 'EXACTLY' THEN v.numericValue != f.targetValue
-                WHEN 'RANGE' THEN v.numericValue < f.targetValue OR v.numericValue > f.targetMaxValue
-                ELSE 1 END
-            )
-          ) ELSE EXISTS (
-            SELECT 1 FROM tracker_daily_values v JOIN tracker_fields f ON f.id=v.fieldId
-            WHERE f.trackerId=days.trackerId AND f.isArchived=0 AND v.epochDay=days.epochDay
-              AND (v.numericValue IS NOT NULL OR v.booleanValue=1 OR v.textValue IS NOT NULL)
-          ) END AS targetMet
-        FROM (SELECT DISTINCT v.epochDay,f.trackerId FROM tracker_daily_values v JOIN tracker_fields f ON f.id=v.fieldId) days
-        JOIN trackers t ON t.id=days.trackerId WHERE t.isArchived=0
+        SELECT o.epochDay,o.trackerId,o.targetMet
+        FROM tracker_day_outcomes o
+        JOIN trackers t ON t.id=o.trackerId WHERE t.isArchived=0
         """,
     )
     fun observeActivityValues(): Flow<List<ActivityTrackerRow>>

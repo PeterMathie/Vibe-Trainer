@@ -8,9 +8,9 @@ import java.math.BigDecimal
 /** Import is an untrusted boundary: SQLite coercion is not domain validation. */
 internal object ImportValidation {
     data class Column(val name: String, val type: String, val required: Boolean, val key: Boolean)
-    private val booleanFields = setOf("isCustom", "isArchived", "isSeeded", "isDemo", "booleanValue")
-    private val nonNegative = setOf("position", "ordinal", "progressionRank", "targetSets", "targetRepsMin", "targetRepsMax", "targetHoldSeconds", "restSeconds", "reps", "leftReps", "rightReps", "holdMillis", "leftHoldMillis", "rightHoldMillis", "weightKg", "addedWeightKg", "assistanceKg", "startedAt", "finishedAt", "loggedAt", "updatedAt", "recordedAt")
-    private val intFields = setOf("position", "ordinal", "progressionRank", "targetSets", "targetRepsMin", "targetRepsMax", "targetHoldSeconds", "restSeconds", "reps", "leftReps", "rightReps", "version")
+    private val booleanFields = setOf("isCustom", "isArchived", "isSeeded", "isDemo", "booleanValue", "targetMet")
+    private val nonNegative = setOf("position", "ordinal", "progressionRank", "variationRankSnapshot", "widthCentimetresSnapshot", "targetSets", "targetRepsMin", "targetRepsMax", "targetHoldSeconds", "restSeconds", "reps", "leftReps", "rightReps", "holdMillis", "leftHoldMillis", "rightHoldMillis", "weightKg", "addedWeightKg", "assistanceKg", "startedAt", "finishedAt", "loggedAt", "updatedAt", "recordedAt")
+    private val intFields = setOf("position", "ordinal", "progressionRank", "variationRankSnapshot", "targetSets", "targetRepsMin", "targetRepsMax", "targetHoldSeconds", "restSeconds", "reps", "leftReps", "rightReps", "version")
     private val numericTrackers = setOf("NUMBER", "COUNT", "DURATION", "RATING")
 
     fun columns(sql: SupportSQLiteDatabase, table: String): List<Column> = buildList {
