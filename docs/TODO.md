@@ -47,10 +47,10 @@ Verification: commit `39739ff69ae4c081771f9eb5b31ab9f1e473a812`, [run 3570564551
 
 UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/greenfield-foundation`, 22 September 2026. Commit `8ddccb5` selects light system icons; the launch screenshot from successful [run 35705645513](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513) shows them readable on the dark home screen.
 
-UI-01b (programme controls): **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026. Acceptance: exercise create, rename, duplicate, reorder and archive with API 35 Compose interaction plus persisted-state assertions; fix concrete defects and capture test artifacts. This bounded slice does not claim compact logging, history/SVG accessibility or real-phone QA.
+UI-01b (programme controls): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `708129e` drives programme create, rename, duplicate, reorder and archive through API 35 Compose UI and asserts Room state after each operation. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 26 instrumentation tests; Gradle XML/HTML interaction reports are retained as generated build artifacts and CI will publish its standard test artifacts. This bounded slice does not claim compact logging, history/SVG accessibility or real-phone QA.
 
 - [x] Fix the known low-contrast status-bar icons on the dark home screen.
-- [ ] Exercise every programme create/edit/duplicate/reorder/archive control.
+- [x] Exercise every programme create/edit/duplicate/reorder/archive control.
 - [ ] Check compact logging with keyboard open, large fonts and narrow screens.
 - [ ] Check substitutions, stacked bands, unilateral values, hold corrections and notes.
 - [ ] Check history navigation and both historical map modes.
