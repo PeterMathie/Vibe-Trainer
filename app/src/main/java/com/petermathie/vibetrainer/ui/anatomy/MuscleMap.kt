@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import com.petermathie.vibetrainer.domain.model.AnatomySex
 import com.petermathie.vibetrainer.domain.model.MuscleRecencyBand
 import com.petermathie.vibetrainer.ui.theme.LocalVibePalette
+import androidx.compose.ui.semantics.stateDescription
 import kotlin.math.min
 
 enum class AnatomyView { FRONT, BACK }
@@ -59,6 +60,8 @@ fun MuscleMap(
             ParsedMuscle(definition, path, Region().apply { setPath(path.asAndroidPath(), clip) })
         }
     }
+    val groups = muscles.map { it.def.group }.distinct()
+    val selectedGroup = selectedMuscleId?.takeIf(groups::contains)
 
     Canvas(
         modifier = modifier
@@ -66,7 +69,9 @@ fun MuscleMap(
             .aspectRatio(diagram.viewBoxWidth / diagram.viewBoxHeight)
             .semantics {
                 contentDescription = "${sex.name.lowercase()} ${view.name.lowercase()} muscle recency map"
-                customActions = muscles.map { it.def.group }.distinct().map { group ->
+                stateDescription = selectedGroup?.let { "Selected ${it.replace('_', ' ').lowercase()}" }
+                    ?: "No muscle selected"
+                customActions = groups.map { group ->
                     CustomAccessibilityAction("Inspect ${group.replace('_', ' ')}: ${(states[group] ?: MuscleRecencyBand.NEVER).name.lowercase().replace('_', ' ')}") {
                         onMuscleTap(group)
                         true
