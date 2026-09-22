@@ -566,7 +566,7 @@ private fun ExerciseLibraryScreen(exercises: List<ExerciseSummary>, onSearch: (S
 }
 
 @Composable
-private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange: (Long) -> Unit, onModeChange: (TrainingMode) -> Unit) {
+internal fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange: (Long) -> Unit, onModeChange: (TrainingMode) -> Unit) {
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     val day = state.selectedHistoryDay ?: return
     val date = LocalDate.ofEpochDay(day)
@@ -582,9 +582,15 @@ private fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange
             }
         }
         item {
-            Row {
-                TextButton(onClick={onModeChange(TrainingMode.STRENGTH)}){Text(if(state.mode==TrainingMode.STRENGTH)"✓ Strength" else "Strength")}
-                TextButton(onClick={onModeChange(TrainingMode.STRETCHING)}){Text(if(state.mode==TrainingMode.STRETCHING)"✓ Stretching" else "Stretching")}
+            SingleChoiceSegmentedButtonRow {
+                TrainingMode.entries.forEachIndexed { index, mode ->
+                    SegmentedButton(
+                        selected = state.mode == mode,
+                        onClick = { onModeChange(mode) },
+                        shape = SegmentedButtonDefaults.itemShape(index, TrainingMode.entries.size),
+                        label = { Text(if (mode == TrainingMode.STRENGTH) "Strength" else "Stretching") },
+                    )
+                }
             }
             Row {
                 TextButton(onClick={onDayChange(day-1)}){Text("Previous day")}
