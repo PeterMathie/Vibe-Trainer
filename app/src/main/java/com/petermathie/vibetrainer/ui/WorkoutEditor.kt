@@ -175,7 +175,10 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                 }
             }) { Text("Bands / details") }
             TextButton(onClick = { RestTimer.start(context, restSeconds) }) { Text("Rest ${restSeconds}s") }
-            TextButton(onClick = { expanded = !expanded }) { Text("More") }
+            TextButton(
+                onClick = { expanded = !expanded },
+                modifier = Modifier.semantics { contentDescription = "More actions for ${exercise?.canonicalName.orEmpty()}" },
+            ) { Text("More") }
         }
         if (expanded) {
             TextButton(onClick = { substitute = true }) { Text("Substitute exercise") }
