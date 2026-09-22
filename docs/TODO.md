@@ -20,7 +20,7 @@ Evidence: commit `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433`, [run 35701312673](h
 
 ## High-priority work
 
-All tasks below are unclaimed. Before starting, add your agent name, branch and date to the relevant task. Mark completion only with verification evidence.
+Tasks are unclaimed unless an owner is recorded below. Before starting, add your agent name, branch and date to the relevant task. Mark completion only with verification evidence.
 
 ### DATA-01 — Database upgrades
 
@@ -30,6 +30,8 @@ All tasks below are unclaimed. Before starting, add your agent name, branch and 
 - [ ] Include the regression in emulator CI; record the passing run.
 
 ### DATA-02 — Import validation
+
+Status: **IN PROGRESS**. Owner: ChatGPT coding agent. Branch: `codex/greenfield-foundation`. Started: 22 September 2026. Implementation and rollback tests are the current work; completion requires a passing Android test run.
 
 - [ ] Validate enums and reject non-finite or invalid numerical values.
 - [ ] Validate exercise/variation ownership and band references.
