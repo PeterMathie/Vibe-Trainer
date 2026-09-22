@@ -55,7 +55,7 @@ UI-01d (history navigation and map modes): **COMPLETED**. Owner: GitHub Copilot 
 
 UI-01e (body-map regions and TalkBack): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `8af0d1a` enumerates all 13 front and 14 back muscle groups for both male and female diagrams through API 35 accessibility actions, invokes representative chest and lat actions, and verifies selection moves between views. The selected muscle already drives the accent outline; the map now also exposes that selection as a state description for TalkBack. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 32 instrumentation tests. This slice does not substitute for QA-01 real-phone testing.
 
-UI-01f (emulator screenshot review): **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026. Acceptance: install and launch the current debug APK on the API 35 phone-sized emulator, capture and inspect the current home screen plus one representative covered interaction state, retain artifacts outside Git, and document concrete visual/runtime defects or explicitly state when none are observed. Fix only reproducible defects and rerun affected coverage. This does not satisfy QA-01.
+UI-01f (emulator screenshot review): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. The current debug APK installed and launched successfully on the API 35 phone-sized emulator (`Status: ok`). Current home and history screenshots were captured under the session artifact directory `files/ui-01f/` and inspected: status/navigation bars, segmented mode control, recency maps, heatmap, history inputs/cards/actions and compact bottom navigation were readable without clipping or overlap. No concrete visual defect was observed, and `runtime-errors.txt` contains no AndroidRuntime/FATAL entries. Artifacts remain outside Git. This does not satisfy QA-01.
 
 - [x] Fix the known low-contrast status-bar icons on the dark home screen.
 - [x] Exercise every programme create/edit/duplicate/reorder/archive control.
@@ -63,7 +63,7 @@ UI-01f (emulator screenshot review): **IN PROGRESS**. Owner: GitHub Copilot sess
 - [x] Check substitutions, stacked bands, unilateral values, hold corrections and notes.
 - [x] Check history navigation and both historical map modes.
 - [x] Check every relevant SVG region, selected outlines and TalkBack actions.
-- [ ] Capture screenshots and report concrete defects; add focused regression coverage.
+- [x] Capture screenshots and report concrete defects; add focused regression coverage.
 
 ### QA-01 — Real-phone timers
 

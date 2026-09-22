@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **UI-01f — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: install and launch the current APK on the API 35 phone-sized emulator, capture and inspect the current home screen plus a representative covered interaction state, retain artifacts outside Git, and document any concrete visual/runtime defects. Real-phone QA remains separate.
+Current implementation task: **UI-01f — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. The current APK installed/launched with `Status: ok`; phone-sized home/history screenshots under session artifacts `files/ui-01f/` show no clipping, overlap or unreadable controls, and the captured runtime-error log has no AndroidRuntime/FATAL entries. Real-phone QA remains separate.
 
-UI-01e completed at `3c9a5d3`; full local validation after implementation commit `8af0d1a` passed with 17 unit tests and 32 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: capture current emulator screenshots and inspect AndroidRuntime output before deciding whether any fix is warranted.
+All emulator-automatable UI-01 slices are complete. Full local validation after `8af0d1a` passed with 17 unit tests and 32 API 35 instrumentation tests; current APK installation/launch and screenshot inspection also passed. Generated `.gradle/` and `app/build/` content remains ignored and untracked. QA-01 remains open for a real Android phone; the next implementation phase is a separately claimed, behavior-preserving ARCH-01 slice.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
