@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **ARCH-01d — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: move the tested `StyleScreen` and private palette card out of `VibeTrainerApp.kt`, retaining preference ownership, semantic tokens, contrast validation and rendering.
+Current implementation task: **ARCH-01d — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. Commit `adec0d0` moves `StyleScreen` and its palette card into a dedicated file without changing preference ownership, semantic tokens, contrast validation or rendering.
 
-ARCH-01c implementation commit `8fe0eb6` passed focused history/map tests and full validation with 19 unit tests and 32 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. ARCH-01d acceptance is focused palette contrast/style UI coverage followed by the full suite; QA-01 remains open for a real Android phone.
+ARCH-01d focused palette contrast/style UI tests passed, followed by full validation with 19 unit tests and 32 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. ARCH-01 remains open: the next safe claim should isolate one tested state/persistence seam from `WorkoutEditor`, `TrackerScreen` or `EditorViewModel`; do not combine them into a sweeping rewrite. QA-01 remains open for a real Android phone.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
@@ -53,6 +53,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Wrote the beta walkthrough and this handoff.
 
 ## Latest verification
+
+Local ARCH-01d verification at commit `adec0d0`: focused `PaletteContrastTest` and `StyleUiTest` passed, then the full unit/instrumentation/build command passed with 19 unit tests and 32 API 35 instrumentation tests.
 
 Local ARCH-01c verification at commit `8fe0eb6`: focused `HistoryUiTest` and `MuscleMapUiTest` passed, then the full unit/instrumentation/build command passed with 19 unit tests and 32 API 35 instrumentation tests.
 
