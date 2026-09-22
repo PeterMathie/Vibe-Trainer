@@ -17,7 +17,7 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Native Kotlin / Compose / Room / Hilt app. This branch has no runnable web version.
 - User has authorised replacing the old implementation and completing the beta. No further approval is needed for ordinary implementation or tests.
 - Latest locally verified implementation commit: `562bb0b`.
-- Latest successful branch run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35744137335. A replacement run for the final architecture checkpoint should be recorded after it completes.
+- Latest successful branch run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35749861428 at final architecture/repository-readiness checkpoint `cf2c8ba`.
 - APK artifact: `vibe-trainer-debug`; reports and generated Room schemas: `validation-reports`.
 
 ## What is implemented
@@ -54,7 +54,7 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 
 ## Latest verification
 
-Local ARCH-01l verification at commit `562bb0b`: `HoldTimerButtonTest` and focused `WorkoutLoggingUiTest`/`WorkoutEntryDraftTest` passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest :app:assembleRelease` validation with 33 unit tests and 36 API 35 instrumentation tests.
+Local ARCH-01l verification at commit `562bb0b`: `HoldTimerButtonTest` and focused `WorkoutLoggingUiTest`/`WorkoutEntryDraftTest` passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest :app:assembleRelease` validation with 33 unit tests and 36 API 35 instrumentation tests. GitHub Actions run `35749861428` also passed at `cf2c8ba`.
 
 Local ARCH-01k verification at commit `d5e0fcd`: three `CompactEntryFormTest` cases plus `SetDetailsFormTest`, `WorkoutLoggingUiTest` and `WorkoutEntryDraftTest` passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` validation with 33 unit tests and 35 API 35 instrumentation tests.
 
