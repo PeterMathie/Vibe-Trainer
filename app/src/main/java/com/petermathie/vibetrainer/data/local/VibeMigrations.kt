@@ -46,3 +46,11 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         )
     }
 }
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE tracker_fields ADD COLUMN choiceOptions TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE tracker_fields ADD COLUMN targetMaxValue REAL")
+        db.execSQL("ALTER TABLE tracker_fields ADD COLUMN isArchived INTEGER NOT NULL DEFAULT 0")
+    }
+}

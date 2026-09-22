@@ -91,7 +91,12 @@ class ImportValidationTest {
         rejected(rows("tracker_daily_values",fixture("tracker_daily_values").put("numericValue",JSONObject.NULL).put("textValue","minutes")), "Habit value")
         rejected(rows("tracker_fields",fixture("tracker_fields").put("targetComparison","AT_LEAST").put("targetValue",JSONObject.NULL)), "together")
         rejected(rows("tracker_fields",fixture("tracker_fields").put("valueType","BOOLEAN").put("targetComparison","AT_LEAST").put("targetValue",1)), "numerical")
+        rejected(rows("tracker_fields",fixture("tracker_fields").put("targetComparison","RANGE").put("targetValue",10).put("targetMaxValue",5)), "maximum")
         rejected(rows("tracker_daily_values",fixture("tracker_daily_values").put("epochDay",Long.MAX_VALUE)), "calendar range")
+        val choiceField=fixture("tracker_fields").put("id","choice-field").put("valueType","CHOICE").put("unit",JSONObject.NULL)
+            .put("targetComparison",JSONObject.NULL).put("targetValue",JSONObject.NULL).put("targetMaxValue",JSONObject.NULL).put("choiceOptions","Good\nBad")
+        val choiceValue=fixture("tracker_daily_values").put("fieldId","choice-field").put("numericValue",JSONObject.NULL).put("booleanValue",JSONObject.NULL).put("textValue","Unknown")
+        rejected(rows("tracker_fields",choiceField).put("tracker_daily_values",JSONArray().put(choiceValue)), "configured option")
     }
 
     @Test(timeout=120000) fun failedZeroAndBooleanInputAreAccepted() = runBlocking {

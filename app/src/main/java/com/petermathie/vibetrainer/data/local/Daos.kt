@@ -262,18 +262,20 @@ interface TrackerDao {
     @Query(
         """
         SELECT days.epochDay,days.trackerId,
-          CASE WHEN EXISTS (SELECT 1 FROM tracker_fields f WHERE f.trackerId=days.trackerId AND f.targetComparison IS NOT NULL)
+          CASE WHEN EXISTS (SELECT 1 FROM tracker_fields f WHERE f.trackerId=days.trackerId AND f.isArchived=0 AND f.targetComparison IS NOT NULL)
           THEN NOT EXISTS (
             SELECT 1 FROM tracker_fields f LEFT JOIN tracker_daily_values v ON v.fieldId=f.id AND v.epochDay=days.epochDay
-            WHERE f.trackerId=days.trackerId AND f.targetComparison IS NOT NULL AND (
+            WHERE f.trackerId=days.trackerId AND f.isArchived=0 AND f.targetComparison IS NOT NULL AND (
               v.numericValue IS NULL OR
               CASE f.targetComparison WHEN 'AT_LEAST' THEN v.numericValue < f.targetValue
                 WHEN 'AT_MOST' THEN v.numericValue > f.targetValue
-                WHEN 'EXACTLY' THEN v.numericValue != f.targetValue ELSE 1 END
+                WHEN 'EXACTLY' THEN v.numericValue != f.targetValue
+                WHEN 'RANGE' THEN v.numericValue < f.targetValue OR v.numericValue > f.targetMaxValue
+                ELSE 1 END
             )
           ) ELSE EXISTS (
             SELECT 1 FROM tracker_daily_values v JOIN tracker_fields f ON f.id=v.fieldId
-            WHERE f.trackerId=days.trackerId AND v.epochDay=days.epochDay
+            WHERE f.trackerId=days.trackerId AND f.isArchived=0 AND v.epochDay=days.epochDay
               AND (v.numericValue IS NOT NULL OR v.booleanValue=1 OR v.textValue IS NOT NULL)
           ) END AS targetMet
         FROM (SELECT DISTINCT v.epochDay,f.trackerId FROM tracker_daily_values v JOIN tracker_fields f ON f.id=v.fieldId) days

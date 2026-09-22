@@ -335,6 +335,9 @@ data class TrackerFieldEntity(
     val targetComparison: String?,
     val targetValue: Double?,
     val position: Int,
+    @androidx.room.ColumnInfo(defaultValue = "''") val choiceOptions: String = "",
+    val targetMaxValue: Double? = null,
+    @androidx.room.ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
 )
 
 @Entity(

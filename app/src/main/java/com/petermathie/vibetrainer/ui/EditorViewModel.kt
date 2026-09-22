@@ -94,6 +94,19 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
         }
     }
     fun save(row: TrackerFieldEntity) = write { dao.field(row) }
+    fun moveTrackerField(id: String, delta: Int) = write {
+        val selected = dao.fieldById(id) ?: return@write
+        val rows = dao.fields().first()
+            .filter { it.trackerId == selected.trackerId && !it.isArchived }
+            .sortedBy { it.position }
+            .toMutableList()
+        val from = rows.indexOfFirst { it.id == id }
+        val to = from + delta
+        if (from >= 0 && to in rows.indices) {
+            java.util.Collections.swap(rows, from, to)
+            db.withTransaction { rows.forEachIndexed { index, row -> dao.field(row.copy(position = index)) } }
+        }
+    }
     fun save(row: TrackerDailyValueEntity) = write { db.trackerDao().upsertValue(row) }
     fun save(row: BodyMeasurementEntity) = write { dao.measurement(row) }
     fun save(row: ExerciseVariationEntity) = write { dao.variation(row) }

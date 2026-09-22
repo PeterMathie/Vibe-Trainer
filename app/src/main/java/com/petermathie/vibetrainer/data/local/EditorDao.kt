@@ -66,6 +66,7 @@ interface EditorDao {
     @Query("SELECT * FROM tracker_daily_values") fun values(): Flow<List<TrackerDailyValueEntity>>
     @Upsert suspend fun tracker(row: TrackerEntity)
     @Upsert suspend fun field(row: TrackerFieldEntity)
+    @Query("SELECT * FROM tracker_fields WHERE id = :id") suspend fun fieldById(id: String): TrackerFieldEntity?
     @Query("DELETE FROM tracker_daily_values WHERE fieldId = :id AND epochDay = :day") suspend fun clearValue(id: String, day: Long)
     @Query("SELECT * FROM body_measurements ORDER BY recordedAt DESC") fun measurements(): Flow<List<BodyMeasurementEntity>>
     @Upsert suspend fun measurement(row: BodyMeasurementEntity)

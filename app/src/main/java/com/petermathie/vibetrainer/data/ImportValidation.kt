@@ -55,7 +55,7 @@ internal object ImportValidation {
         oneOf("setType", SetType.entries.map { it.name }.toSet())
         oneOf("result", SetResult.entries.map { it.name }.toSet())
         oneOf("valueType", numericTrackers + setOf("BOOLEAN", "TEXT", "CHOICE", "DATETIME"))
-        oneOf("targetComparison", setOf("AT_LEAST", "AT_MOST", "EXACTLY"))
+        oneOf("targetComparison", setOf("AT_LEAST", "AT_MOST", "EXACTLY", "RANGE"))
         range("rpe", 0.0, 10.0)
         range("targetRpe", 0.0, 10.0)
         if (table == "workouts") {
@@ -67,6 +67,12 @@ internal object ImportValidation {
         if (table == "tracker_fields") {
             require(row.isNull("targetComparison") == row.isNull("targetValue")) { "Target value and comparison must be supplied together" }
             require(row.isNull("targetValue") || row.getString("valueType") in numericTrackers) { "Targets require a numerical field" }
+            require(row.optString("targetComparison") == "RANGE" || row.isNull("targetMaxValue")) { "Target maximum requires a range target" }
+            require(row.optString("targetComparison") != "RANGE" || (!row.isNull("targetMaxValue") && row.getDouble("targetMaxValue") >= row.getDouble("targetValue"))) { "Range target maximum must be at least its minimum" }
+            val options = row.optString("choiceOptions").lineSequence().map(String::trim).filter(String::isNotEmpty).toList()
+            require(row.getString("valueType") == "CHOICE" || options.isEmpty()) { "Choice options require a choice field" }
+            require(row.getString("valueType") != "CHOICE" || options.size >= 2) { "Choice fields require at least two options" }
+            require(options.distinct().size == options.size) { "Choice options must be unique" }
         }
         if (table == "tracker_daily_values") require(row.getLong("epochDay") in java.time.LocalDate.MIN.toEpochDay()..java.time.LocalDate.MAX.toEpochDay()) { "Habit date is outside the supported calendar range" }
         if (table == "workout_sets" && row.getString("result") == "FAILED") {
@@ -108,5 +114,24 @@ internal object ImportValidation {
         reject("SELECT wm.muscleId FROM workout_muscles wm LEFT JOIN muscles m ON m.id=wm.muscleId WHERE m.id IS NULL LIMIT 1", "Unknown muscle in workout snapshot")
         reject("SELECT id FROM workouts WHERE status='DRAFT' LIMIT 1 OFFSET 1", "Only one active draft is supported")
         reject("SELECT v.fieldId FROM tracker_daily_values v JOIN tracker_fields f ON f.id=v.fieldId WHERE (f.valueType IN ('NUMBER','COUNT','DURATION','RATING') AND (v.numericValue IS NULL OR v.booleanValue IS NOT NULL OR v.textValue IS NOT NULL)) OR (f.valueType='BOOLEAN' AND (v.booleanValue IS NULL OR v.numericValue IS NOT NULL OR v.textValue IS NOT NULL)) OR (f.valueType IN ('TEXT','CHOICE','DATETIME') AND (v.textValue IS NULL OR v.numericValue IS NOT NULL OR v.booleanValue IS NOT NULL)) OR (f.valueType IN ('COUNT','DURATION') AND v.numericValue<0) OR (f.valueType='COUNT' AND v.numericValue != CAST(v.numericValue AS INTEGER)) LIMIT 1", "Habit value does not match its field type")
+        sql.query(
+            """
+            SELECT f.valueType, f.choiceOptions, v.textValue
+            FROM tracker_daily_values v
+            JOIN tracker_fields f ON f.id=v.fieldId
+            WHERE f.valueType IN ('CHOICE','DATETIME')
+            """.trimIndent(),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val type = cursor.getString(0)
+                val value = cursor.getString(2)
+                if (type == "CHOICE") {
+                    val options = cursor.getString(1).lineSequence().map(String::trim).filter(String::isNotBlank).toSet()
+                    require(value in options) { "Habit choice value is not a configured option" }
+                } else {
+                    require(runCatching { java.time.LocalDateTime.parse(value) }.isSuccess) { "Habit date/time value is invalid" }
+                }
+            }
+        }
     }
 }

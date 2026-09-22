@@ -4,6 +4,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.petermathie.vibetrainer.data.local.MIGRATION_2_3
+import com.petermathie.vibetrainer.data.local.MIGRATION_3_4
 import com.petermathie.vibetrainer.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -42,6 +43,31 @@ class VibeDatabaseMigrationTest {
             migrated.query("SELECT COUNT(*) FROM workout_entry_drafts").use {
                 assertEquals(true, it.moveToFirst())
                 assertEquals(0, it.getInt(0))
+            }
+        }
+
+        @Test
+        fun migrate3To4PreservesFieldsAndAddsRicherConfiguration() {
+            helper.createDatabase(databaseName, 3).apply {
+                execSQL("INSERT INTO trackers (id, name, isDemo, isArchived) VALUES ('habit', 'Habit', 0, 0)")
+                execSQL(
+                    """
+                    INSERT INTO tracker_fields
+                        (id, trackerId, name, valueType, unit, targetComparison, targetValue, position)
+                    VALUES ('field', 'habit', 'Existing field', 'NUMBER', 'units', 'AT_LEAST', 5, 0)
+                    """.trimIndent(),
+                )
+                close()
+            }
+
+            helper.runMigrationsAndValidate(databaseName, 4, true, MIGRATION_3_4).use { migrated ->
+                migrated.query("SELECT name, choiceOptions, targetMaxValue, isArchived FROM tracker_fields WHERE id='field'").use {
+                    assertEquals(true, it.moveToFirst())
+                    assertEquals("Existing field", it.getString(0))
+                    assertEquals("", it.getString(1))
+                    assertEquals(true, it.isNull(2))
+                    assertEquals(0, it.getInt(3))
+                }
             }
         }
     }
