@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 is an in-progress rerun of the existing Android build/tests/install/launch workflow; its new result is pending. The verified run below remains the last completed evidence until RUN-02 finishes.
+The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
 ## Start here
 
@@ -12,8 +12,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 is an in-progres
 - Product contract: `docs/PRODUCT_REQUIREMENTS.md`; tester walkthrough: `docs/BETA_TESTING.md`.
 - Native Kotlin / Compose / Room / Hilt app. This branch has no runnable web version.
 - User has authorised replacing the old implementation and completing the beta. No further approval is needed for ordinary implementation or tests.
-- Latest verified application/workflow commit: `6e8570f9114985aa1a47a1b15d0ea164b96813be`.
-- Verified run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35640509017. Unit tests, debug APK, Android API 35 emulator tests, APK installation and MainActivity launch all passed. `am start` reported `Status: ok`; the process remained alive, a home screenshot was captured, and the AndroidRuntime error log was empty.
+- Latest verified branch commit: `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433` (same application code as `6e8570f`).
+- Verified run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673. Unit tests, debug APK, Android API 35 emulator tests, APK installation and MainActivity launch all passed. `am start` reported `Status: ok`; the process remained alive, a home screenshot was captured, and the AndroidRuntime error log was empty.
 - APK artifact: `vibe-trainer-debug`; reports and generated Room schemas: `validation-reports`.
 
 ## What is implemented
@@ -50,8 +50,8 @@ The verified follow-up bundles the existing third-party asset notices in the APK
 Earlier run `35639647804` at commit `c071717` passed compilation, unit tests and instrumentation tests, then failed the added launch command because the test runner had uninstalled the target APK. The verified revision explicitly installs the built APK before launching it. That launch-harness failure is resolved.
 
 Downloads for the verified build:
-- APK ZIP: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35640509017/artifacts/10658780701
-- Reports, schema and launch screenshot: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35640509017/artifacts/10658426962
+- APK ZIP: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673/artifacts/10682633925
+- Reports, schema and launch screenshot: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673/artifacts/10682594156
 
 The documentation-only handoff update after this verified commit does not alter application code.
 

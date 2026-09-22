@@ -4,15 +4,19 @@ Updated: 22 September 2026. See [WORK_STATUS.md](WORK_STATUS.md) for implemented
 
 ## Active run — RUN-02
 
-Owner: ChatGPT coding agent. Status: in progress.
+Owner: ChatGPT coding agent. Status: completed successfully.
 
 - [x] Check remote branch and local changes before starting; no intervening source changes found.
 - [x] Create an explicit checklist for the remaining beta work.
-- [ ] Rerun compilation and unit tests on the current branch.
-- [ ] Run Android emulator instrumentation tests.
-- [ ] Install the APK, launch MainActivity and check that the process remains alive.
-- [ ] Inspect launch screenshot and runtime-error log.
-- [ ] Record the run, commit, artifact links and any failures here and in WORK_STATUS.md.
+- [x] Rerun compilation and unit tests on the current branch.
+- [x] Run Android emulator instrumentation tests.
+- [x] Install the APK, launch MainActivity and check that the process remains alive.
+- [x] Inspect launch screenshot and runtime-error log.
+- [x] Record the run, commit, artifact links and any failures here and in WORK_STATUS.md.
+
+Evidence: commit `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433`, [run 35701312673](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673). MainActivity reported `Status: ok`; the runtime-error log was empty. Screenshot shows the seeded home screen and confirms the existing status-bar contrast issue remains. No application source changes were made in this rerun.
+
+[APK ZIP](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673/artifacts/10682633925) · [Reports and screenshot](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673/artifacts/10682594156).
 
 ## High-priority work
 
@@ -68,4 +72,4 @@ All tasks below are unclaimed. Before starting, add your agent name, branch and 
 ## Completion log
 
 - 21 September: build, unit tests, instrumentation tests, APK installation and MainActivity launch passed in run `35640509017`; screenshot inspected and runtime-error log empty. See WORK_STATUS.md for links and feature inventory.
-- 22 September: RUN-02 requested. Result pending; do not treat the previous run as evidence of this rerun.
+- 22 September: RUN-02 passed all build/test/install/launch checks; new screenshot inspected. Detailed outstanding tasks remain unchecked below their respective headings. This result does not establish full feature or real-device coverage.
