@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **paused at a pushed ARCH-01 boundary** on `pmathie-cicpilot-persist-workout-drafts`. ARCH-01g is complete; no later slice is claimed. The next safe candidate is a separately claimed extraction of tracker configuration from `TrackerScreen.kt`, with existing habit tests expanded before changing state ownership.
+Current implementation task: **ARCH-01h — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: extract tracker daily input, choice/date-time controls and target summary from `TrackerScreen.kt` without moving persistence or changing layout/navigation.
 
 RELEASE-01b is complete at `f6174cd`: repository and bundled notices inventory the resolved release runtime families and explicit transitive helpers, both notice copies are byte-identical, and the unsigned APK contains the notices. Exact upstream NOTICE/licence-text packaging plus legal/store approval remain external release gates. Generated `.gradle/` and `app/build/` content remains ignored and untracked; QA-01 remains open for a real Android phone.
 
