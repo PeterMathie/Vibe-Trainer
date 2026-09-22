@@ -13,6 +13,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
+import com.petermathie.vibetrainer.domain.workout.SetDetailsForm
+import com.petermathie.vibetrainer.domain.workout.parsePerformance
 import org.json.JSONArray
 import java.time.Instant
 import java.time.ZoneId
@@ -206,15 +208,6 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     }
 }
 
-fun parsePerformance(base: WorkoutSetEntity, text: String, hold: Boolean, weighted: Boolean, lb: Boolean): WorkoutSetEntity? {
-    val parts = text.lowercase().replace("kg", "").replace("lb", "").replace('×','x').split('x').map { it.trim() }
-    if (hold) { val seconds = parts.firstOrNull()?.removeSuffix("s")?.toDoubleOrNull() ?: return null; if (!seconds.isFinite() || seconds < 0) return null; return base.copy(holdMillis = (seconds * 1000).toLong(), result = if (seconds == 0.0) "FAILED" else "COMPLETED") }
-    val reps = parts.lastOrNull()?.toIntOrNull() ?: return null
-    val weight = if (weighted) parts.takeIf { it.size == 2 }?.first()?.toDoubleOrNull() ?: return null else null
-    if (reps < 0 || weight?.let { !it.isFinite() || it < 0 } == true) return null
-    return base.copy(reps = reps, weightKg = weight?.let { if (lb) it / 2.2046226218 else it }, result = if (reps == 0) "FAILED" else "COMPLETED")
-}
-
 fun setDescription(s: WorkoutSetEntity): String = when {
     s.romValue != null -> "ROM ${s.romValue} ${s.romUnit.orEmpty()}"
     s.leftReps != null || s.rightReps != null -> "L ${s.leftReps ?: 0} / R ${s.rightReps ?: 0} reps"
@@ -245,9 +238,15 @@ private fun DraftSetDetails(
     val bands by vm.bands.collectAsStateWithLifecycle()
     val variations by vm.variations.collectAsStateWithLifecycle()
     var draft by remember(original.workoutExerciseId, original.setId) { mutableStateOf(original) }
+    var form by remember(original.workoutExerciseId, original.setId) { mutableStateOf(SetDetailsForm.from(original)) }
     var error by remember { mutableStateOf<String?>(null) }
-    fun update(transform: (WorkoutEntryDraftEntity) -> WorkoutEntryDraftEntity) {
-        draft = transform(draft).copy(updatedAt = System.currentTimeMillis())
+    fun update(transform: (SetDetailsForm) -> SetDetailsForm) {
+        form = transform(form)
+        draft = form.applyTo(draft).copy(updatedAt = System.currentTimeMillis())
+        vm.saveEntryDraft(draft)
+    }
+    fun updateBands(values: List<String>) {
+        draft = draft.copy(bandIds = encodeBandIds(values), updatedAt = System.currentTimeMillis())
         vm.saveEntryDraft(draft)
     }
     val selected = bandIds(draft.bandIds)
@@ -257,32 +256,32 @@ private fun DraftSetDetails(
         text = {
             LazyColumn {
                 item {
-                    EditField(if (hold) "Seconds" else if (weighted) "Weight × reps" else "Reps", draft.performance) { update { row -> row.copy(performance = it) } }
-                    EditField("RPE (optional)", draft.rpe) { update { row -> row.copy(rpe = it) } }
-                    Row { Checkbox(draft.warmUp, { checked -> update { it.copy(warmUp = checked) } }); Text("Warm-up") }
-                    Row { Checkbox(draft.failed, { checked -> update { it.copy(failed = checked) } }); Text("Failed/partial — store zero") }
+                    EditField(if (hold) "Seconds" else if (weighted) "Weight × reps" else "Reps", form.performance) { update { row -> row.copy(performance = it) } }
+                    EditField("RPE (optional)", form.rpe) { update { row -> row.copy(rpe = it) } }
+                    Row { Checkbox(form.warmUp, { checked -> update { it.copy(warmUp = checked) } }); Text("Warm-up") }
+                    Row { Checkbox(form.failed, { checked -> update { it.copy(failed = checked) } }); Text("Failed/partial — store zero") }
                     Text("Bands: ${selected.sumOf { id -> bands.find { it.id == id }?.widthCentimetres ?: 0.0 }} cm total")
                     bands.forEach { band ->
                         Row {
                             Checkbox(band.id in selected, { checked ->
-                                update { row -> row.copy(bandIds = encodeBandIds(if (checked) selected + band.id else selected - band.id)) }
+                                updateBands(if (checked) selected + band.id else selected - band.id)
                             })
                             Text("${band.name} (${band.widthCentimetres}cm)")
                         }
                     }
                     Text("Variation")
-                    TextButton(onClick = { update { it.copy(variationId = null) } }) { Text(if (draft.variationId == null) "✓ Default" else "Default") }
+                    TextButton(onClick = { update { it.copy(variationId = null) } }) { Text(if (form.variationId == null) "✓ Default" else "Default") }
                     variations.filter { it.exerciseId == exerciseId }.forEach { variation ->
                         TextButton(onClick = { update { it.copy(variationId = variation.id) } }) {
-                            Text((if (draft.variationId == variation.id) "✓ " else "") + variation.name)
+                            Text((if (form.variationId == variation.id) "✓ " else "") + variation.name)
                         }
                     }
-                    EditField("Left ${if (hold) "seconds" else "reps"}", draft.leftValue) { update { row -> row.copy(leftValue = it) } }
-                    EditField("Right ${if (hold) "seconds" else "reps"}", draft.rightValue) { update { row -> row.copy(rightValue = it) } }
-                    EditField("Added weight (kg)", draft.addedWeight) { update { row -> row.copy(addedWeight = it) } }
-                    EditField("Assistance (kg)", draft.assistance) { update { row -> row.copy(assistance = it) } }
-                    EditField("ROM measurement (optional)", draft.romValue) { update { row -> row.copy(romValue = it) } }
-                    EditField("ROM unit", draft.romUnit) { update { row -> row.copy(romUnit = it) } }
+                    EditField("Left ${if (hold) "seconds" else "reps"}", form.leftValue) { update { row -> row.copy(leftValue = it) } }
+                    EditField("Right ${if (hold) "seconds" else "reps"}", form.rightValue) { update { row -> row.copy(rightValue = it) } }
+                    EditField("Added weight (kg)", form.addedWeight) { update { row -> row.copy(addedWeight = it) } }
+                    EditField("Assistance (kg)", form.assistance) { update { row -> row.copy(assistance = it) } }
+                    EditField("ROM measurement (optional)", form.romValue) { update { row -> row.copy(romValue = it) } }
+                    EditField("ROM unit", form.romUnit) { update { row -> row.copy(romUnit = it) } }
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
             }
@@ -290,37 +289,9 @@ private fun DraftSetDetails(
         confirmButton = {
             TextButton(onClick = {
                 val base = emptySet(draft.workoutExerciseId, draft.ordinal).copy(id = draft.setId)
-                val parsed = parsePerformance(base, if (draft.failed) { if (weighted) "0 x 0" else "0" } else draft.performance, hold, weighted, lb)
-                val sideValues = listOf(draft.leftValue, draft.rightValue)
-                val numericValues = sideValues + listOf(draft.addedWeight, draft.assistance, draft.romValue)
-                if (draft.rpe.isNotBlank() && (draft.rpe.toDoubleOrNull() == null || draft.rpe.toDouble() !in 0.0..10.0)) {
-                    error = "RPE must be 0–10"
-                } else if (numericValues.any { it.isNotBlank() && (it.toDoubleOrNull()?.let { number -> !number.isFinite() || number < 0 } != false) }) {
-                    error = "Use finite, non-negative numbers"
-                } else if (!hold && sideValues.any { it.isNotBlank() && it.toIntOrNull() == null }) {
-                    error = "Repetitions must be whole numbers"
-                } else if (parsed == null && draft.romValue.toDoubleOrNull() == null && draft.leftValue.toDoubleOrNull() == null && draft.rightValue.toDoubleOrNull() == null) {
-                    error = "Enter a valid result"
-                } else {
-                    var saved = (parsed ?: base).copy(
-                        setType = if (draft.warmUp) "WARM_UP" else "WORKING",
-                        result = if (draft.failed) "FAILED" else "COMPLETED",
-                        variationId = draft.variationId,
-                        rpe = draft.rpe.toDoubleOrNull(),
-                        leftReps = if (!hold) draft.leftValue.toIntOrNull() else null,
-                        rightReps = if (!hold) draft.rightValue.toIntOrNull() else null,
-                        leftHoldMillis = if (hold) draft.leftValue.toDoubleOrNull()?.times(1000)?.toLong() else null,
-                        rightHoldMillis = if (hold) draft.rightValue.toDoubleOrNull()?.times(1000)?.toLong() else null,
-                        addedWeightKg = draft.addedWeight.toDoubleOrNull(),
-                        assistanceKg = draft.assistance.toDoubleOrNull(),
-                        romValue = draft.romValue.toDoubleOrNull(),
-                        romUnit = draft.romUnit,
-                        updatedAt = System.currentTimeMillis(),
-                    )
-                    if (draft.failed) saved = saved.copy(reps = 0, holdMillis = 0, leftReps = 0, rightReps = 0, leftHoldMillis = 0, rightHoldMillis = 0, romValue = null)
-                    else if (draft.leftValue.isNotBlank() || draft.rightValue.isNotBlank()) saved = saved.copy(reps = null, holdMillis = null)
-                    save(saved, selected)
-                }
+                val result = form.buildSet(base, hold, weighted, lb)
+                error = result.error
+                result.set?.let { save(it, selected) }
             }) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } },
@@ -332,45 +303,27 @@ private fun SetDetails(vm: EditorViewModel, original: WorkoutSetEntity, exercise
     val bands by vm.bands.collectAsStateWithLifecycle()
     val assignments by vm.setBands.collectAsStateWithLifecycle()
     val variations by vm.variations.collectAsStateWithLifecycle()
-    var performance by remember { mutableStateOf(if (hold) original.holdMillis?.let { (it/1000.0).toString() }.orEmpty() else if (weighted) "${original.weightKg?.let { if(lb) it*2.2046226218 else it } ?: 0} x ${original.reps ?: 0}" else original.reps?.toString().orEmpty()) }
-    var rpe by remember { mutableStateOf(original.rpe?.toString().orEmpty()) }
-    var warmup by remember { mutableStateOf(original.setType == "WARM_UP") }
-    var failed by remember { mutableStateOf(original.result == "FAILED") }
+    var form by remember(original.id) { mutableStateOf(SetDetailsForm.from(original, hold, weighted, lb)) }
     var selected by remember(assignments) { mutableStateOf(assignments.filter { it.setId == original.id }.map { it.bandId }) }
-    var variant by remember { mutableStateOf(original.variationId) }
-    var left by remember { mutableStateOf((if (hold) original.leftHoldMillis?.div(1000.0) else original.leftReps)?.toString().orEmpty()) }
-    var right by remember { mutableStateOf((if (hold) original.rightHoldMillis?.div(1000.0) else original.rightReps)?.toString().orEmpty()) }
-    var added by remember { mutableStateOf(original.addedWeightKg?.toString().orEmpty()) }
-    var assistance by remember { mutableStateOf(original.assistanceKg?.toString().orEmpty()) }
-    var rom by remember { mutableStateOf(original.romValue?.toString().orEmpty()) }
-    var unit by remember { mutableStateOf(original.romUnit ?: "cm") }
     var error by remember { mutableStateOf<String?>(null) }
     AlertDialog(onDismissRequest = dismiss, title = { Text("Set details") }, text = { LazyColumn {
         item {
-            EditField(if (hold) "Seconds" else if (weighted) "Weight × reps" else "Reps", performance) { performance = it }
-            EditField("RPE (optional)", rpe) { rpe = it }
-            Row { Checkbox(warmup, { warmup = it }); Text("Warm-up") }; Row { Checkbox(failed, { failed = it }); Text("Failed/partial — store zero") }
+            EditField(if (hold) "Seconds" else if (weighted) "Weight × reps" else "Reps", form.performance) { form = form.copy(performance = it) }
+            EditField("RPE (optional)", form.rpe) { form = form.copy(rpe = it) }
+            Row { Checkbox(form.warmUp, { form = form.copy(warmUp = it) }); Text("Warm-up") }; Row { Checkbox(form.failed, { form = form.copy(failed = it) }); Text("Failed/partial — store zero") }
             Text("Bands: ${selected.sumOf { id -> bands.find { it.id == id }?.widthCentimetres ?: 0.0 }} cm total")
             bands.forEach { band -> Row { Checkbox(band.id in selected, { checked -> selected = if(checked) selected + band.id else selected - band.id }); Text("${band.name} (${band.widthCentimetres}cm)") } }
             Text("Variation")
-            TextButton(onClick = { variant = null }) { Text(if (variant == null) "✓ Default" else "Default") }
-            variations.filter { it.exerciseId == exerciseId }.forEach { v -> TextButton(onClick = { variant = v.id }) { Text((if(variant == v.id) "✓ " else "") + v.name) } }
-            EditField("Left ${if(hold) "seconds" else "reps"}",left) { left=it }; EditField("Right ${if(hold) "seconds" else "reps"}",right) { right=it }
-            EditField("Added weight (kg)",added) { added=it }; EditField("Assistance (kg)",assistance) { assistance=it }
-            EditField("ROM measurement (optional)",rom) { rom=it }; EditField("ROM unit",unit) { unit=it }
+            TextButton(onClick = { form = form.copy(variationId = null) }) { Text(if (form.variationId == null) "✓ Default" else "Default") }
+            variations.filter { it.exerciseId == exerciseId }.forEach { v -> TextButton(onClick = { form = form.copy(variationId = v.id) }) { Text((if(form.variationId == v.id) "✓ " else "") + v.name) } }
+            EditField("Left ${if(hold) "seconds" else "reps"}",form.leftValue) { form = form.copy(leftValue = it) }; EditField("Right ${if(hold) "seconds" else "reps"}",form.rightValue) { form = form.copy(rightValue = it) }
+            EditField("Added weight (kg)",form.addedWeight) { form = form.copy(addedWeight = it) }; EditField("Assistance (kg)",form.assistance) { form = form.copy(assistance = it) }
+            EditField("ROM measurement (optional)",form.romValue) { form = form.copy(romValue = it) }; EditField("ROM unit",form.romUnit) { form = form.copy(romUnit = it) }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
     } }, confirmButton = { TextButton(onClick = {
-        val base = parsePerformance(original, if(failed) { if(weighted) "0 x 0" else "0" } else performance, hold, weighted, lb)
-        if (rpe.isNotBlank() && (rpe.toDoubleOrNull() == null || rpe.toDouble() !in 0.0..10.0)) { error = "RPE must be 0–10" }
-        else if (listOf(left,right,added,assistance,rom).any { it.isNotBlank() && (it.toDoubleOrNull()?.let { n -> !n.isFinite() || n<0 } != false) }) { error = "Use finite, non-negative numbers" }
-        else if (!hold && listOf(left,right).any { it.isNotBlank() && it.toIntOrNull()==null }) { error = "Repetitions must be whole numbers" }
-        else if (base == null && rom.toDoubleOrNull() == null && left.toDoubleOrNull() == null && right.toDoubleOrNull() == null) { error = "Enter a valid result" }
-        else {
-            var saved=(base ?: original).copy(setType = if(warmup) "WARM_UP" else "WORKING", result = if(failed) "FAILED" else "COMPLETED", variationId = variant, rpe = rpe.toDoubleOrNull(), leftReps = if(!hold) left.toIntOrNull() else null, rightReps = if(!hold) right.toIntOrNull() else null, leftHoldMillis = if(hold) left.toDoubleOrNull()?.times(1000)?.toLong() else null, rightHoldMillis = if(hold) right.toDoubleOrNull()?.times(1000)?.toLong() else null, addedWeightKg = added.toDoubleOrNull(), assistanceKg = assistance.toDoubleOrNull(), romValue = rom.toDoubleOrNull(), romUnit = unit, updatedAt = System.currentTimeMillis())
-            if(failed) saved=saved.copy(reps=0,holdMillis=0,leftReps=0,rightReps=0,leftHoldMillis=0,rightHoldMillis=0,romValue=null)
-            else if(left.isNotBlank() || right.isNotBlank()) saved=saved.copy(reps=null,holdMillis=null)
-            save(saved, selected)
-        }
+        val result = form.buildSet(original, hold, weighted, lb)
+        error = result.error
+        result.set?.let { save(it, selected) }
     }) { Text("Save") } }, dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } })
 }

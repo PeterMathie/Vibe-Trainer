@@ -1,9 +1,9 @@
 package com.petermathie.vibetrainer
 
 import com.petermathie.vibetrainer.domain.progress.SessionProgress
+import com.petermathie.vibetrainer.domain.workout.parsePerformance
 import com.petermathie.vibetrainer.data.local.*
 import com.petermathie.vibetrainer.ui.emptySet
-import com.petermathie.vibetrainer.ui.parsePerformance
 import org.junit.Test
 import org.junit.Assert.*
 
