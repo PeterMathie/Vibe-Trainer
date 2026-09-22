@@ -19,13 +19,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.FitnessCenter
@@ -340,80 +338,6 @@ private fun ExerciseLibraryScreen(exercises: List<ExerciseSummary>, onSearch: (S
 }
 
 @Composable
-internal fun HistoryDayScreen(state: MainUiState, onBack: () -> Unit, onDayChange: (Long) -> Unit, onModeChange: (TrainingMode) -> Unit) {
-    val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
-    val day = state.selectedHistoryDay ?: return
-    val date = LocalDate.ofEpochDay(day)
-    var selectedMuscle by rememberSaveable(day) { mutableStateOf<String?>(null) }
-    ScreenList(modifier = Modifier.statusBarsPadding()) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Back") }
-                Column {
-                    Text(date.format(DateTimeFormatter.ofPattern("d MMMM yyyy")), style = MaterialTheme.typography.headlineMedium)
-                    Text("Reconstructed from records up to the end of this day", color = LocalVibePalette.current.textSecondary)
-                }
-            }
-        }
-        item {
-            SingleChoiceSegmentedButtonRow {
-                TrainingMode.entries.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = state.mode == mode,
-                        onClick = { onModeChange(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index, TrainingMode.entries.size),
-                        label = { Text(if (mode == TrainingMode.STRENGTH) "Strength" else "Stretching") },
-                    )
-                }
-            }
-            Row {
-                TextButton(onClick={onDayChange(day-1)}){Text("Previous day")}
-                TextButton(onClick={onDayChange(day+1)},enabled=day<LocalDate.now().toEpochDay()){Text("Next day")}
-            }
-            androidx.compose.material3.Slider(value=day.toFloat(),onValueChange={onDayChange(it.toLong())},valueRange=(LocalDate.now().toEpochDay()-365).toFloat()..LocalDate.now().toEpochDay().toFloat(),steps=364)
-        }
-        item {
-            VibeCard {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MuscleMap(
-                        sex,
-                        AnatomyView.FRONT,
-                        state.recency.associate { it.muscleId to it.band },
-                        { selectedMuscle = it },
-                        Modifier.weight(1f),
-                        selectedMuscle,
-                    )
-                    MuscleMap(
-                        sex,
-                        AnatomyView.BACK,
-                        state.recency.associate { it.muscleId to it.band },
-                        { selectedMuscle = it },
-                        Modifier.weight(1f),
-                        selectedMuscle,
-                    )
-                }
-                selectedMuscle?.let { muscle ->
-                    Text(muscle.replace('_', ' '), fontWeight = FontWeight.Bold)
-                    val selected=state.recency.find { it.muscleId==muscle }
-                    Text(selected?.let { "${it.band.name.replace('_',' ').lowercase()} · ${"%.1f".format(it.setEquivalents)} set-equivalents in the preceding 7 days" } ?: "Never recorded")
-                    selected?.lastTrainedAt?.let { Text("Last trained: ${java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy HH:mm"))}") }
-                    selected?.contributingExerciseNames?.let { Text(it.joinToString()) }
-                }
-            }
-        }
-        val activities = state.historyDay?.activities.orEmpty()
-        if (activities.isEmpty()) item { VibeCard { Text("No logged activity") } }
-        items(activities) { activity ->
-            VibeCard {
-                Text(activity.title, style = MaterialTheme.typography.titleMedium)
-                Text(activity.detail, color = LocalVibePalette.current.textSecondary)
-                if (activity.notes.isNotBlank()) Text(activity.notes, color = LocalVibePalette.current.textFaint)
-            }
-        }
-    }
-}
-
-@Composable
 internal fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemoveDemo: () -> Unit) {
     val prefs=LocalContext.current.getSharedPreferences("settings",0)
     fun storedHex(key: String, fallback: Int) = String.format("#%06X", 0xFFFFFF and prefs.getInt(key, fallback))
@@ -477,7 +401,7 @@ private fun PaletteCard(palette: VibePalette, selected: Boolean, onSelect: () ->
 }
 
 @Composable
-private fun VibeCard(content: @Composable ColumnScope.() -> Unit) {
+internal fun VibeCard(content: @Composable ColumnScope.() -> Unit) {
     val palette = LocalVibePalette.current
     Card(
         colors = CardDefaults.cardColors(containerColor = palette.surface),
@@ -490,7 +414,7 @@ private fun VibeCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun ScreenList(
+internal fun ScreenList(
     modifier: Modifier = Modifier,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
 ) {
