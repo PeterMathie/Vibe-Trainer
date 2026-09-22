@@ -13,8 +13,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
+import com.petermathie.vibetrainer.domain.workout.CompactEntryForm
 import com.petermathie.vibetrainer.domain.workout.SetDetailsForm
-import com.petermathie.vibetrainer.domain.workout.parsePerformance
 import org.json.JSONArray
 import java.time.Instant
 import java.time.ZoneId
@@ -99,8 +99,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     var draftLoaded by remember(row.id) { mutableStateOf(false) }
     var submitting by remember(row.id) { mutableStateOf(false) }
     var expanded by rememberSaveable(row.id) { mutableStateOf(false) }
-    var result by remember(row.id) { mutableStateOf("") }
-    var rpe by remember(row.id) { mutableStateOf("") }
+    var compactEntry by remember(row.id) { mutableStateOf(CompactEntryForm()) }
     val context = LocalContext.current
     val hold = exercise?.trackingType in listOf("HOLD", "SKILL_HOLD")
     var timerStart by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -109,22 +108,21 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     LaunchedEffect(row.id) {
         val recovered = vm.entryDraft(row.id) ?: emptyEntryDraft(row.id, (sets.maxOfOrNull { it.ordinal } ?: 0) + 1)
         entryDraft = recovered
-        result = recovered.performance
-        rpe = recovered.rpe
+        compactEntry = CompactEntryForm.from(recovered)
         if (recovered.detailsOpen) detailsDraft = recovered
         draftLoaded = true
     }
     val lb = context.getSharedPreferences("settings",0).getBoolean("lb",false)
-    fun updateCompact(performance: String = result, exertion: String = rpe) {
-        val updated = entryDraft?.copy(performance = performance, rpe = exertion, updatedAt = System.currentTimeMillis()) ?: return
+    fun updateCompact(form: CompactEntryForm) {
+        compactEntry = form
+        val updated = entryDraft?.let(form::applyTo)?.copy(updatedAt = System.currentTimeMillis()) ?: return
         entryDraft = updated
         vm.saveEntryDraft(updated)
     }
     fun resetDraft(ordinal: Int) {
         entryDraft = emptyEntryDraft(row.id, ordinal)
         detailsDraft = null
-        result = ""
-        rpe = ""
+        compactEntry = CompactEntryForm()
         submitting = false
     }
     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -139,14 +137,19 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            OutlinedTextField(result, { result = it; updateCompact(performance = it) }, enabled = draftLoaded && !submitting, label = { Text(if (hold) "Seconds" else if (exercise?.trackingType == "WEIGHT_REPS") "${if (lb) "lb" else "kg"} × reps" else "Reps") }, singleLine = true, modifier = Modifier.weight(1f))
-            OutlinedTextField(rpe, { rpe = it; updateCompact(exertion = it) }, enabled = draftLoaded && !submitting, label = { Text("RPE") }, singleLine = true, modifier = Modifier.width(70.dp))
+            OutlinedTextField(compactEntry.performance, { updateCompact(compactEntry.copy(performance = it)) }, enabled = draftLoaded && !submitting, label = { Text(if (hold) "Seconds" else if (exercise?.trackingType == "WEIGHT_REPS") "${if (lb) "lb" else "kg"} × reps" else "Reps") }, singleLine = true, modifier = Modifier.weight(1f))
+            OutlinedTextField(compactEntry.rpe, { updateCompact(compactEntry.copy(rpe = it)) }, enabled = draftLoaded && !submitting, label = { Text("RPE") }, singleLine = true, modifier = Modifier.width(70.dp))
             TextButton(enabled = draftLoaded && !submitting, onClick = {
                 val pending = entryDraft ?: return@TextButton
-                val parsed = parsePerformance(emptySet(row.id, pending.ordinal).copy(id = pending.setId), result, hold, exercise?.trackingType == "WEIGHT_REPS", lb)
-                if (parsed != null && (rpe.isBlank() || rpe.toDoubleOrNull()?.let { it in 0.0..10.0 } == true)) {
+                val parsed = compactEntry.buildSet(
+                    emptySet(row.id, pending.ordinal).copy(id = pending.setId),
+                    hold,
+                    exercise?.trackingType == "WEIGHT_REPS",
+                    lb,
+                )
+                if (parsed != null) {
                     submitting = true
-                    vm.submitEntryDraft(parsed.copy(rpe = rpe.toDoubleOrNull()), emptyList()) {
+                    vm.submitEntryDraft(parsed, emptyList()) {
                         resetDraft(pending.ordinal + 1)
                         onSaved()
                     }
@@ -160,8 +163,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
         if (hold) TextButton(onClick = {
             if (timerStart == null) timerStart = android.os.SystemClock.elapsedRealtime()
             else {
-                result = (elapsed / 1000.0).toString()
-                updateCompact(performance = result)
+                updateCompact(compactEntry.copy(performance = (elapsed / 1000.0).toString()))
                 timerStart = null
             }
         }) { Text(if (timerStart == null) "Start hold timer" else "Stop · ${elapsed / 1000.0}s") }
