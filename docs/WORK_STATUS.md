@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: none. **HABIT-01 — COMPLETED**, owned by GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3` on `pmathie-cicpilot-persist-workout-drafts`, 22 September 2026. Commits `3ae1167`, `77b3c62` and `eb4d9d8` add configured CHOICE options, DATE_TIME picker input, inclusive range targets, field archival/restoration and reordering, history retention, import validation and Room v3 → v4 migration coverage.
+Current implementation task: **PROGRESS-01 — IN PROGRESS**, owned by GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: readable graph axes/date labels, pointer hover/focus parity, ROM series separated by unit, explicit PR types, clearer heuristic skill-index explanation, and focused series/interaction tests.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
