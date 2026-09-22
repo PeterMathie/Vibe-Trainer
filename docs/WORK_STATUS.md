@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **UI-01c — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. Commits `e20322e` and `6ad1a68` cover compact/detailed set entry, stacked bands, unilateral values, hold correction, substitution after saved history, keyboard-open exercise notes, and a 320dp/2.0-font-scale configuration. History/SVG accessibility and real-phone QA remain separate.
+Current implementation task: **UI-01d — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: API 35 interaction and accessibility evidence for entering historical workout days, returning to the current view, switching strength/stretch historical maps, and confirming seeded date/mode state. SVG region and selected-outline coverage remains a separate slice.
 
-Full local validation after `6ad1a68`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 30 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: claim a bounded UI-01 history-navigation/map-mode slice before implementation.
+UI-01c completed at `1bec012`; full local validation after implementation commit `6ad1a68` passed with 17 unit tests and 30 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: inspect existing history/map semantics and add focused UI-01d interaction coverage before making any demonstrated fixes.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
