@@ -29,4 +29,26 @@ class SessionProgressTest {
         assertEquals(1.6,free/band,0.00001)
         assertTrue(SessionProgress.score(set.copy(addedWeightKg=10.0),80.0,0.0,"ASSISTED_REPS")!!>free)
     }
+    @Test fun romSeriesNeverMixUnits(){
+        val sets=listOf(
+            emptySet("e",1).copy(romValue=10.0,romUnit="cm",loggedAt=2),
+            emptySet("e",2).copy(romValue=30.0,romUnit="degrees",loggedAt=1),
+            emptySet("e",3).copy(romValue=12.0,romUnit="cm",loggedAt=3),
+        )
+        val series=SessionProgress.romSeries(sets)
+        assertEquals(setOf("cm","degrees"),series.keys)
+        assertEquals(listOf(10.0,12.0),series.getValue("cm").map { it.romValue })
+    }
+    @Test fun recordsExposeRepsSeparatelyFromScoredPerformance(){
+        val lowerScore=emptySet("e",1).copy(weightKg=50.0,reps=12)
+        val higherScore=emptySet("e",2).copy(weightKg=100.0,reps=3)
+        val points=listOf(
+            com.petermathie.vibetrainer.domain.progress.ProgressPoint(1,60.0,lowerScore,"",null,emptyList()),
+            com.petermathie.vibetrainer.domain.progress.ProgressPoint(2,110.0,higherScore,"",null,emptyList()),
+        )
+        val records=SessionProgress.records(listOf(lowerScore,higherScore),points)
+        assertEquals(12,records.reps)
+        assertEquals(higherScore.id,records.scoredPerformance?.performance?.id)
+        assertEquals(110.0,records.estimatedOneRepMaxKg!!,0.0001)
+    }
 }

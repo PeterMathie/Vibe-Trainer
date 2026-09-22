@@ -9,7 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.domain.progress.SessionProgress
@@ -26,6 +30,7 @@ fun ProgressScreen(vm:EditorViewModel) {
     val finishedIds=workouts.filter { it.status=="FINISHED" }.map { it.id }.toSet()
     val exerciseRows=rows.filter { it.actualExerciseId==exerciseId && it.workoutId in finishedIds }.map { it.id }.toSet()
     val valid=sets.filter { it.workoutExerciseId in exerciseRows && SessionProgress.valid(it) && (filter==null || it.variationId==filter) }
+    val records=SessionProgress.records(valid,points)
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {
             Text("Progress",style=MaterialTheme.typography.headlineSmall)
@@ -33,43 +38,72 @@ fun ProgressScreen(vm:EditorViewModel) {
             TextButton(onClick={filter=null;selected=null}){Text(if(filter==null)"✓ All variations" else "All variations")}
             variations.filter { it.exerciseId==exerciseId }.forEach { v -> TextButton(onClick={filter=v.id;selected=null}){Text((if(filter==v.id)"✓ " else "")+v.name)} }
             if(points.size<3)Text("Raw performance shown until three valid sessions establish a baseline of 100.")
-            if(variations.any { it.exerciseId==exerciseId })Text("Overall skill index follows variation difficulty, with holds and assistance compared within each variation. It is a progress indicator, not a force measurement.")
+            if(variations.any { it.exerciseId==exerciseId })Text("Skill index is a heuristic: ordered variation level sets the main difficulty, while holds, reps and assistance adjust progress only within the same variation. Baseline 100 is your first three valid sessions; it is not force or a comparison with other people.")
             if(points.isNotEmpty()) {
-                MiniChart(points.map { it.index ?: it.score },points.map { it.trend }){selected=it}
+                MiniChart(points.map { it.index ?: it.score },points.map { it.trend },points.map { it.date },if(points.any { it.index!=null }) "index" else "score"){selected=it}
                 val last=points.mapNotNull { it.trend }.takeLast(2)
                 if(last.size==2) Text(if(last[1]>last[0]*1.01)"Rising" else if(last[1]<last[0]*0.99)"Falling" else "Flat")
                 Text("RPE")
-                MiniChart(points.map { it.performance.rpe ?: Double.NaN }){selected=it}
+                MiniChart(points.map { it.performance.rpe ?: Double.NaN },dates=points.map { it.date },unit="RPE"){selected=it}
                 selected?.let { points.getOrNull(it) }?.let { p ->
                     Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")
                     Text("Bands: ${p.bands.joinToString().ifBlank { "None" }} · RPE ${p.performance.rpe ?: "not recorded"}")
                     Text(p.notes.ifBlank { "No exercise notes" })
                 }
-                Text("PR weight: ${valid.mapNotNull { it.weightKg }.maxOrNull() ?: "—"} kg")
-                Text("PR hold: ${valid.mapNotNull { it.holdMillis }.maxOrNull()?.div(1000.0) ?: "—"} sec")
-                val best=points.maxByOrNull { it.score }
-                Text("Best scored performance: ${best?.performance?.let(::setDescription).orEmpty()}")
-                Text("Estimated 1RM: ${valid.filter { it.weightKg!=null && it.reps!=null }.maxOfOrNull { it.weightKg!!*(1+it.reps!!/30.0) } ?: "—"} kg")
+                Text("Personal records",style=MaterialTheme.typography.titleMedium)
+                Text("Weight PR · ${records.weightKg ?: "—"} kg")
+                Text("Repetition PR · ${records.reps ?: "—"} reps")
+                Text("Hold PR · ${records.holdMillis?.div(1000.0) ?: "—"} sec")
+                Text("Estimated 1RM PR · ${records.estimatedOneRepMaxKg ?: "—"} kg")
+                Text("Calculated performance PR · ${records.scoredPerformance?.performance?.let(::setDescription) ?: "—"}")
                 ActivityHeatmap(points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) }) { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } }
             }
         }
         val ids=rows.filter { it.actualExerciseId==exerciseId && workouts.any { w -> w.id==it.workoutId && w.status=="FINISHED" } }.map { it.id }.toSet()
-        val rom=sets.filter { it.workoutExerciseId in ids && it.romValue!=null }
-        if(rom.isNotEmpty()) item { Text("Flexibility / ROM (separate from frequency)"); MiniChart(rom.sortedBy { it.loggedAt }.map { it.romValue!! }) { }; rom.forEach { Text("${it.romValue} ${it.romUnit}") } }
+        val romSeries=SessionProgress.romSeries(sets.filter { it.workoutExerciseId in ids })
+        if(romSeries.isNotEmpty()) item {
+            Text("Flexibility / ROM (separate from frequency)")
+            romSeries.forEach { (unit,series) ->
+                Text("ROM · $unit",style=MaterialTheme.typography.titleSmall)
+                MiniChart(series.map { it.romValue!! },dates=series.map { it.loggedAt },unit=unit) { }
+                series.forEach { Text("${it.romValue} $unit") }
+            }
+        }
         items(points.reversed()) { p -> TextButton(onClick={selected=points.indexOf(p)}){Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")} }
     }
     if(picker)ExercisePicker(vm,{picker=false}){exerciseId=it.id;filter=null;selected=null;picker=false}
 }
 
 @Composable
-fun MiniChart(values:List<Double>,smooth:List<Double?> = emptyList(),onSelect:(Int)->Unit) {
-    val color=MaterialTheme.colorScheme.primary; val secondary=MaterialTheme.colorScheme.secondary
-    Canvas(Modifier.fillMaxWidth().height(150.dp).pointerInput(values){detectTapGestures { if(values.isNotEmpty())onSelect(((it.x/size.width)*(values.size-1)).toInt().coerceIn(values.indices)) }}) {
+fun MiniChart(values:List<Double>,smooth:List<Double?> = emptyList(),dates:List<Long> = emptyList(),unit:String = "",onSelect:(Int)->Unit) {
+    val color=MaterialTheme.colorScheme.primary; val secondary=MaterialTheme.colorScheme.secondary;val axis=MaterialTheme.colorScheme.outline
+    val finite=values.filter { it.isFinite() }
+    if(finite.isEmpty())return
+    val min=finite.minOrNull() ?: 0.0;val max=finite.maxOrNull() ?: 1.0
+    fun select(x:Float,width:Float) {
+        if(values.isNotEmpty())onSelect(((x/width)*(values.size-1)).toInt().coerceIn(values.indices))
+    }
+    Column(Modifier.semantics { contentDescription="Progress chart from ${formatChartDate(dates.firstOrNull())} to ${formatChartDate(dates.lastOrNull())}, $min to $max $unit" }) {
+        Text("${formatAxis(max)} $unit",style=MaterialTheme.typography.labelSmall)
+        Canvas(Modifier.fillMaxWidth().height(130.dp)
+            .pointerInput(values){detectTapGestures { select(it.x,size.width.toFloat()) }}
+            .pointerInput(values){awaitPointerEventScope { while(true) { val event=awaitPointerEvent();if(event.type==PointerEventType.Move || event.type==PointerEventType.Enter)event.changes.firstOrNull()?.position?.let { select(it.x,size.width.toFloat()) } } }}) {
         val finite=values.filter { it.isFinite() }
         if(finite.isEmpty())return@Canvas
         val min=finite.minOrNull() ?: 0.0;val max=finite.maxOrNull() ?: 1.0;val span=(max-min).coerceAtLeast(1.0)
-        fun point(i:Int,v:Double)=Offset(if(values.size==1)size.width/2 else 8+(size.width-16)*i/(values.size-1),size.height-8-((v-min)/span*(size.height-16)).toFloat())
+        fun point(i:Int,v:Double)=Offset(if(values.size==1)size.width/2 else 16+(size.width-24)*i/(values.size-1),size.height-12-((v-min)/span*(size.height-20)).toFloat())
+        drawLine(axis,Offset(12f,4f),Offset(12f,size.height-10f),2f)
+        drawLine(axis,Offset(12f,size.height-10f),Offset(size.width,size.height-10f),2f)
         values.forEachIndexed { i,v -> if(v.isFinite()) { if(i>0 && values[i-1].isFinite())drawLine(color,point(i-1,values[i-1]),point(i,v),3f);drawCircle(color,5f,point(i,v)) } }
         smooth.forEachIndexed { i,v -> if(i>0 && v!=null && smooth[i-1]!=null)drawLine(secondary,point(i-1,smooth[i-1]!!),point(i,v),5f) }
+        }
+        Row(Modifier.fillMaxWidth()) {
+            Text(formatChartDate(dates.firstOrNull()),style=MaterialTheme.typography.labelSmall,modifier=Modifier.weight(1f))
+            Text(formatChartDate(dates.lastOrNull()),style=MaterialTheme.typography.labelSmall,textAlign=TextAlign.End,modifier=Modifier.weight(1f))
+        }
+        Text("${formatAxis(min)} $unit",style=MaterialTheme.typography.labelSmall)
     }
 }
+
+private fun formatChartDate(value:Long?):String=value?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate().toString() }.orEmpty()
+private fun formatAxis(value:Double):String=if(value%1.0==0.0)value.toLong().toString() else "%.1f".format(value)

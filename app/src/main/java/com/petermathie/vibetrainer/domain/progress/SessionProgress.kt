@@ -3,6 +3,13 @@ package com.petermathie.vibetrainer.domain.progress
 import com.petermathie.vibetrainer.data.local.*
 
 data class ProgressPoint(val date: Long, val score: Double, val performance: WorkoutSetEntity, val notes: String, val variation: String?, val bands: List<String>, val index: Double? = null, val trend: Double? = null, val rank: Int = 0)
+data class PersonalRecords(
+    val weightKg: Double?,
+    val reps: Int?,
+    val holdMillis: Long?,
+    val estimatedOneRepMaxKg: Double?,
+    val scoredPerformance: ProgressPoint?,
+)
 
 object SessionProgress {
     fun valid(s: WorkoutSetEntity): Boolean = s.setType == "WORKING" && s.result == "COMPLETED" && s.romValue == null && ((s.reps ?: 0)>0 || (s.holdMillis ?: 0)>0 || (s.leftReps ?: 0)>0 || (s.rightReps ?: 0)>0 || (s.leftHoldMillis ?: 0)>0 || (s.rightHoldMillis ?: 0)>0)
@@ -43,4 +50,18 @@ object SessionProgress {
         val indexed=raw.mapIndexed { i,point -> point.copy(index=ProgressScorer.progressIndex(sessionScores[i],sessionScores.take(3))) }
         return indexed.mapIndexed { i,p -> val values=indexed.take(i+1).takeLast(3).mapNotNull { it.index }; p.copy(trend=if(values.size==3)values.average() else null) }
     }
+
+    fun records(sets: List<WorkoutSetEntity>, points: List<ProgressPoint>) = PersonalRecords(
+        weightKg = sets.mapNotNull { it.weightKg }.maxOrNull(),
+        reps = sets.flatMap { listOfNotNull(it.reps, it.leftReps, it.rightReps) }.maxOrNull(),
+        holdMillis = sets.flatMap { listOfNotNull(it.holdMillis, it.leftHoldMillis, it.rightHoldMillis) }.maxOrNull(),
+        estimatedOneRepMaxKg = sets.filter { it.weightKg != null && it.reps != null }
+            .maxOfOrNull { it.weightKg!! * (1 + it.reps!! / 30.0) },
+        scoredPerformance = points.maxByOrNull { it.score },
+    )
+
+    fun romSeries(sets: List<WorkoutSetEntity>): Map<String, List<WorkoutSetEntity>> =
+        sets.filter { it.romValue != null }
+            .groupBy { it.romUnit?.trim().orEmpty().ifBlank { "unspecified" } }
+            .mapValues { (_, values) -> values.sortedBy { it.loggedAt } }
 }
