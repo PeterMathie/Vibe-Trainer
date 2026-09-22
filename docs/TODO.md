@@ -104,6 +104,8 @@ UI-01f (emulator screenshot review): **COMPLETED**. Owner: GitHub Copilot sessio
 - [ ] **ARCH-01:** Split dense editors into maintainable components/state holders, centralise validation and remove superseded private screens without changing the agreed navigation.
 
   ARCH-01a (superseded private screens): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `dd1beb9` removes 226 lines comprising the unreachable private `ProgrammeScreen`, `WorkoutScreen`, `ExerciseLogger` and their exclusive compact-entry helpers from `VibeTrainerApp.kt`; current navigation continues to use `ProgrammeEditor` and `WorkoutEditor`. Focused programme/logging/history Compose suites passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` validation with 17 unit tests and 32 instrumentation tests.
+
+  ARCH-01b (programme-target state/validation): **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026. Scope: extract the programme exercise target form’s string state and entity conversion from `EntryDialog` into a pure, focused state holder. Preserve the exact existing parsing/default/coercion behavior and dialog UI. Acceptance: unit tests pin valid conversion plus blank/malformed/default/clamped inputs, existing `ProgrammeUiTest` passes, then the full suite passes.
 - [ ] **RELEASE-01:** Release signing/versioning, full dependency notices, upgrade policy and store preparation.
 
 ## Intentionally deferred
