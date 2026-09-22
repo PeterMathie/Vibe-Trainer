@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **ARCH-01c — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: move the tested `HistoryDayScreen` out of `VibeTrainerApp.kt` into its own UI file while retaining identical parameters, state ownership, shared design components and rendering.
+Current implementation task: **ARCH-01d — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: move the tested `StyleScreen` and private palette card out of `VibeTrainerApp.kt`, retaining preference ownership, semantic tokens, contrast validation and rendering.
 
-ARCH-01b completed at `5c68e8a`; focused conversion and programme UI tests plus the full 19-unit/32-instrumentation build passed. Generated `.gradle/` and `app/build/` content remains ignored and untracked. ARCH-01c acceptance is focused history/map coverage followed by the full suite; QA-01 remains open for a real Android phone.
+ARCH-01c implementation commit `8fe0eb6` passed focused history/map tests and full validation with 19 unit tests and 32 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. ARCH-01d acceptance is focused palette contrast/style UI coverage followed by the full suite; QA-01 remains open for a real Android phone.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
@@ -53,6 +53,8 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Wrote the beta walkthrough and this handoff.
 
 ## Latest verification
+
+Local ARCH-01c verification at commit `8fe0eb6`: focused `HistoryUiTest` and `MuscleMapUiTest` passed, then the full unit/instrumentation/build command passed with 19 unit tests and 32 API 35 instrumentation tests.
 
 Local ARCH-01b verification at commit `41fef6c`: focused `ProgrammeEntryFormTest` and `ProgrammeUiTest` passed, then the full unit/instrumentation/build command passed with 19 unit tests and 32 API 35 instrumentation tests. Generated XML reports contain zero failures or errors.
 
