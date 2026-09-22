@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **UI-01d — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. Commit `dd3bf1a` covers seeded historical-day navigation, back navigation and both strength/stretch map modes with selected-state semantics. SVG region and selected-outline coverage remains a separate slice.
+Current implementation task: **UI-01e — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: enumerate front/back body-map region semantics, exercise representative selection from both views, verify selected-state/outline evidence and useful TalkBack actions, and make only demonstrated accessibility or interaction fixes. Real-phone QA remains separate.
 
-Full local validation after `dd3bf1a`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 31 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: claim the bounded SVG-region, selected-outline and TalkBack-action UI-01 slice.
+UI-01d completed at `4bbb0e6`; full local validation after implementation commit `dd3bf1a` passed with 17 unit tests and 31 API 35 instrumentation tests. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: inspect `MuscleMap` semantics and existing SVG region definitions before adding focused UI-01e coverage.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
