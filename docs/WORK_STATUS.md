@@ -2,9 +2,9 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: **ARCH-01b — COMPLETED**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, completed 22 September 2026. Commit `41fef6c` extracts programme target form state/conversion into pure `ProgrammeEntryForm`; `EntryDialog` retains its existing fields and behavior.
+Current implementation task: **ARCH-01c — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: move the tested `HistoryDayScreen` out of `VibeTrainerApp.kt` into its own UI file while retaining identical parameters, state ownership, shared design components and rendering.
 
-ARCH-01b focused conversion unit tests and `ProgrammeUiTest` passed, followed by full validation with 19 unit tests and 32 API 35 instrumentation tests. The Gradle logcat collector reported a stream-closed warning after device execution, but Gradle and all generated test results completed successfully with zero failures. Generated `.gradle/` and `app/build/` content remains ignored and untracked. Next executable step: claim another small behavior-preserving screen extraction; QA-01 remains open for a real Android phone.
+ARCH-01b completed at `5c68e8a`; focused conversion and programme UI tests plus the full 19-unit/32-instrumentation build passed. Generated `.gradle/` and `app/build/` content remains ignored and untracked. ARCH-01c acceptance is focused history/map coverage followed by the full suite; QA-01 remains open for a real Android phone.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
