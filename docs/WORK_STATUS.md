@@ -2,7 +2,7 @@
 
 Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
 
-Current implementation task: none. **PROGRESS-01 — COMPLETED**, owned by GitHub Copilot session `8e2b38d0-a00e-43a7-aef7-09872df1f6b3` on `pmathie-cicpilot-persist-workout-drafts`, 22 September 2026. Commit `9dbb4c7` adds readable graph axes/date labels, pointer hover parity, ROM series separated by unit, explicit PR types, clearer heuristic skill-index explanation, and focused series/interaction tests.
+Current implementation task: **DATA-03 — IN PROGRESS**, owned by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, claimed 22 September 2026. Scope: snapshot variation ordering, selected band definitions and tracker target outcomes at record-write time; migrate/backfill existing history; make historical derivations consume snapshots; and prove later definition edits cannot rewrite history. Pre-v5 edits that happened before upgrade cannot be reconstructed and will be backfilled from definitions available during migration.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
