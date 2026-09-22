@@ -53,6 +53,23 @@ object DataTransfer {
                 val seen=mutableSetOf<List<Any>>()
                 repeat(rows.length()) { i ->
                     val row=rows.getJSONObject(i)
+                    if (table == "workout_sets" && !row.has("variationRankSnapshot")) {
+                        val rank = row.optString("variationId").takeIf(String::isNotBlank)?.let { variationId ->
+                            sql.query("SELECT progressionRank FROM exercise_variations WHERE id=?", arrayOf(variationId)).use { if (it.moveToFirst()) it.getInt(0) else null }
+                        }
+                        row.put("variationRankSnapshot", rank ?: JSONObject.NULL)
+                    }
+                    if (table == "workout_set_bands" && !row.has("nameSnapshot")) {
+                        sql.query("SELECT name,widthCentimetres FROM bands WHERE id=?", arrayOf(row.getString("bandId"))).use {
+                            if (it.moveToFirst()) {
+                                row.put("nameSnapshot", it.getString(0))
+                                row.put("widthCentimetresSnapshot", it.getDouble(1))
+                            } else {
+                                row.put("nameSnapshot", "")
+                                row.put("widthCentimetresSnapshot", 0.0)
+                            }
+                        }
+                    }
                     ImportValidation.row(table,row,schema)
                     require(seen.add(keys.map { row.get(it) })) { "Duplicate key in $table record $i" }
                     // Application seeding state is not portable personal data.
@@ -67,6 +84,25 @@ object DataTransfer {
             }
             sql.query("PRAGMA foreign_key_check").use { require(!it.moveToFirst()){ "Import contains broken references" } }
             ImportValidation.relationships(sql)
+            sql.execSQL(
+                """
+                INSERT OR IGNORE INTO tracker_day_outcomes
+                SELECT days.trackerId, days.epochDay,
+                  CASE WHEN EXISTS (SELECT 1 FROM tracker_fields f WHERE f.trackerId=days.trackerId AND f.isArchived=0 AND f.targetComparison IS NOT NULL)
+                  THEN NOT EXISTS (
+                    SELECT 1 FROM tracker_fields f LEFT JOIN tracker_daily_values v ON v.fieldId=f.id AND v.epochDay=days.epochDay
+                    WHERE f.trackerId=days.trackerId AND f.isArchived=0 AND f.targetComparison IS NOT NULL AND (
+                      v.numericValue IS NULL OR
+                      CASE f.targetComparison WHEN 'AT_LEAST' THEN v.numericValue < f.targetValue
+                        WHEN 'AT_MOST' THEN v.numericValue > f.targetValue
+                        WHEN 'EXACTLY' THEN v.numericValue != f.targetValue
+                        WHEN 'RANGE' THEN v.numericValue < f.targetValue OR v.numericValue > f.targetMaxValue
+                        ELSE 1 END
+                    )
+                  ) ELSE 1 END
+                FROM (SELECT DISTINCT f.trackerId,v.epochDay FROM tracker_daily_values v JOIN tracker_fields f ON f.id=v.fieldId) days
+                """.trimIndent(),
+            )
             sql.setTransactionSuccessful()
         } finally { sql.endTransaction() }
         db.invalidationTracker.refreshVersionsAsync()

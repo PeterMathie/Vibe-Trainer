@@ -71,10 +71,12 @@ class VibeDatabaseMigrationTest {
                 assertEquals(true, it.isNull(2))
                 assertEquals(0, it.getInt(3))
             }
+        }
+    }
 
-            @Test
-            fun migrate4To5SnapshotsHistoricalDefinitionsAndOutcomes() {
-                helper.createDatabase(databaseName, 4).apply {
+    @Test
+    fun migrate4To5SnapshotsHistoricalDefinitionsAndOutcomes() {
+        helper.createDatabase(databaseName, 4).apply {
                     execSQL("INSERT INTO bands (id,name,widthCentimetres,colourArgb) VALUES ('band','Band',1.2,0)")
                     execSQL("INSERT INTO exercises (id,canonicalName,tag,trackingType,equipment,instructions,source,isCustom,isArchived) VALUES ('e','Exercise','STRENGTH','ASSISTED_REPS',NULL,NULL,'USER',1,0)")
                     execSQL("INSERT INTO exercise_variations (id,exerciseId,name,progressionRank,isSeeded) VALUES ('v','e','Variation',3,0)")
@@ -86,14 +88,12 @@ class VibeDatabaseMigrationTest {
                     execSQL("INSERT INTO tracker_fields (id,trackerId,name,valueType,unit,targetComparison,targetValue,position,choiceOptions,targetMaxValue,isArchived) VALUES ('f','t','Field','NUMBER',NULL,'AT_LEAST',5,0,'',NULL,0)")
                     execSQL("INSERT INTO tracker_daily_values (fieldId,epochDay,numericValue,booleanValue,textValue,notes,updatedAt) VALUES ('f',1,6,NULL,NULL,'',1)")
                     close()
-                }
+        }
 
-                helper.runMigrationsAndValidate(databaseName, 5, true, MIGRATION_4_5).use { migrated ->
+        helper.runMigrationsAndValidate(databaseName, 5, true, MIGRATION_4_5).use { migrated ->
                     migrated.query("SELECT variationRankSnapshot FROM workout_sets WHERE id='s'").use { assertTrue(it.moveToFirst()); assertEquals(3,it.getInt(0)) }
                     migrated.query("SELECT nameSnapshot,widthCentimetresSnapshot FROM workout_set_bands WHERE setId='s'").use { assertTrue(it.moveToFirst()); assertEquals("Band",it.getString(0)); assertEquals(1.2,it.getDouble(1),0.0) }
                     migrated.query("SELECT targetMet FROM tracker_day_outcomes WHERE trackerId='t' AND epochDay=1").use { assertTrue(it.moveToFirst()); assertEquals(1,it.getInt(0)) }
-                }
-            }
         }
     }
 }
