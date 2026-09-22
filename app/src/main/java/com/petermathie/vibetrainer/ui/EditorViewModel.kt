@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
 import com.petermathie.vibetrainer.data.local.*
+import com.petermathie.vibetrainer.domain.editor.moveItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
@@ -44,24 +45,23 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     private fun write(block: suspend () -> Unit) { viewModelScope.launch { writes.withLock { try { block() } catch (e: CancellationException) { throw e } catch (e: Exception) { error.value = e.message ?: "Could not save" } } } }
     fun save(row: ProgrammeEntity) = write { dao.programme(row) }
     fun moveProgramme(id: String, delta: Int) = write {
-        val rows=dao.programmes().first().toMutableList()
-        val from=rows.indexOfFirst { it.id==id }; val to=from+delta
-        if(from>=0 && to in rows.indices) {
-            java.util.Collections.swap(rows,from,to)
+        moveItem(dao.programmes().first(), id, delta) { it.id }?.let { rows ->
             db.withTransaction { rows.forEachIndexed { i,p -> dao.programme(p.copy(position=i)) } }
         }
     }
     fun moveDay(id: String, delta: Int) = write {
         val all=dao.days().first(); val selected=all.find { it.id==id } ?: return@write
-        val rows=all.filter { it.programmeId==selected.programmeId }.sortedBy { it.position }.toMutableList()
-        val from=rows.indexOfFirst { it.id==id }; val to=from+delta
-        if(to in rows.indices) { java.util.Collections.swap(rows,from,to); db.withTransaction { rows.forEachIndexed { i,d -> dao.day(d.copy(position=i)) } } }
+        val siblings=all.filter { it.programmeId==selected.programmeId }.sortedBy { it.position }
+        moveItem(siblings, id, delta) { it.id }?.let { rows ->
+            db.withTransaction { rows.forEachIndexed { i,d -> dao.day(d.copy(position=i)) } }
+        }
     }
     fun moveEntry(id: String, delta: Int) = write {
         val all=dao.entries().first(); val selected=all.find { it.id==id } ?: return@write
-        val rows=all.filter { it.programmeDayId==selected.programmeDayId }.sortedBy { it.position }.toMutableList()
-        val from=rows.indexOfFirst { it.id==id };val to=from+delta
-        if(to in rows.indices) {java.util.Collections.swap(rows,from,to);db.withTransaction {rows.forEachIndexed { i,e -> dao.entry(e.copy(position=i)) }}}
+        val siblings=all.filter { it.programmeDayId==selected.programmeDayId }.sortedBy { it.position }
+        moveItem(siblings, id, delta) { it.id }?.let { rows ->
+            db.withTransaction { rows.forEachIndexed { i,e -> dao.entry(e.copy(position=i)) } }
+        }
     }
     fun save(row: ProgrammeDayEntity) = write { dao.day(row) }
     fun save(row: ProgrammeExerciseEntity) = write { dao.entry(row) }
@@ -96,14 +96,10 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun save(row: TrackerFieldEntity) = write { dao.field(row) }
     fun moveTrackerField(id: String, delta: Int) = write {
         val selected = dao.fieldById(id) ?: return@write
-        val rows = dao.fields().first()
+        val siblings = dao.fields().first()
             .filter { it.trackerId == selected.trackerId && !it.isArchived }
             .sortedBy { it.position }
-            .toMutableList()
-        val from = rows.indexOfFirst { it.id == id }
-        val to = from + delta
-        if (from >= 0 && to in rows.indices) {
-            java.util.Collections.swap(rows, from, to)
+        moveItem(siblings, id, delta) { it.id }?.let { rows ->
             db.withTransaction { rows.forEachIndexed { index, row -> dao.field(row.copy(position = index)) } }
         }
     }
@@ -119,10 +115,11 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun moveVariation(id: String, delta: Int) = write {
         val all=dao.variations().first()
         val selected=all.find { it.id==id && !it.isSeeded } ?: return@write
-        val rows=all.filter { it.exerciseId==selected.exerciseId && !it.isSeeded }.sortedBy { it.progressionRank }.toMutableList()
-        val from=rows.indexOfFirst { it.id==id }; val to=from+delta
+        val siblings=all.filter { it.exerciseId==selected.exerciseId && !it.isSeeded }.sortedBy { it.progressionRank }
         val start=(all.filter { it.exerciseId==selected.exerciseId && it.isSeeded }.maxOfOrNull { it.progressionRank } ?: -1)+1
-        if(to in rows.indices) { java.util.Collections.swap(rows,from,to);db.withTransaction { rows.forEachIndexed { i,v -> dao.variation(v.copy(progressionRank=start+i)) } } }
+        moveItem(siblings, id, delta) { it.id }?.let { rows ->
+            db.withTransaction { rows.forEachIndexed { i,v -> dao.variation(v.copy(progressionRank=start+i)) } }
+        }
     }
     fun removeDay(id: String) = write { dao.deleteDay(id) }
     fun removeEntry(id: String) = write { dao.deleteEntry(id) }
