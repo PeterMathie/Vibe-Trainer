@@ -51,6 +51,8 @@ UI-01b (programme controls): **COMPLETED**. Owner: GitHub Copilot session `33304
 
 UI-01c (compact/detailed logging): **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 22 September 2026. Acceptance: exercise the compact entry and detailed editor on an API 35 emulator for stacked bands, unilateral values, hold correction, substitution and exercise notes; verify persisted sets remain correct with the keyboard open. Add a narrow-width/large-font Compose configuration where the harness supports it, report any configuration not established, and make focused accessibility/layout fixes only when evidence demonstrates a defect.
 
+Progress checkpoint: commit `e20322e` adds an exercise-specific TalkBack description to the details action and an API 35 Compose test that enters exercise notes with the software keyboard open, then persists a unilateral weighted result with two stacked bands and verifies Room state. The focused instrumentation test passes. Remaining before completion: hold correction, substitution-after-history behavior, and explicit narrow-width/large-font configuration evidence, followed by the full local suite.
+
 - [x] Fix the known low-contrast status-bar icons on the dark home screen.
 - [x] Exercise every programme create/edit/duplicate/reorder/archive control.
 - [ ] Check compact logging with keyboard open, large fonts and narrow screens.
