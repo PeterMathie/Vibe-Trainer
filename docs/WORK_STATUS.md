@@ -1,6 +1,8 @@
 # Work status and agent handoff
 
-Updated: 21 September 2026. Owner of the current pass: ChatGPT coding agent.
+Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
+
+The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 is an in-progress rerun of the existing Android build/tests/install/launch workflow; its new result is pending. The verified run below remains the last completed evidence until RUN-02 finishes.
 
 ## Start here
 
