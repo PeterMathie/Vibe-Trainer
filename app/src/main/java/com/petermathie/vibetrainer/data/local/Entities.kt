@@ -331,6 +331,9 @@ data class TrackerEntity(
     val isDemo: Boolean,
     val isArchived: Boolean = false,
     @androidx.room.ColumnInfo(defaultValue = "4283215696") val colourArgb: Long = 0xFF4CAF50L,
+    @androidx.room.ColumnInfo(defaultValue = "0") val position: Int = 0,
+    @androidx.room.ColumnInfo(defaultValue = "7") val heatmapLightBelow: Double = 7.0,
+    @androidx.room.ColumnInfo(defaultValue = "15") val heatmapMediumBelow: Double = 15.0,
 )
 
 @Entity(

@@ -22,21 +22,27 @@ internal fun HabitFieldDialog(
     var form by remember(field.id) { mutableStateOf(HabitFieldForm.from(field)) }
     AlertDialog(
         onDismissRequest = dismiss,
-        title = { Text("Habit field") },
+        title = { Text("What would you like to track?") },
         text = {
             LazyColumn {
                 item {
-                    EditField("Name", form.name) { form = form.copy(name = it) }
-                    EditField("Unit (minutes, grams, pages…)", form.unit) {
-                        form = form.copy(unit = it)
+                    Text("Add one thing you want to record for this habit.")
+                    EditField("Name, for example Duration or Protein", form.name) {
+                        form = form.copy(name = it)
                     }
+                    Text("How will you record it?", style = MaterialTheme.typography.labelLarge)
                     HabitFieldForm.TYPES.forEach { value ->
                         TextButton(onClick = { form = form.copy(type = value) }) {
-                            Text((if (form.type == value) "✓ " else "") + value.lowercase())
+                            Text((if (form.type == value) "✓ " else "") + habitTypeLabel(value))
+                        }
+                    }
+                    if (form.isNumeric) {
+                        EditField("Unit, for example minutes or grams", form.unit) {
+                            form = form.copy(unit = it)
                         }
                     }
                     if (form.type == HabitFieldForm.CHOICE) {
-                        EditField("Choices (comma-separated)", form.options) {
+                        EditField("Choices, separated by commas", form.options) {
                             form = form.copy(options = it)
                         }
                         if (!form.areChoicesValid) {
@@ -47,16 +53,21 @@ internal fun HabitFieldDialog(
                         }
                     }
                     if (form.isNumeric) {
-                        EditField("Optional target", form.target) {
-                            form = form.copy(target = it)
-                        }
+                        Text("Goal (optional)", style = MaterialTheme.typography.labelLarge)
+                        Text("Choose how the recorded value should compare with your goal.")
                         HabitFieldForm.COMPARISONS.forEach { value ->
                             TextButton(onClick = { form = form.copy(comparison = value) }) {
-                                Text((if (form.comparison == value) "✓ " else "") + value)
+                                Text((if (form.comparison == value) "✓ " else "") + targetComparisonLabel(value))
                             }
                         }
+                        EditField(
+                            if (form.comparison == HabitFieldForm.RANGE) "Minimum goal" else "Goal value",
+                            form.target,
+                        ) {
+                            form = form.copy(target = it)
+                        }
                         if (form.comparison == HabitFieldForm.RANGE && form.target.isNotBlank()) {
-                            EditField("Target maximum", form.targetMaximum) {
+                            EditField("Maximum goal", form.targetMaximum) {
                                 form = form.copy(targetMaximum = it)
                             }
                         }
@@ -75,4 +86,24 @@ internal fun HabitFieldDialog(
         },
         dismissButton = { TextButton(onClick = dismiss) { Text("Cancel") } },
     )
+}
+
+internal fun habitTypeLabel(type: String): String = when (type) {
+    "BOOLEAN" -> "Yes or no"
+    "NUMBER" -> "Number"
+    "COUNT" -> "Count"
+    "DURATION" -> "Duration"
+    "RATING" -> "Rating"
+    "TEXT" -> "Written note"
+    HabitFieldForm.CHOICE -> "Choose from a list"
+    "DATETIME" -> "Date and time"
+    else -> type.lowercase().replace('_', ' ')
+}
+
+internal fun targetComparisonLabel(comparison: String): String = when (comparison) {
+    "AT_LEAST" -> "At least"
+    "AT_MOST" -> "At most"
+    "EXACTLY" -> "Exactly"
+    HabitFieldForm.RANGE -> "Between two values"
+    else -> comparison.lowercase().replace('_', ' ')
 }

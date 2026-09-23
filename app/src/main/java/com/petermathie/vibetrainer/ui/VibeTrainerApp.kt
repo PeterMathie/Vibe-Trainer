@@ -86,7 +86,7 @@ import java.time.format.DateTimeFormatter
 
 internal enum class Destination(val label: String, val icon: ImageVector) {
     HOME("Home", Icons.Outlined.Home),
-    PROGRAMMES("Programmes", Icons.Outlined.FitnessCenter),
+    PROGRAMMES("Plans", Icons.Outlined.FitnessCenter),
     ACTIVE_WORKOUT("Workout", Icons.Outlined.PlayArrow),
     PROGRESS("Progress", Icons.Outlined.BarChart),
     MORE("More", Icons.Outlined.MoreHoriz),
@@ -191,14 +191,14 @@ private val primaryDestinations = listOf(
     Destination.HOME,
     Destination.PROGRAMMES,
     Destination.PROGRESS,
+    Destination.HABITS,
+    Destination.MEASUREMENTS,
     Destination.MORE,
 )
 
 private val moreDestinations = setOf(
     Destination.EXERCISES,
-    Destination.HABITS,
     Destination.HISTORY,
-    Destination.MEASUREMENTS,
     Destination.SETTINGS,
     Destination.STYLE,
 )
@@ -420,13 +420,16 @@ private fun ExerciseLibraryScreen(exercises: List<ExerciseSummary>, onSearch: (S
 }
 
 @Composable
-internal fun VibeCard(content: @Composable ColumnScope.() -> Unit) {
+internal fun VibeCard(
+   modifier: Modifier = Modifier,
+   content: @Composable ColumnScope.() -> Unit,
+) {
     val palette = LocalVibePalette.current
     Card(
         colors = CardDefaults.cardColors(containerColor = palette.surface),
         border = BorderStroke(1.dp, palette.border),
         shape = RoundedCornerShape(VibeShapes.card),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(Modifier.fillMaxWidth().padding(VibeSpacing.medium), verticalArrangement = Arrangement.spacedBy(VibeSpacing.small)) { content() }
     }

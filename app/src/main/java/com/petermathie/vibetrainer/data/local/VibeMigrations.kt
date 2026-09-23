@@ -208,3 +208,29 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
         db.execSQL("ALTER TABLE trackers ADD COLUMN colourArgb INTEGER NOT NULL DEFAULT 4283215696")
     }
 }
+
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE trackers ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE trackers ADD COLUMN heatmapLightBelow REAL NOT NULL DEFAULT 7")
+        db.execSQL("ALTER TABLE trackers ADD COLUMN heatmapMediumBelow REAL NOT NULL DEFAULT 15")
+        db.execSQL(
+            """
+            UPDATE trackers
+            SET position = (
+                SELECT COUNT(*)
+                FROM trackers AS preceding
+                WHERE lower(preceding.name) < lower(trackers.name)
+                   OR (lower(preceding.name) = lower(trackers.name) AND preceding.id < trackers.id)
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            UPDATE trackers
+            SET heatmapLightBelow = 140, heatmapMediumBelow = 160
+            WHERE lower(name) = 'protein'
+            """.trimIndent(),
+        )
+    }
+}

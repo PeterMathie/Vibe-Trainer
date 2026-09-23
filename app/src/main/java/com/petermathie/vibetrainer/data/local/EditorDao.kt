@@ -78,7 +78,7 @@ interface EditorDao {
         if (consumeDraft) deleteEntryDraft(saved.workoutExerciseId, saved.ordinal)
     }
     @Query("DELETE FROM workouts WHERE id = :id") suspend fun deleteWorkout(id: String)
-    @Query("SELECT * FROM trackers WHERE isArchived = 0 ORDER BY name") fun trackers(): Flow<List<TrackerEntity>>
+    @Query("SELECT * FROM trackers WHERE isArchived = 0 ORDER BY position, name") fun trackers(): Flow<List<TrackerEntity>>
     @Query("SELECT * FROM tracker_fields ORDER BY position") fun fields(): Flow<List<TrackerFieldEntity>>
     @Query("SELECT * FROM tracker_daily_values") fun values(): Flow<List<TrackerDailyValueEntity>>
     @Upsert suspend fun tracker(row: TrackerEntity)

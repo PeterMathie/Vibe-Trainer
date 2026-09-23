@@ -34,7 +34,7 @@ class NavigationUiTest {
     }
 
     @Test
-    fun fixedNavigationExposesHabitsThroughVisibleMore() {
+    fun fixedNavigationDirectlyExposesHabitsAndBody() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(),
             VibeDatabase::class.java,
@@ -56,13 +56,13 @@ class NavigationUiTest {
             }
         }
 
-        listOf("Home", "Programmes", "Progress", "More").forEach {
+        listOf("Home", "Plans", "Progress", "Habits", "Body", "More").forEach {
             compose.onNodeWithText(it).assertIsDisplayed()
         }
         compose.onNodeWithText("Workout").assertDoesNotExist()
-        compose.onNodeWithText("More").performClick()
-        compose.onNodeWithText("Habits").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Habits").performClick()
         compose.onNodeWithText("New habit").assertIsDisplayed()
+        compose.onNodeWithText("Body").assertIsDisplayed()
         compose.onNodeWithText("More").assertIsDisplayed()
     }
 }

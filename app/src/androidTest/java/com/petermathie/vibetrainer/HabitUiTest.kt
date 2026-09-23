@@ -42,10 +42,23 @@ class HabitUiTest {
         compose.waitUntil(15_000) {
             runBlocking { database.editorDao().trackers().first().single().colourArgb == 0xFF42A5F5L }
         }
-        compose.onNodeWithText("Add field").performClick()
-        compose.onNode(hasText("Name") and hasSetTextAction()).performTextInput("Mood")
-        compose.onNodeWithText("choice").performClick()
-        compose.onNode(hasText("Choices (comma-separated)") and hasSetTextAction()).performTextInput("Good, Bad")
+        compose.onNode(hasText("Light below") and hasSetTextAction()).performTextClearance()
+        compose.onNode(hasText("Light below") and hasSetTextAction()).performTextInput("8")
+        compose.onNode(hasText("Medium below") and hasSetTextAction()).performTextClearance()
+        compose.onNode(hasText("Medium below") and hasSetTextAction()).performTextInput("20")
+        compose.onNodeWithText("Save heat-map shades").performClick()
+        compose.waitUntil(15_000) {
+            runBlocking {
+                database.editorDao().trackers().first().single().let {
+                    it.heatmapLightBelow == 8.0 && it.heatmapMediumBelow == 20.0
+                }
+            }
+        }
+        compose.onNodeWithText("Add measurement").performScrollTo().performClick()
+        compose.onNodeWithText("What would you like to track?").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Name, for example Duration or Protein").performTextInput("Mood")
+        compose.onNodeWithText("Choose from a list").performClick()
+        compose.onNodeWithContentDescription("Choices, separated by commas").performTextInput("Good, Bad")
         compose.onNodeWithText("Save").performClick()
 
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Choose…").fetchSemanticsNodes().isNotEmpty() }

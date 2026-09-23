@@ -40,6 +40,7 @@ class ProgressUiTest {
     @Test
     fun chartExposesAxesSkillExplanationAndExplicitRecords() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        context.getSharedPreferences("progress-layout", Context.MODE_PRIVATE).edit().clear().commit()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         runBlocking {
             DatabaseSeeder(context, database).seedIfNeeded()
@@ -77,12 +78,25 @@ class ProgressUiTest {
         compose.onNodeWithText("Piano").assertExists()
         compose.onNodeWithText("Meditation").assertExists()
         compose.onNodeWithText("Protein").assertExists()
-        assertTrue(compose.onAllNodesWithContentDescription("piano", substring = true).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithContentDescription("piano intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
+        repeat(3) {
+            val actions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =
+                compose.onNodeWithContentDescription("Reorder Meditation")
+                .fetchSemanticsNode()
+                .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
+            assertTrue(actions.first { action -> action.label == "Move earlier" }.action())
+            compose.waitForIdle()
+        }
+        compose.waitUntil(15_000) {
+            context.getSharedPreferences("progress-layout", Context.MODE_PRIVATE)
+                .getString("card-order", "")
+                ?.substringBefore('|') == "habit:demo-meditation"
+        }
         compose.onNodeWithContentDescription("kg", substring = true).performTouchInput { click(androidx.compose.ui.geometry.Offset(16f, center.y)) }
         compose.onNodeWithContentDescription("Progress photo for selected bodyweight day").assertIsDisplayed()
         compose.onNodeWithText("Close").performClick()
 
-        compose.onNodeWithText("Choose exercise").performClick()
+        compose.onNodeWithText("Choose exercise").performScrollTo().performClick()
         compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextInput("No history exercise")
         compose.onNode(hasText("No history exercise") and !hasSetTextAction()).assertDoesNotExist()
         compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextClearance()
@@ -105,11 +119,11 @@ class ProgressUiTest {
         compose.onNodeWithText("Repetition PR", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Calculated performance PR", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Skill index is a heuristic", substring = true).assertDoesNotExist()
-        compose.onNodeWithContentDescription("How progress works").performClick()
+        compose.onNodeWithContentDescription("How progress works").performScrollTo().performClick()
         compose.onNodeWithText("Skill index is a heuristic", substring = true).assertExists()
         compose.onNodeWithText("Close").performClick()
 
-        compose.onNodeWithText("Handstand").performClick()
+        compose.onNodeWithText("Handstand").performScrollTo().performClick()
         compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextInput("Bench press")
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Bench press").fetchSemanticsNodes().isNotEmpty() }
         compose.onNode(hasText("Bench press") and !hasSetTextAction()).performClick()

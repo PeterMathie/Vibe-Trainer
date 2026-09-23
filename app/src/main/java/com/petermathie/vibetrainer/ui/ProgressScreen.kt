@@ -2,7 +2,6 @@ package com.petermathie.vibetrainer.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -25,7 +24,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.petermathie.vibetrainer.data.local.ExerciseEntity
+import com.petermathie.vibetrainer.data.local.ExerciseVariationEntity
+import com.petermathie.vibetrainer.data.local.TrackerDailyValueEntity
+import com.petermathie.vibetrainer.data.local.TrackerEntity
+import com.petermathie.vibetrainer.data.local.TrackerFieldEntity
 import com.petermathie.vibetrainer.domain.progress.SessionProgress
+import com.petermathie.vibetrainer.domain.progress.PersonalRecords
+import com.petermathie.vibetrainer.domain.progress.PersonalRecordVisibility
 import com.petermathie.vibetrainer.domain.model.ActivityDay
 import com.petermathie.vibetrainer.ui.theme.VibeSpacing
 import java.time.Instant
@@ -62,127 +68,147 @@ fun ProgressScreen(vm:EditorViewModel) {
     val valid=sets.filter { it.workoutExerciseId in exerciseRows && SessionProgress.valid(it) && (filter==null || it.variationId==filter) }
     val records=SessionProgress.records(valid,points)
     val recordVisibility=SessionProgress.recordVisibility(exercises.find { it.id==exerciseId }?.trackingType)
+    val activeTrackers = trackers.filterNot { it.isArchived }.sortedBy { it.position }
+    val availableCardKeys = buildList {
+        if (aggregate.isNotEmpty()) add("overall")
+        if (bodyweights.isNotEmpty()) add("bodyweight")
+        activeTrackers.forEach { add("habit:${it.id}") }
+        add("training")
+    }
+    val layoutPreferences = remember(context) {
+        context.getSharedPreferences("progress-layout", android.content.Context.MODE_PRIVATE)
+    }
+    var progressCardKeys by remember { mutableStateOf(emptyList<String>()) }
+    LaunchedEffect(availableCardKeys) {
+        val saved = layoutPreferences.getString("card-order", "").orEmpty()
+            .split('|')
+            .filter(String::isNotBlank)
+        val reconciled = if (layoutPreferences.getBoolean("card-order-customized", false)) {
+            saved.filter { it in availableCardKeys } + availableCardKeys.filterNot { it in saved }
+        } else {
+            availableCardKeys.sortedBy { cardKey ->
+                when {
+                    cardKey == "overall" -> 0
+                    cardKey == "bodyweight" -> 1
+                    cardKey.startsWith("habit:") -> {
+                        100 + (activeTrackers.find { "habit:${it.id}" == cardKey }?.position ?: 0)
+                    }
+                    else -> 1_000
+                }
+            }
+        }
+        progressCardKeys = reconciled
+        layoutPreferences.edit().putString("card-order", reconciled.joinToString("|")).apply()
+    }
+    val progressOrder = rememberReorderState(progressCardKeys) { _, from, to ->
+        val reordered = progressCardKeys.toMutableList()
+        if (from in reordered.indices && to in reordered.indices) {
+            val moved = reordered.removeAt(from)
+            reordered.add(to, moved)
+            progressCardKeys = reordered
+            layoutPreferences.edit()
+                .putString("card-order", reordered.joinToString("|"))
+                .putBoolean("card-order-customized", true)
+                .apply()
+        }
+    }
     ScreenList {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium)) {
                 Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
-                Text("Progress",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f))
-                IconButton(onClick={methodology=true}) { Icon(Icons.Outlined.Info,contentDescription="How progress works") }
-            }
-            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
-                Button(onClick={picker=true},enabled=eligibleExerciseIds.isNotEmpty(),modifier=Modifier.weight(1f)) {
-                    Text(exercises.find { it.id==exerciseId }?.canonicalName ?: "Choose exercise",maxLines=1,overflow=TextOverflow.Ellipsis)
+                    Text("Progress",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f))
+                    IconButton(onClick={methodology=true}) { Icon(Icons.Outlined.Info,contentDescription="How progress works") }
                 }
-                Box(Modifier.weight(1f)) {
-                    val exerciseVariations=variations.filter { it.exerciseId==exerciseId }
-                    OutlinedButton(
-                        onClick={variationMenu=true},
-                        enabled=exerciseVariations.isNotEmpty(),
-                        modifier=Modifier.fillMaxWidth(),
-                    ) {
-                        Text(exerciseVariations.find { it.id==filter }?.name ?: "Variations",maxLines=1,overflow=TextOverflow.Ellipsis)
-                    }
-                    DropdownMenu(expanded=variationMenu,onDismissRequest={variationMenu=false}) {
-                        DropdownMenuItem(
-                            text={Text("All variations")},
-                            onClick={filter=null;selected=null;variationMenu=false},
-                        )
-                        exerciseVariations.forEach { variation ->
-                            DropdownMenuItem(
-                                text={Text(variation.name)},
-                                onClick={filter=variation.id;selected=null;variationMenu=false},
-                            )
+                progressOrder.ordered(progressCardKeys) { it }.forEachIndexed { cardIndex, cardKey ->
+                    key(cardKey) {
+                        when {
+                            cardKey == "overall" -> VibeCard(
+                                modifier = Modifier.reorderItemFeedback(progressOrder, cardKey, cardIndex),
+                            ) {
+                                ProgressCardHeader(progressOrder, cardKey, "Overall training trend")
+                                Text("Average normalized score across ${aggregate.last().exerciseCount} exercises")
+                                MiniChart(
+                                    values = aggregate.map { it.averageIndex },
+                                    dates = aggregate.map { it.date },
+                                    unit = "index",
+                                ) {}
+                            }
+                            cardKey == "bodyweight" -> VibeCard(
+                                modifier = Modifier.reorderItemFeedback(progressOrder, cardKey, cardIndex),
+                            ) {
+                                ProgressCardHeader(progressOrder, cardKey, "Bodyweight")
+                                MiniChart(
+                                    values = bodyweights.map { if (it.unit.equals("lb", true)) it.value / 2.2046226218 else it.value },
+                                    dates = bodyweights.map { it.recordedAt },
+                                    unit = "kg",
+                                ) { index ->
+                                    selectedWeight = index
+                                    val day = Instant.ofEpochMilli(bodyweights[index].recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+                                    selectedPhoto = progressPhotos.firstOrNull { (timestamp, _) ->
+                                        Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate() == day
+                                    }?.second
+                                }
+                                selectedWeight?.let { bodyweights.getOrNull(it) }?.let {
+                                    Text("${Instant.ofEpochMilli(it.recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()} · ${formatAxis(it.value)} ${it.unit}")
+                                }
+                            }
+                            cardKey.startsWith("habit:") -> {
+                                activeTrackers.find { "habit:${it.id}" == cardKey }?.let { tracker ->
+                                    HabitProgressCard(
+                                        tracker = tracker,
+                                        fields = fields,
+                                        values = values,
+                                        order = progressOrder,
+                                        cardKey = cardKey,
+                                        cardIndex = cardIndex,
+                                    )
+                                }
+                            }
+                            cardKey == "training" -> VibeCard(
+                                modifier = Modifier.reorderItemFeedback(progressOrder, cardKey, cardIndex),
+                            ) {
+                                ProgressCardHeader(progressOrder, cardKey, "Training progress")
+                                ExerciseProgressSelectors(
+                                    exercises = exercises,
+                                    exerciseId = exerciseId,
+                                    variations = variations,
+                                    filter = filter,
+                                    eligible = eligibleExerciseIds.isNotEmpty(),
+                                    variationMenu = variationMenu,
+                                    onChooseExercise = { picker = true },
+                                    onVariationMenu = { variationMenu = it },
+                                    onFilter = { filter = it; selected = null },
+                                )
+                                if (eligibleExerciseIds.isEmpty()) {
+                                    Text("Complete a working set before an exercise appears here.")
+                                } else if (points.isEmpty()) {
+                                    Text("Choose an exercise to see its progress.")
+                                } else {
+                                    MiniChart(
+                                        points.map { it.index ?: it.score },
+                                        points.map { it.trend },
+                                        points.map { it.date },
+                                        if(points.any { it.index!=null }) "index" else "score",
+                                    ) { selected = it }
+                                    PersonalRecordsContent(records, recordVisibility)
+                                    val last=points.mapNotNull { it.trend }.takeLast(2)
+                                    if(last.size==2) Text(if(last[1]>last[0]*1.01)"Rising" else if(last[1]<last[0]*0.99)"Falling" else "Flat")
+                                    Text("RPE")
+                                    MiniChart(points.map { it.performance.rpe ?: Double.NaN },dates=points.map { it.date },unit="RPE"){selected=it}
+                                    selected?.let { points.getOrNull(it) }?.let { p ->
+                                        Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")
+                                        Text("Bands: ${p.bands.joinToString().ifBlank { "None" }} · RPE ${p.performance.rpe ?: "not recorded"}")
+                                        Text(p.notes.ifBlank { "No exercise notes" })
+                                    }
+                                    ActivityHeatmap(
+                                        days = points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) },
+                                        onDayClick = { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-            }
-            if(eligibleExerciseIds.isEmpty())Text("Complete a working set before an exercise appears here.")
-            if (aggregate.isNotEmpty()) {
-                VibeCard {
-                    Text("Overall training trend", style = MaterialTheme.typography.titleLarge)
-                    Text("Average normalized score across ${aggregate.last().exerciseCount} exercises")
-                    MiniChart(
-                        values = aggregate.map { it.averageIndex },
-                        dates = aggregate.map { it.date },
-                        unit = "index",
-                    ) {}
-                }
-            }
-            if (bodyweights.isNotEmpty()) {
-                VibeCard {
-                    Text("Bodyweight", style = MaterialTheme.typography.titleLarge)
-                    MiniChart(
-                        values = bodyweights.map { if (it.unit.equals("lb", true)) it.value / 2.2046226218 else it.value },
-                        dates = bodyweights.map { it.recordedAt },
-                        unit = "kg",
-                    ) { index ->
-                        selectedWeight = index
-                        val day = Instant.ofEpochMilli(bodyweights[index].recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()
-                        selectedPhoto = progressPhotos.firstOrNull { (timestamp, _) ->
-                            Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate() == day
-                        }?.second
-                    }
-                    selectedWeight?.let { bodyweights.getOrNull(it) }?.let {
-                        Text("${Instant.ofEpochMilli(it.recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()} · ${formatAxis(it.value)} ${it.unit}")
-                    }
-                }
-            }
-            trackers.filterNot { it.isArchived }.forEach { tracker ->
-                key(tracker.id) {
-                    val fieldIds = fields.filter { it.trackerId == tracker.id && !it.isArchived }.map { it.id }.toSet()
-                    val habitDays = values.filter { it.fieldId in fieldIds }
-                        .groupBy { it.epochDay }
-                        .map { ActivityDay(it.key, 1) }
-                    VibeCard {
-                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Box(Modifier.size(14.dp).background(Color(tracker.colourArgb.toInt()), MaterialTheme.shapes.small))
-                            Spacer(Modifier.width(8.dp))
-                            Text(tracker.name, style = MaterialTheme.typography.titleLarge)
-                        }
-                        ActivityHeatmap(
-                            days = habitDays,
-                            onDayClick = {},
-                            activityColor = Color(tracker.colourArgb.toInt()),
-                            itemLabel = tracker.name.lowercase(),
-                        )
-                    }
-                }
-            }
-            if(points.isNotEmpty()) {
-                VibeCard {
-                    Text("Personal records",style=MaterialTheme.typography.titleLarge)
-                    records.scoredPerformance?.let { record ->
-                        PersonalRecordValue(
-                            "Best performance",
-                            "${formatAxis(record.score)} score",
-                            setDescription(record.performance),
-                        )
-                    }
-                    if(recordVisibility.weight) records.weightKg?.let {
-                        PersonalRecordValue("Heaviest weight","${formatAxis(it)} kg")
-                    }
-                    if(recordVisibility.hold) records.holdMillis?.let {
-                        PersonalRecordValue("Longest hold","${formatAxis(it/1000.0)} sec")
-                    }
-                    if(recordVisibility.estimatedOneRepMax) records.estimatedOneRepMaxKg?.let {
-                        PersonalRecordValue("Estimated 1RM","${formatAxis(it)} kg")
-                    }
-                }
-                MiniChart(points.map { it.index ?: it.score },points.map { it.trend },points.map { it.date },if(points.any { it.index!=null }) "index" else "score"){selected=it}
-                val last=points.mapNotNull { it.trend }.takeLast(2)
-                if(last.size==2) Text(if(last[1]>last[0]*1.01)"Rising" else if(last[1]<last[0]*0.99)"Falling" else "Flat")
-                Text("RPE")
-                MiniChart(points.map { it.performance.rpe ?: Double.NaN },dates=points.map { it.date },unit="RPE"){selected=it}
-                selected?.let { points.getOrNull(it) }?.let { p ->
-                    Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")
-                    Text("Bands: ${p.bands.joinToString().ifBlank { "None" }} · RPE ${p.performance.rpe ?: "not recorded"}")
-                    Text(p.notes.ifBlank { "No exercise notes" })
-                }
-                ActivityHeatmap(
-                    days = points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) },
-                    onDayClick = { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } },
-                )
-            }
             }
         }
         val ids=rows.filter { it.actualExerciseId==exerciseId && workouts.any { w -> w.id==it.workoutId && w.status=="FINISHED" } }.map { it.id }.toSet()
@@ -227,6 +253,163 @@ fun ProgressScreen(vm:EditorViewModel) {
         )
     }
 }
+
+@Composable
+private fun ProgressCardHeader(
+    order: ReorderState,
+    cardKey: String,
+    title: String,
+) {
+    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+        ReorderHandle(order, cardKey, title)
+    }
+}
+
+@Composable
+private fun HabitProgressCard(
+    tracker: TrackerEntity,
+    fields: List<TrackerFieldEntity>,
+    values: List<TrackerDailyValueEntity>,
+    order: ReorderState,
+    cardKey: String,
+    cardIndex: Int,
+) {
+    val trackerFields = fields.filter { it.trackerId == tracker.id && !it.isArchived }
+    val fieldIds = trackerFields.map { it.id }.toSet()
+    val habitDays = values.filter { it.fieldId in fieldIds }
+        .groupBy { it.epochDay }
+        .map { (epochDay, dailyValues) ->
+            val numericTotal = dailyValues.mapNotNull { it.numericValue }.sum()
+            val hasNumericValue = dailyValues.any { it.numericValue != null }
+            ActivityDay(
+                epochDay,
+                heatmapLevel(
+                    if (hasNumericValue) numericTotal else 1.0,
+                    tracker.heatmapLightBelow,
+                    tracker.heatmapMediumBelow,
+                ),
+            )
+        }
+    val unit = trackerFields.firstOrNull { it.valueType in setOf("NUMBER", "DURATION") }?.unit
+    VibeCard(
+        modifier = Modifier.reorderItemFeedback(order, cardKey, cardIndex),
+    ) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            ReorderHandle(order, cardKey, tracker.name)
+        }
+        Text(
+            "Light < ${formatAxis(tracker.heatmapLightBelow)}${unitSuffix(unit)} · " +
+                "medium < ${formatAxis(tracker.heatmapMediumBelow)}${unitSuffix(unit)} · dark above",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        ActivityHeatmap(
+            days = habitDays,
+            onDayClick = {},
+            activityColor = Color(tracker.colourArgb.toInt()),
+            itemLabel = "${tracker.name.lowercase()} intensity",
+        )
+    }
+}
+
+@Composable
+private fun ExerciseProgressSelectors(
+    exercises: List<ExerciseEntity>,
+    exerciseId: String?,
+    variations: List<ExerciseVariationEntity>,
+    filter: String?,
+    eligible: Boolean,
+    variationMenu: Boolean,
+    onChooseExercise: () -> Unit,
+    onVariationMenu: (Boolean) -> Unit,
+    onFilter: (String?) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        OutlinedButton(
+            onClick = onChooseExercise,
+            enabled = eligible,
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                exercises.find { it.id == exerciseId }?.canonicalName ?: "Choose exercise",
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Box(Modifier.weight(1f)) {
+            val exerciseVariations = variations.filter { it.exerciseId == exerciseId }
+            OutlinedButton(
+                onClick = { onVariationMenu(true) },
+                enabled = exerciseVariations.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    exerciseVariations.find { it.id == filter }?.name ?: "Variations",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            DropdownMenu(
+                expanded = variationMenu,
+                onDismissRequest = { onVariationMenu(false) },
+            ) {
+                DropdownMenuItem(
+                    text = { Text("All variations") },
+                    onClick = {
+                        onFilter(null)
+                        onVariationMenu(false)
+                    },
+                )
+                exerciseVariations.forEach { variation ->
+                    DropdownMenuItem(
+                        text = { Text(variation.name) },
+                        onClick = {
+                            onFilter(variation.id)
+                            onVariationMenu(false)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PersonalRecordsContent(
+    records: PersonalRecords,
+    visibility: PersonalRecordVisibility,
+) {
+    Text("Personal records", style = MaterialTheme.typography.titleLarge)
+    records.scoredPerformance?.let { record ->
+        PersonalRecordValue(
+            "Best performance",
+            "${formatAxis(record.score)} score",
+            setDescription(record.performance),
+        )
+    }
+    if (visibility.weight) records.weightKg?.let {
+        PersonalRecordValue("Heaviest weight", "${formatAxis(it)} kg")
+    }
+    if (visibility.hold) records.holdMillis?.let {
+        PersonalRecordValue("Longest hold", "${formatAxis(it / 1000.0)} sec")
+    }
+    if (visibility.estimatedOneRepMax) records.estimatedOneRepMaxKg?.let {
+        PersonalRecordValue("Estimated 1RM", "${formatAxis(it)} kg")
+    }
+}
+
+internal fun heatmapLevel(value: Double, lightBelow: Double, mediumBelow: Double): Int = when {
+    value < lightBelow -> 1
+    value < mediumBelow -> 2
+    else -> 3
+}
+
+private fun unitSuffix(unit: String?): String = unit?.let { " $it" }.orEmpty()
 
 @Composable
 private fun PersonalRecordValue(label:String,value:String,detail:String?=null) {

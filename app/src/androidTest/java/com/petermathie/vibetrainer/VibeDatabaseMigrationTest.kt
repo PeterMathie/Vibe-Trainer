@@ -10,6 +10,7 @@ import com.petermathie.vibetrainer.data.local.MIGRATION_5_6
 import com.petermathie.vibetrainer.data.local.MIGRATION_6_7
 import com.petermathie.vibetrainer.data.local.MIGRATION_7_8
 import com.petermathie.vibetrainer.data.local.MIGRATION_8_9
+import com.petermathie.vibetrainer.data.local.MIGRATION_9_10
 import com.petermathie.vibetrainer.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -235,8 +236,43 @@ class VibeDatabaseMigrationTest {
             migrated.query("SELECT name,colourArgb FROM trackers WHERE id='habit'").use {
                 assertTrue(it.moveToFirst())
                 assertEquals("Meditation", it.getString(0))
-                assertEquals(4283215696L, it.getLong(1))
-            }
+            assertEquals(4283215696L, it.getLong(1))
         }
+    }
+}
+
+@Test
+fun migrate9To10AddsHabitOrderAndHeatmapThresholds() {
+    helper.createDatabase(databaseName, 9).apply {
+        execSQL(
+            """
+            INSERT INTO trackers (id,name,isDemo,isArchived,colourArgb)
+            VALUES ('protein','Protein',0,0,4283215696),
+                   ('meditation','Meditation',0,0,4283215696)
+            """.trimIndent(),
+        )
+        close()
+    }
+
+    helper.runMigrationsAndValidate(databaseName, 10, true, MIGRATION_9_10).use { migrated ->
+        migrated.query(
+            """
+            SELECT name,position,heatmapLightBelow,heatmapMediumBelow
+            FROM trackers ORDER BY position
+            """.trimIndent(),
+        ).use {
+            assertTrue(it.moveToFirst())
+            assertEquals("Meditation", it.getString(0))
+            assertEquals(0, it.getInt(1))
+            assertEquals(7.0, it.getDouble(2), 0.0)
+            assertEquals(15.0, it.getDouble(3), 0.0)
+            assertTrue(it.moveToNext())
+            assertEquals("Protein", it.getString(0))
+            assertEquals(1, it.getInt(1))
+            assertEquals(140.0, it.getDouble(2), 0.0)
+            assertEquals(160.0, it.getDouble(3), 0.0)
+        }
+    }
+
     }
 }

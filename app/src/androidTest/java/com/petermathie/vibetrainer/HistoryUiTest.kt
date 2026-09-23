@@ -22,6 +22,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
@@ -50,6 +51,16 @@ class HistoryUiTest {
         val viewModel = MainViewModel(repository, database.catalogueDao())
         val firstDay = LocalDate.now().minusDays(1)
         viewModel.selectHistoryDay(firstDay.toEpochDay())
+        runBlocking {
+            val historicalState = withTimeout(15_000) {
+                viewModel.uiState.first {
+                    it.selectedHistoryDay == firstDay.toEpochDay() &&
+                        it.historyDay?.activities?.isNotEmpty() == true &&
+                        it.recency.isNotEmpty()
+                }
+            }
+            assertTrue(historicalState.recency.any { it.band.name != "NEVER" })
+        }
 
         compose.setContent {
             val state by viewModel.uiState.collectAsStateWithLifecycle()

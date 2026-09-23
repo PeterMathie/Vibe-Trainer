@@ -153,9 +153,9 @@ private fun DateTimeInput(label: String, value: String, onSelect: (String) -> Un
 internal fun TargetSummary(field: TrackerFieldEntity) {
     if (field.targetValue == null) return
     val description = if (field.targetComparison == "RANGE") {
-        "${field.targetValue}–${field.targetMaxValue}"
+        "Between ${field.targetValue} and ${field.targetMaxValue}"
     } else {
-        "${field.targetComparison} ${field.targetValue}"
+        "${targetComparisonLabel(field.targetComparison.orEmpty())} ${field.targetValue}"
     }
     Text("Target: $description ${field.unit.orEmpty()}")
 }

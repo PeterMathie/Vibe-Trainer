@@ -73,7 +73,7 @@ class DatabaseSeeder @Inject constructor(
             }
             // Demo records use the same historical snapshots as real workouts.
             val sql=database.openHelper.writableDatabase
-            sql.execSQL("INSERT OR IGNORE INTO workout_muscles SELECT we.id,em.muscleId,em.role FROM workout_exercises we JOIN exercise_muscles em ON em.exerciseId=we.actualExerciseId WHERE we.exerciseName=''")
+            sql.execSQL("INSERT OR IGNORE INTO workout_muscles SELECT we.id,em.muscleId,em.role FROM workout_exercises we JOIN exercise_muscles em ON em.exerciseId=we.actualExerciseId")
             sql.execSQL("UPDATE workout_exercises SET exerciseName=(SELECT canonicalName FROM exercises WHERE id=actualExerciseId),trackingType=(SELECT trackingType FROM exercises WHERE id=actualExerciseId) WHERE exerciseName=''")
         }
     }
@@ -520,9 +520,17 @@ class DatabaseSeeder @Inject constructor(
         }
 
         private val DEMO_TRACKERS = listOf(
-            TrackerEntity("demo-piano", "Piano", true, colourArgb = 0xFF7E57C2L),
-            TrackerEntity("demo-meditation", "Meditation", true, colourArgb = 0xFF26A69AL),
-            TrackerEntity("demo-protein", "Protein", true, colourArgb = 0xFFEF5350L),
+            TrackerEntity("demo-piano", "Piano", true, colourArgb = 0xFF7E57C2L, position = 0),
+            TrackerEntity("demo-meditation", "Meditation", true, colourArgb = 0xFF26A69AL, position = 1),
+            TrackerEntity(
+                "demo-protein",
+                "Protein",
+                true,
+                colourArgb = 0xFFEF5350L,
+                position = 2,
+                heatmapLightBelow = 140.0,
+                heatmapMediumBelow = 160.0,
+            ),
         )
         private val DEMO_TRACKER_FIELDS = listOf(
             TrackerFieldEntity("demo-piano-minutes", "demo-piano", "Duration", "DURATION", "min", null, null, 0),

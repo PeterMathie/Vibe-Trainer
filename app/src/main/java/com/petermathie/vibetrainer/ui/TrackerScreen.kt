@@ -4,7 +4,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -28,21 +28,37 @@ fun TrackerScreen(vm: EditorViewModel) {
     val epoch = runCatching { LocalDate.parse(day).toEpochDay() }.getOrNull()
     var edit by remember { mutableStateOf<TrackerEntity?>(null) }
     var field by remember { mutableStateOf<TrackerFieldEntity?>(null) }
+    val activeTrackers = trackers.sortedBy { it.position }
+    val trackerOrder = rememberReorderState(activeTrackers.map { it.id }) { key, from, to ->
+        vm.moveTracker(key as String, to - from)
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             Text("Habits", style = MaterialTheme.typography.headlineSmall)
             EditField("Date (YYYY-MM-DD)", day) { day = it }
             Button(onClick = { edit = TrackerEntity(newId(), "", false) }) { Text("New habit") }
         }
-        items(trackers, key = { it.id }) { tracker ->
+        itemsIndexed(
+            trackerOrder.ordered(activeTrackers) { it.id },
+            key = { _, tracker -> tracker.id },
+        ) { trackerIndex, tracker ->
             val trackerFields = fields.filter { it.trackerId == tracker.id }
             val activeFields = trackerFields.filterNot { it.isArchived }.sortedBy { it.position }
             val fieldOrder = rememberReorderState(activeFields.map { it.id }) { key, from, to ->
                 vm.moveTrackerField(key as String, to - from)
             }
-            Card(Modifier.fillMaxWidth()) {
+            Card(
+                Modifier
+                    .fillMaxWidth()
+                    .reorderItemFeedback(trackerOrder, tracker.id, trackerIndex),
+            ) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(tracker.name, style = MaterialTheme.typography.titleLarge)
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        if (activeTrackers.size > 1) {
+                            ReorderHandle(trackerOrder, tracker.id, tracker.name)
+                        }
+                        Text(tracker.name, style = MaterialTheme.typography.titleLarge)
+                    }
                     Text("Colour", style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         HABIT_COLOURS.forEachIndexed { index, colour ->
@@ -56,9 +72,14 @@ fun TrackerScreen(vm: EditorViewModel) {
                             )
                         }
                     }
+                    HeatmapThresholdEditor(
+                        tracker = tracker,
+                        unit = activeFields.firstOrNull { it.valueType in setOf("NUMBER", "DURATION") }?.unit,
+                        onSave = { vm.save(it) },
+                    )
                     Row {
                         VibeActionButton("Rename", { edit = tracker }, importance = ActionImportance.COMPACT)
-                        VibeActionButton("Add field", {
+                        VibeActionButton("Add measurement", {
                             field = TrackerFieldEntity(
                                 newId(),
                                 tracker.id,
@@ -110,6 +131,66 @@ fun TrackerScreen(vm: EditorViewModel) {
     }
     field?.let { HabitFieldDialog(vm, it) { field = null } }
 }
+
+@Composable
+private fun HeatmapThresholdEditor(
+    tracker: TrackerEntity,
+    unit: String?,
+    onSave: (TrackerEntity) -> Unit,
+) {
+    var lightBelow by remember(tracker.id, tracker.heatmapLightBelow) {
+        mutableStateOf(formatThreshold(tracker.heatmapLightBelow))
+    }
+    var mediumBelow by remember(tracker.id, tracker.heatmapMediumBelow) {
+        mutableStateOf(formatThreshold(tracker.heatmapMediumBelow))
+    }
+    val light = lightBelow.toDoubleOrNull()
+    val medium = mediumBelow.toDoubleOrNull()
+    val valid = light != null && medium != null && light >= 0.0 && medium > light
+    val suffix = unit?.let { " ($it)" }.orEmpty()
+    Text("Heat-map shades", style = MaterialTheme.typography.labelMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = lightBelow,
+            onValueChange = { lightBelow = it },
+            label = { Text("Light below$suffix") },
+            singleLine = true,
+            modifier = Modifier.weight(1f),
+        )
+        OutlinedTextField(
+            value = mediumBelow,
+            onValueChange = { mediumBelow = it },
+            label = { Text("Medium below$suffix") },
+            singleLine = true,
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Text(
+        if (valid) {
+            "Light < ${formatThreshold(light!!)}, medium < ${formatThreshold(medium!!)}, dark ≥ ${formatThreshold(medium)}"
+        } else {
+            "The medium boundary must be greater than the light boundary."
+        },
+        style = MaterialTheme.typography.bodySmall,
+    )
+    VibeActionButton(
+        label = "Save heat-map shades",
+        onClick = {
+            onSave(
+                tracker.copy(
+                    heatmapLightBelow = light!!,
+                    heatmapMediumBelow = medium!!,
+                ),
+            )
+        },
+        importance = ActionImportance.COMPACT,
+        enabled = valid &&
+            (light != tracker.heatmapLightBelow || medium != tracker.heatmapMediumBelow),
+    )
+}
+
+private fun formatThreshold(value: Double): String =
+    if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
 
 private val HABIT_COLOURS = listOf(
     0xFF26A69AL,
