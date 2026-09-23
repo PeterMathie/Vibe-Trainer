@@ -2,6 +2,14 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
+Current implementation task: **DEMO-01 complete demo-personal-data removal is complete** at `873a37c` and `27b8064` on `pmathie-cicpilot-persist-workout-drafts`.
+
+Cleanup now removes demo workouts, programmes, trackers, body measurements and generated progress photos while preserving every catalogue/support table, custom catalogue records and real personal data. New generated photos receive explicit ownership markers; legacy demo photos are claimed only when their demo measurement ID, timestamp name, 720×960 dimensions and sampled deterministic colours all match. File failures are explicit and leave demo database roots intact. Seed metadata remains, so `seedIfNeeded()` does not recreate deleted personal demos. Settings and Style both require confirmation and display exact success or failure results.
+
+`DemoDataRemovalTest` covers real-record/catalogue/photo preservation, cascaded demo removal, marker cleanup, restart suppression and a forced undeletable-photo failure. `SettingsUiTest` covers confirmation and exact result messaging. At source `27b8064`, `gradle testDebugUnitTest assembleDebug connectedDebugAndroidTest --no-daemon` passed with all 61 API 35 instrumentation tests. Exact installed APK SHA-256: `566a2d7c2446e407c8656055f882f833a6f1679f9fc7813b0b84d778cb2e82d3`.
+
+Visible API 35 inspection invoked cleanup through Settings and reported 160 workouts, 4 programmes, 6 habits, 52 body entries and 4 photos removed. Exercises retained Back extension, Back squat, Bench press, Cossack squat and the rest of the maintained catalogue; Programmes, Habits and History contained no demo entries, and Body showed no demo measurements. No Room migration was needed. Residual limitation: photos are deleted before the Room transaction to guarantee that file errors cannot produce false database success; an unlikely later database failure could leave demo rows without their generated photos, recoverable by retrying cleanup.
+
 Current implementation task: **UX-27 compact controls, collapsed Progress and reorderable Body is complete** at `5593d4a` and `ed67c48` on `pmathie-cicpilot-persist-workout-drafts`.
 
 Exercises use a Strength/Stretch filter with a compact search/add row; custom exercises inherit the active classification. Generic timing fields now read Time Under Tension and Total Time, while Handstand retains its specific labels. Programme creation uses the shared full-width bottom plus action. Settings uses aligned information icons, on-demand precise-timer guidance and consistent shared action buttons.

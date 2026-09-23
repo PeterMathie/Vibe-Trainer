@@ -22,6 +22,23 @@ Evidence: commit `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433`, [run 35701312673](h
 
 Tasks are unclaimed unless an owner is recorded below. Before starting, add your agent name, branch and date to the relevant task. Mark completion only with verification evidence.
 
+### DEMO-01 — Remove demo personal data
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Remove every demo workout, programme, tracker and body measurement with its Room cascades.
+- [x] Remove generated demo progress-photo files without deleting a real user photo.
+- [x] Preserve exercises, aliases, muscle mappings, variations, bands, muscles, custom catalogue entries and all non-demo personal records.
+- [x] Preserve seed metadata so removed personal demos do not return after restart.
+- [x] Require confirmation and report exact success counts or an explicit failure.
+- [x] Cover preservation, restart suppression, no false success on file failure and confirmation UI.
+
+Evidence: `873a37c` implements ownership-marked generated photos, signature-safe legacy ownership backfill, failure-aware file removal, transactional demo-root deletion and confirmed Settings/Style actions. `27b8064` completes the confirmation regression and keeps the strict published import fixture current. `DemoDataRemovalTest` proves catalogue and real-record preservation, generated-photo removal, seed-metadata retention, no reseed after `seedIfNeeded()`, and database preservation when a photo cannot be deleted.
+
+At source `27b8064`, `gradle testDebugUnitTest assembleDebug connectedDebugAndroidTest --no-daemon` passed, including all 61 API 35 instrumentation tests. The exact APK SHA-256 is `566a2d7c2446e407c8656055f882f833a6f1679f9fc7813b0b84d778cb2e82d3`. Visible-emulator cleanup reported 160 workouts, 4 programmes, 6 habits, 52 body entries and 4 generated photos removed. Exercises still displayed the maintained catalogue; Programmes, Habits and History showed no demo entries, and Body showed the empty calendar/entry surface. No Room schema change or migration was required because demo ownership remains on existing roots and file ownership is stored outside Room.
+
+Residual limitation: generated files are removed before the Room transaction so a file failure cannot falsely delete database records. An unlikely later database failure could leave demo database rows without their generated photos; the next cleanup remains safe and explicit.
+
 ### DATA-01 — Database upgrades
 
 - [ ] Obtain an authentic v1 schema/fixture containing personal workouts, programmes, trackers and measurements.
