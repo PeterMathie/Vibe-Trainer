@@ -1,6 +1,6 @@
 # Detailed todo list
 
-Updated: 22 September 2026. See [WORK_STATUS.md](WORK_STATUS.md) for implemented features, code locations and verified builds. This file is the task checklist; keep both documents consistent.
+Updated: 23 September 2026. See [WORK_STATUS.md](WORK_STATUS.md) for implemented features, code locations and verified builds. This file is the task checklist; keep both documents consistent.
 
 ## Active run — RUN-02
 
@@ -64,6 +64,21 @@ UI-01f (emulator screenshot review): **COMPLETED**. Owner: GitHub Copilot sessio
 - [x] Check history navigation and both historical map modes.
 - [x] Check every relevant SVG region, selected outlines and TalkBack actions.
 - [x] Capture screenshots and report concrete defects; add focused regression coverage.
+
+### UX-02 — Programme editing and primary navigation correction
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+Scope: correct the product-facing discoverability defect reported after UI-01. Programme cards will expose an explicit primary **Edit programme** action that opens their days. Programme-day cards will expose explicit **Edit workout** and **Start workout** peer actions. Rename, duplicate, archive/delete and reordering will remain available but move into a clearly secondary edit/overflow context instead of dominating list cards. The horizontally scrolling ten-destination strip will be replaced with a fixed compact primary bar for Home, Programmes, Workout, Progress and More; More will visibly expose Exercises, Habits, History, Body, Settings and Style without horizontal swiping.
+
+Acceptance plan:
+
+- [ ] End-user Compose coverage proves visible **Edit programme** opens programme days.
+- [ ] End-user Compose coverage proves visible **Edit workout** opens the exercise/target editor and **Start workout** still invokes workout start.
+- [ ] Programme/day list cards keep secondary management controls out of the primary flow while preserving their functionality in an accessible secondary context.
+- [ ] A visible fixed **More** destination exposes **Habits**, and selecting it opens the habit tracker; primary navigation fits a phone width without horizontal scrolling.
+- [ ] Focused programme/navigation suites and the full unit/instrumentation/debug build pass.
+- [ ] Install the exact resulting APK on the visible emulator and inspect programme/navigation screenshots before recording final evidence.
 
 ### QA-01 — Real-phone timers
 

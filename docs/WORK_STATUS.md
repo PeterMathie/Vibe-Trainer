@@ -1,10 +1,12 @@
 # Work status and agent handoff
 
-Updated: 22 September 2026. Owner of the current pass: ChatGPT coding agent.
+Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **paused at a pushed completion boundary** on `pmathie-cicpilot-persist-workout-drafts`. ARCH-01 and the repository-controlled portions of RELEASE-01 are complete; no further slice is claimed.
+Current implementation task: **UX-02 programme editing and primary-navigation correction is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`.
 
-ARCH-01 stopped at the safe behavior-preserving boundary after tracker daily/configuration separation, tracker persistence extraction, compact-entry state extraction and hold-timer extraction. Further work would redistribute tightly coupled exercise-card lifecycle state or cross-aggregate Room transactions and requires a new task with dedicated acceptance coverage. RELEASE-01 is complete only for repository-controlled readiness. Exact upstream NOTICE/licence-text decisions, legal approval, signing credentials, store configuration and publication remain external gates. Generated `.gradle/` and `app/build/` content remains ignored and untracked; QA-01 remains open for a real Android phone.
+UX-02 addresses concrete end-user feedback: programme cards currently hide navigation behind the title, day cards use ambiguous `Exercises`/`Start` labels, secondary management controls dominate both lists, and a horizontally scrolling ten-item bottom strip leaves Habits and other destinations undiscoverable. The bounded correction will add explicit **Edit programme**, **Edit workout** and **Start workout** actions; move management/reordering into a clearly secondary context; and replace the strip with fixed Home/Programmes/Workout/Progress/More navigation whose More surface visibly exposes Exercises, Habits, History, Body, Settings and Style. Acceptance requires end-user Compose interaction coverage, focused and full validation, and screenshot inspection of the installed exact APK.
+
+ARCH-01 remains complete at its safe behavior-preserving boundary, and repository-controlled RELEASE-01 readiness remains complete. UX-02 does not reopen either effort. Generated `.gradle/` and `app/build/` content must remain ignored and untracked; QA-01 still requires a real Android phone.
 
 The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed successfully on 22 September: compilation, unit tests, emulator tests, APK installation and launch all passed. Its screenshot was inspected and runtime-error log was empty. Outstanding implementation and real-device tasks remain open.
 
