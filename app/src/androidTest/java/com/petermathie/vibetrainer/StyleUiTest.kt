@@ -51,6 +51,11 @@ class StyleUiTest {
                 }
             }
         }
+        compose.onNodeWithText(
+            "Habit indicators and muscle-map colours stay independent.",
+            substring = true,
+        ).assertExists()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Custom palette"))
 
         replaceField("Accent hex", "#FFFF00")
         replaceField("Background hex", "#000000")

@@ -47,7 +47,10 @@ internal fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemov
     ScreenList {
         item {
             Text("Style", style = MaterialTheme.typography.headlineLarge)
-            Text("Every screen uses semantic design tokens. New palettes require no screen changes.", color = LocalVibePalette.current.textSecondary)
+            Text(
+                "Palettes preview app interface colours. Habit indicators and muscle-map colours stay independent.",
+                color = LocalVibePalette.current.textSecondary,
+            )
         }
         items(VibePalettes.builtIns.values.toList(), key = { it.id }) { palette ->
             PaletteCard(palette, selectedId == palette.id) { onSelect(palette.id) }
@@ -104,15 +107,6 @@ private fun PaletteCard(palette: VibePalette, selected: Boolean, onSelect: () ->
         palette.textSecondary,
         palette.textFaint,
         palette.border,
-        palette.diagramBackground,
-        palette.diagramBody,
-        palette.diagramLine,
-        palette.recencyUnder24,
-        palette.recency24To48,
-        palette.recency48To72,
-        palette.recency3To7,
-        palette.recencyOver7,
-        palette.recencyNever,
         palette.heatmapNeutral,
         palette.heatmapOne,
         palette.heatmapTwo,
