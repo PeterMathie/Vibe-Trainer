@@ -59,19 +59,19 @@ data class HabitFieldForm(
         val TYPES = listOf(
             "BOOLEAN",
             "NUMBER",
-            "COUNT",
-            "DURATION",
-            "RATING",
             "TEXT",
             CHOICE,
-            "DATETIME",
         )
         val COMPARISONS = listOf("AT_LEAST", "AT_MOST", "EXACTLY", RANGE)
         private val NUMERIC_TYPES = setOf("NUMBER", "COUNT", "DURATION", "RATING")
 
         fun from(field: TrackerFieldEntity) = HabitFieldForm(
             name = field.name,
-            type = field.valueType,
+            type = when (field.valueType) {
+                "COUNT", "DURATION", "RATING" -> "NUMBER"
+                "DATETIME" -> "TEXT"
+                else -> field.valueType
+            },
             unit = field.unit.orEmpty(),
             options = field.choiceOptions,
             target = field.targetValue?.toString().orEmpty(),

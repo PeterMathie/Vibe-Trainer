@@ -33,6 +33,7 @@ import com.petermathie.vibetrainer.domain.progress.SessionProgress
 import com.petermathie.vibetrainer.domain.progress.PersonalRecords
 import com.petermathie.vibetrainer.domain.progress.PersonalRecordVisibility
 import com.petermathie.vibetrainer.domain.model.ActivityDay
+import com.petermathie.vibetrainer.domain.tracker.HabitFieldForm
 import com.petermathie.vibetrainer.ui.theme.VibeSpacing
 import java.time.Instant
 import java.time.ZoneId
@@ -283,18 +284,13 @@ private fun HabitProgressCard(
     val habitDays = values.filter { it.fieldId in fieldIds }
         .groupBy { it.epochDay }
         .map { (epochDay, dailyValues) ->
-            val numericTotal = dailyValues.mapNotNull { it.numericValue }.sum()
-            val hasNumericValue = dailyValues.any { it.numericValue != null }
             ActivityDay(
                 epochDay,
-                heatmapLevel(
-                    if (hasNumericValue) numericTotal else 1.0,
-                    tracker.heatmapLightBelow,
-                    tracker.heatmapMediumBelow,
-                ),
+                habitHeatmapLevel(tracker, trackerFields, dailyValues),
             )
         }
-    val unit = trackerFields.firstOrNull { it.valueType in setOf("NUMBER", "DURATION") }?.unit
+    val numericField = trackerFields.firstOrNull { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") }
+    val unit = numericField?.unit
     VibeCard(
         modifier = Modifier.reorderItemFeedback(order, cardKey, cardIndex),
     ) {
@@ -302,11 +298,7 @@ private fun HabitProgressCard(
             Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             ReorderHandle(order, cardKey, tracker.name)
         }
-        Text(
-            "Light < ${formatAxis(tracker.heatmapLightBelow)}${unitSuffix(unit)} · " +
-                "medium < ${formatAxis(tracker.heatmapMediumBelow)}${unitSuffix(unit)} · dark above",
-            style = MaterialTheme.typography.bodySmall,
-        )
+        Text(habitIntensityDescription(tracker, trackerFields, unit), style = MaterialTheme.typography.bodySmall)
         ActivityHeatmap(
             days = habitDays,
             onDayClick = {},
@@ -410,6 +402,45 @@ internal fun heatmapLevel(value: Double, lightBelow: Double, mediumBelow: Double
     value < lightBelow -> 1
     value < mediumBelow -> 2
     else -> 3
+}
+
+internal fun habitHeatmapLevel(
+    tracker: TrackerEntity,
+    fields: List<TrackerFieldEntity>,
+    values: List<TrackerDailyValueEntity>,
+): Int {
+    val fieldsById = fields.associateBy { it.id }
+    val numericValues = values.mapNotNull { it.numericValue }
+    if (numericValues.isNotEmpty()) {
+        return heatmapLevel(numericValues.sum(), tracker.heatmapLightBelow, tracker.heatmapMediumBelow)
+    }
+    return values.mapNotNull { value ->
+        val field = fieldsById[value.fieldId] ?: return@mapNotNull null
+        when (field.valueType) {
+            "BOOLEAN" -> value.booleanValue?.let { if (it) 3 else 1 }
+            HabitFieldForm.CHOICE -> {
+                val options = field.choiceOptions.lineSequence().filter(String::isNotBlank).toList()
+                val index = options.indexOf(value.textValue)
+                if (index < 0 || options.isEmpty()) null else (index * 3 / options.size + 1).coerceAtMost(3)
+            }
+            "TEXT", "DATETIME" -> value.textValue?.takeIf(String::isNotBlank)?.let { 2 }
+            else -> null
+        }
+    }.maxOrNull() ?: 1
+}
+
+private fun habitIntensityDescription(
+    tracker: TrackerEntity,
+    fields: List<TrackerFieldEntity>,
+    unit: String?,
+): String = when {
+    fields.any { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") } ->
+        "Light < ${formatAxis(tracker.heatmapLightBelow)}${unitSuffix(unit)} · " +
+            "medium < ${formatAxis(tracker.heatmapMediumBelow)}${unitSuffix(unit)} · dark above"
+    fields.any { it.valueType == HabitFieldForm.CHOICE } ->
+        "Choices run from light to dark in the order configured."
+    fields.any { it.valueType == "BOOLEAN" } -> "No is light · Yes is dark"
+    else -> "A written entry uses the medium shade."
 }
 
 private fun unitSuffix(unit: String?): String = unit?.let { " $it" }.orEmpty()

@@ -38,41 +38,41 @@ class HabitUiTest {
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { TrackerScreen(viewModel) } }
 
+        compose.onNodeWithText("Date (YYYY-MM-DD)").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Wellbeing colour").assertExists()
         compose.onNodeWithContentDescription("Set Wellbeing colour 2").assertDoesNotExist()
         compose.onNodeWithText("Edit settings").performClick()
         compose.onNodeWithText("Change colour").performClick()
         compose.onNodeWithContentDescription("Set Wellbeing colour 2").performClick()
-        compose.onNode(hasText("Light below") and hasSetTextAction()).performTextClearance()
-        compose.onNode(hasText("Light below") and hasSetTextAction()).performTextInput("8")
-        compose.onNode(hasText("Dark from") and hasSetTextAction()).performTextClearance()
-        compose.onNode(hasText("Dark from") and hasSetTextAction()).performTextInput("20")
         compose.onNodeWithText("Save settings").performClick()
         compose.waitUntil(15_000) {
             runBlocking {
-                database.editorDao().trackers().first().single().let {
-                    it.colourArgb == 0xFF42A5F5L &&
-                        it.heatmapLightBelow == 8.0 &&
-                        it.heatmapMediumBelow == 20.0
-                }
+                database.editorDao().trackers().first().single().colourArgb == 0xFF42A5F5L
             }
         }
         compose.onNodeWithText("Edit settings").performClick()
         compose.onNodeWithText("Add measurement").performScrollTo().performClick()
         compose.onNodeWithText("What would you like to track?").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Name, for example Duration or Protein").performTextInput("Mood")
+        compose.onNodeWithContentDescription("Name, for example Minutes or Protein").performTextInput("Mood")
+        compose.onNodeWithText("Count").assertDoesNotExist()
+        compose.onNodeWithText("Duration").assertDoesNotExist()
+        compose.onNodeWithText("Rating").assertDoesNotExist()
+        compose.onNodeWithText("Date and time").assertDoesNotExist()
         compose.onNodeWithText("Choose from a list").performClick()
-        compose.onNodeWithContentDescription("Choices, separated by commas").performTextInput("Good, Bad")
+        compose.onNodeWithContentDescription("Choices, separated by commas").performTextInput("Sad, Happy")
         compose.onNodeWithText("Save").performClick()
 
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Choose…").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Choose…").performClick()
-        compose.onNodeWithText("Good").performClick()
+        compose.onNodeWithText("Happy").performClick()
         compose.onNodeWithText("Save daily total").performClick()
 
         compose.waitUntil(15_000) {
-            runBlocking { database.editorDao().values().first().any { it.textValue == "Good" } }
+            runBlocking { database.editorDao().values().first().any { it.textValue == "Happy" } }
         }
         val field = runBlocking { database.editorDao().fields().first().single() }
-        assertEquals("Good\nBad", field.choiceOptions)
+        assertEquals("Sad\nHappy", field.choiceOptions)
+        compose.onNodeWithText("Edit settings").performClick()
+        compose.onNodeWithText("Choices map from light to dark in the order configured.").assertExists()
     }
 }

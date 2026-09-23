@@ -1,7 +1,5 @@
 package com.petermathie.vibetrainer.ui
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,13 +17,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.petermathie.vibetrainer.data.local.TrackerDailyValueEntity
 import com.petermathie.vibetrainer.data.local.TrackerFieldEntity
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-
-private val dateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
 
 @Composable
 internal fun HabitDailyInput(
@@ -62,17 +55,12 @@ internal fun HabitDailyInput(
                     field.choiceOptions.lineSequence().filter(String::isNotBlank).toList(),
                     text,
                 ) { text = it }
-                "DATETIME" -> DateTimeInput(field.name, text) { text = it }
                 else -> EditField("${field.name}${field.unit?.let { " ($it)" }.orEmpty()}", text) {
                     text = it
                 }
             }
-            val numeric = field.valueType in listOf("NUMBER", "COUNT", "DURATION", "RATING")
-            val valid = text.isNotBlank() && (!numeric || text.toDoubleOrNull()?.let {
-                it.isFinite() &&
-                    (field.valueType != "COUNT" || it >= 0 && it % 1.0 == 0.0) &&
-                    (field.valueType != "DURATION" || it >= 0)
-            } == true)
+            val numeric = field.valueType == "NUMBER"
+            val valid = text.isNotBlank() && (!numeric || text.toDoubleOrNull()?.isFinite() == true)
             VibeActionButton(
                 label = "Save daily total",
                 importance = ActionImportance.COMPACT,
@@ -123,29 +111,6 @@ private fun ChoiceInput(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DateTimeInput(label: String, value: String, onSelect: (String) -> Unit) {
-    val context = LocalContext.current
-    val initial = runCatching {
-        LocalDateTime.parse(value, dateTimeFormat)
-    }.getOrDefault(LocalDateTime.now())
-    OutlinedButton(
-        onClick = {
-            DatePickerDialog(context, { _, year, month, day ->
-                TimePickerDialog(context, { _, hour, minute ->
-                    onSelect(
-                        LocalDateTime.of(year, month + 1, day, hour, minute)
-                            .format(dateTimeFormat),
-                    )
-                }, initial.hour, initial.minute, true).show()
-            }, initial.year, initial.monthValue - 1, initial.dayOfMonth).show()
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text("$label: ${value.ifBlank { "Choose date and time…" }}")
     }
 }
 

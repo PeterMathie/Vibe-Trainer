@@ -1,6 +1,10 @@
 package com.petermathie.vibetrainer.data.seed
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import androidx.room.withTransaction
 import com.petermathie.vibetrainer.BuildConfig
 import com.petermathie.vibetrainer.data.local.BandEntity
@@ -168,6 +172,11 @@ class DatabaseSeeder @Inject constructor(
     }
 
     private suspend fun seedProgressDemo() {
+        database.trackerDao().insertTrackers(DEMO_EXTRA_TRACKERS)
+        database.trackerDao().insertFields(DEMO_EXTRA_TRACKER_FIELDS)
+        database.openHelper.writableDatabase.execSQL(
+            "UPDATE tracker_fields SET valueType='NUMBER' WHERE trackerId IN ('demo-piano','demo-meditation','demo-protein')",
+        )
         database.openHelper.writableDatabase.execSQL("DELETE FROM workouts WHERE id LIKE 'demo-progress-%'")
         database.openHelper.writableDatabase.execSQL("DELETE FROM body_measurements WHERE isDemo = 1")
         val now = System.currentTimeMillis()
@@ -243,6 +252,7 @@ class DatabaseSeeder @Inject constructor(
                     isDemo = true,
                 ),
             )
+            if (week in setOf(0, 17, 34, 51)) seedDemoProgressPhoto(recordedAt, week)
             val weekStart = Instant.ofEpochMilli(recordedAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toEpochDay()
             repeat(7) { day ->
                 if (day in listOf(0, 2, 4, 6)) {
@@ -284,8 +294,68 @@ class DatabaseSeeder @Inject constructor(
                         ),
                     )
                 }
+                database.trackerDao().upsertValue(
+                    TrackerDailyValueEntity(
+                        "demo-mood-feeling",
+                        weekStart + day,
+                        null,
+                        null,
+                        listOf("Terrified", "Lonely", "Sad", "Happy", "Joyful", "Super")[(week + day) % 6],
+                        "",
+                        now,
+                    ),
+                )
+                if (day in listOf(1, 4)) {
+                    database.trackerDao().upsertValue(
+                        TrackerDailyValueEntity(
+                            "demo-journal-entry",
+                            weekStart + day,
+                            null,
+                            null,
+                            if ((week + day) % 2 == 0) "A calm and productive day." else "Noticed what helped today.",
+                            "",
+                            now,
+                        ),
+                    )
+                }
+                database.trackerDao().upsertValue(
+                    TrackerDailyValueEntity(
+                        "demo-reading-completed",
+                        weekStart + day,
+                        null,
+                        (week + day) % 3 != 0,
+                        null,
+                        "",
+                        now,
+                    ),
+                )
             }
         }
+    }
+
+    private fun seedDemoProgressPhoto(recordedAt: Long, week: Int) {
+        val directory = java.io.File(context.filesDir, "progress-photos").apply { mkdirs() }
+        val file = java.io.File(directory, "$recordedAt.jpg")
+        if (file.exists()) return
+        val bitmap = Bitmap.createBitmap(720, 960, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val palettes = listOf(
+            0xFF263238.toInt() to 0xFF26A69A.toInt(),
+            0xFF312A3D.toInt() to 0xFF7E57C2.toInt(),
+            0xFF3D2A2A.toInt() to 0xFFEF5350.toInt(),
+            0xFF243324.toInt() to 0xFF8BC34A.toInt(),
+        )
+        val (background, accent) = palettes[(week / 17).coerceIn(palettes.indices)]
+        canvas.drawColor(background)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = accent }
+        canvas.drawCircle(360f, 230f, 105f, paint)
+        canvas.drawRoundRect(215f, 350f, 505f, 790f, 120f, 120f, paint)
+        paint.color = Color.WHITE
+        paint.textAlign = Paint.Align.CENTER
+        paint.textSize = 42f
+        canvas.drawText("Demo progress", 360f, 890f, paint)
+        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 88, it) }
+        bitmap.recycle()
     }
 
     private fun progressDirection(exerciseId: String): Int = when (exerciseId) {
@@ -412,7 +482,7 @@ class DatabaseSeeder @Inject constructor(
         private const val SCHEDULE_FREE_DEMO_KEY = "schedule_free_demo"
         private const val SCHEDULE_FREE_DEMO_VERSION = 1
         private const val PROGRESS_DEMO_KEY = "progress_demo"
-        private const val PROGRESS_DEMO_VERSION = 5
+        private const val PROGRESS_DEMO_VERSION = 7
 
         private val MUSCLES = listOf(
             "ABDUCTORS" to "Abductors", "ADDUCTORS" to "Adductors", "BACK_LOWER" to "Lower back",
@@ -543,6 +613,26 @@ class DatabaseSeeder @Inject constructor(
             }
         }
 
+        private val DEMO_EXTRA_TRACKERS = listOf(
+            TrackerEntity("demo-mood", "Mood", true, colourArgb = 0xFF42A5F5L, position = 3),
+            TrackerEntity("demo-journal", "Journal", true, colourArgb = 0xFFFFB74DL, position = 4),
+            TrackerEntity("demo-reading", "Reading", true, colourArgb = 0xFF5C6BC0L, position = 5),
+        )
+        private val DEMO_EXTRA_TRACKER_FIELDS = listOf(
+            TrackerFieldEntity(
+                "demo-mood-feeling",
+                "demo-mood",
+                "Feeling",
+                "CHOICE",
+                null,
+                null,
+                null,
+                0,
+                choiceOptions = "Terrified\nLonely\nSad\nHappy\nJoyful\nSuper",
+            ),
+            TrackerFieldEntity("demo-journal-entry", "demo-journal", "Entry", "TEXT", null, null, null, 0),
+            TrackerFieldEntity("demo-reading-completed", "demo-reading", "Read today", "BOOLEAN", null, null, null, 0),
+        )
         private val DEMO_TRACKERS = listOf(
             TrackerEntity("demo-piano", "Piano", true, colourArgb = 0xFF7E57C2L, position = 0),
             TrackerEntity("demo-meditation", "Meditation", true, colourArgb = 0xFF26A69AL, position = 1),
@@ -555,11 +645,11 @@ class DatabaseSeeder @Inject constructor(
                 heatmapLightBelow = 140.0,
                 heatmapMediumBelow = 160.0,
             ),
-        )
+        ) + DEMO_EXTRA_TRACKERS
         private val DEMO_TRACKER_FIELDS = listOf(
-            TrackerFieldEntity("demo-piano-minutes", "demo-piano", "Duration", "DURATION", "min", null, null, 0),
-            TrackerFieldEntity("demo-meditation-minutes", "demo-meditation", "Duration", "DURATION", "min", "AT_LEAST", 10.0, 0),
+            TrackerFieldEntity("demo-piano-minutes", "demo-piano", "Duration", "NUMBER", "min", null, null, 0),
+            TrackerFieldEntity("demo-meditation-minutes", "demo-meditation", "Duration", "NUMBER", "min", "AT_LEAST", 10.0, 0),
             TrackerFieldEntity("demo-protein-grams", "demo-protein", "Protein", "NUMBER", "g", "AT_LEAST", 120.0, 0),
-        )
+        ) + DEMO_EXTRA_TRACKER_FIELDS
     }
 }

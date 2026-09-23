@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
@@ -25,8 +24,7 @@ fun TrackerScreen(vm: EditorViewModel) {
     val trackers by vm.trackers.collectAsStateWithLifecycle()
     val fields by vm.fields.collectAsStateWithLifecycle()
     val values by vm.values.collectAsStateWithLifecycle()
-    var day by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
-    val epoch = runCatching { LocalDate.parse(day).toEpochDay() }.getOrNull()
+    val epoch = LocalDate.now().toEpochDay()
     var newHabit by remember { mutableStateOf<TrackerEntity?>(null) }
     var settings by remember { mutableStateOf<TrackerEntity?>(null) }
     var field by remember { mutableStateOf<TrackerFieldEntity?>(null) }
@@ -37,7 +35,6 @@ fun TrackerScreen(vm: EditorViewModel) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             Text("Habits", style = MaterialTheme.typography.headlineSmall)
-            EditField("Date (YYYY-MM-DD)", day) { day = it }
             Button(onClick = { newHabit = TrackerEntity(newId(), "", false) }) { Text("New habit") }
         }
         itemsIndexed(
@@ -51,6 +48,13 @@ fun TrackerScreen(vm: EditorViewModel) {
             ) {
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    Box(
+                        Modifier
+                            .size(18.dp)
+                            .background(Color(tracker.colourArgb.toInt()), CircleShape)
+                            .semantics { contentDescription = "${tracker.name} colour" },
+                    )
+                    Spacer(Modifier.width(8.dp))
                     if (activeTrackers.size > 1) {
                         ReorderHandle(trackerOrder, tracker.id, tracker.name)
                     }
@@ -144,11 +148,12 @@ private fun HabitSettingsDialog(
     val medium = mediumBelow.toDoubleOrNull()
     val valid = light != null && medium != null && light >= 0.0 && medium > light
     val activeFields = fields.filterNot { it.isArchived }.sortedBy { it.position }
+    val hasNumericField = activeFields.any { it.valueType == "NUMBER" }
     val archivedFields = fields.filter { it.isArchived }
     val fieldOrder = rememberReorderState(activeFields.map { it.id }) { key, from, to ->
         onMoveMeasurement(key as String, to - from)
     }
-    val unit = activeFields.firstOrNull { it.valueType in setOf("NUMBER", "DURATION") }?.unit
+    val unit = activeFields.firstOrNull { it.valueType == "NUMBER" }?.unit
     val suffix = unit?.let { " ($it)" }.orEmpty()
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -187,30 +192,42 @@ private fun HabitSettingsDialog(
                             }
                         }
                         Text("Heat-map intensity", style = MaterialTheme.typography.titleMedium)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = lightBelow,
-                                onValueChange = { lightBelow = it },
-                                label = { Text("Light below$suffix") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
+                        if (hasNumericField) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = lightBelow,
+                                    onValueChange = { lightBelow = it },
+                                    label = { Text("Light below$suffix") },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                OutlinedTextField(
+                                    value = mediumBelow,
+                                    onValueChange = { mediumBelow = it },
+                                    label = { Text("Dark from$suffix") },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            Text(
+                                if (valid) {
+                                    "Values from ${formatThreshold(light!!)} to under ${formatThreshold(medium!!)}${unit?.let { " $it" }.orEmpty()} use the medium shade."
+                                } else {
+                                    "Dark from must be greater than Light below."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
                             )
-                            OutlinedTextField(
-                                value = mediumBelow,
-                                onValueChange = { mediumBelow = it },
-                                label = { Text("Dark from$suffix") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
+                        } else {
+                            Text(
+                                when {
+                                    activeFields.any { it.valueType == "CHOICE" } ->
+                                        "Choices map from light to dark in the order configured."
+                                    activeFields.any { it.valueType == "BOOLEAN" } -> "No is light and Yes is dark."
+                                    else -> "A written entry uses the medium shade."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        Text(
-                            if (valid) {
-                                "Values from ${formatThreshold(light!!)} to under ${formatThreshold(medium!!)}${unit?.let { " $it" }.orEmpty()} use the medium shade."
-                            } else {
-                                "Dark from must be greater than Light below."
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                        )
                         Text("Measurements", style = MaterialTheme.typography.titleMedium)
                         fieldOrder.ordered(activeFields) { it.id }.forEach { habitField ->
                             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -246,14 +263,14 @@ private fun HabitSettingsDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = name.isNotBlank() && valid,
+                enabled = name.isNotBlank() && (!hasNumericField || valid),
                 onClick = {
                     onSave(
                         tracker.copy(
                             name = name,
                             colourArgb = colour,
-                            heatmapLightBelow = light!!,
-                            heatmapMediumBelow = medium!!,
+                            heatmapLightBelow = light ?: tracker.heatmapLightBelow,
+                            heatmapMediumBelow = medium ?: tracker.heatmapMediumBelow,
                         ),
                     )
                 },

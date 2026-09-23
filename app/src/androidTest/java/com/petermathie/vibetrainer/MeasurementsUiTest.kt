@@ -50,6 +50,7 @@ class MeasurementsUiTest {
         val saved = runBlocking { database.editorDao().measurements().first().single() }
         assertEquals("Bodyweight", saved.metric)
         assertEquals(78.126, saved.value, 0.0)
-        compose.onNodeWithText("Bodyweight: 78.13 kg").assertExists()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Bodyweight: 78.13 kg"))
+        compose.onNodeWithText("Bodyweight: 78.13 kg").assertIsDisplayed()
     }
 }

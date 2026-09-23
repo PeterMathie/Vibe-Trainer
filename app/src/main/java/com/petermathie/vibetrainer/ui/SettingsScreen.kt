@@ -37,7 +37,6 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
     val restore=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri!=null)scope.launch { try { pendingImport=withContext(Dispatchers.IO){context.contentResolver.openInputStream(uri)?.bufferedReader()?.use{it.readText()}} }catch(e:Exception){message=e.message.orEmpty()} } }
     val csv=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri -> if(uri!=null)scope.launch { try {val text=vm.exportCsv();withContext(Dispatchers.IO){context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(text)}};message="CSV saved"}catch(e:Exception){message=e.message.orEmpty()} } }
     val notify=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){message=if(it)"Timer notifications enabled" else "Notifications disabled"}
-    var target by remember { mutableStateOf("60") };var bar by remember { mutableStateOf("20") }
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item {
             Text("Settings and data",style=MaterialTheme.typography.headlineSmall)
@@ -55,12 +54,6 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
             if(Build.VERSION.SDK_INT>=31) TextButton(onClick={context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:${context.packageName}")))}){Text("Allow precise background timers")}
             if(Build.VERSION.SDK_INT>=31 && !context.getSystemService(android.app.AlarmManager::class.java).canScheduleExactAlarms()) Text("Without precise-timer permission, Android may delay background alerts.")
             TextButton(onClick={RestTimer.cancel(context);message="Timer cancelled"}){Text("Cancel rest timer")}
-            Text("Plate calculator (${if(lb)"lb" else "kg"})")
-            EditField("Total load",target){target=it};EditField("Bar weight",bar){bar=it}
-            var remaining=((target.toDoubleOrNull() ?: 0.0)-(bar.toDoubleOrNull() ?: 0.0))/2
-            val result=mutableListOf<String>()
-            (if(lb)listOf(45.0,25.0,10.0,5.0,2.5)else listOf(25.0,20.0,15.0,10.0,5.0,2.5,1.25)).forEach { plate -> val n=(remaining/plate).toInt().coerceAtLeast(0);if(n>0){result+="$n × $plate";remaining-=n*plate} }
-            Text("Per side: ${result.joinToString(" + ").ifEmpty { "No plates" }}${if(remaining>0.01)" · remainder $remaining" else ""}")
             Button(onClick={export.launch("vibe-trainer-backup.json")}){Text("JSON backup")}
             TextButton(onClick={restore.launch(arrayOf("application/json","text/plain"))}){Text("Restore / import structured JSON")}
             TextButton(onClick={csv.launch("vibe-trainer-workouts.csv")}){Text("CSV export")}
@@ -120,7 +113,7 @@ fun MeasurementsScreen(vm:EditorViewModel) {
             } catch(e:Exception) { message="Could not export photos: ${e.message}" }
         }
     }
-    val photos=remember(refresh){directory.listFiles().orEmpty().sortedByDescending{it.name}}
+    val photos=directory.listFiles().orEmpty().sortedByDescending{it.name}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp)) {
         item {
             Text("Bodyweight and photos",style=MaterialTheme.typography.headlineSmall)

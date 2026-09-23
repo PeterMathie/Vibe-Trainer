@@ -30,16 +30,28 @@ class ProgressUiTest {
     @get:Rule
     val compose = createComposeRule()
     private lateinit var database: VibeDatabase
+    private var preservedPhotoNames: Set<String>? = null
 
     @After
     fun close() {
         database.close()
-        File(ApplicationProvider.getApplicationContext<Context>().filesDir, "progress-photos").deleteRecursively()
+        preservedPhotoNames?.let { preserved ->
+            File(ApplicationProvider.getApplicationContext<Context>().filesDir, "progress-photos")
+                .listFiles()
+                .orEmpty()
+                .filterNot { it.name in preserved }
+                .forEach(File::delete)
+        }
     }
 
     @Test
     fun chartExposesAxesSkillExplanationAndExplicitRecords() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        preservedPhotoNames = File(context.filesDir, "progress-photos")
+            .listFiles()
+            .orEmpty()
+            .map(File::getName)
+            .toSet()
         context.getSharedPreferences("progress-layout", Context.MODE_PRIVATE).edit().clear().commit()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         runBlocking {
@@ -95,6 +107,12 @@ class ProgressUiTest {
         compose.onNodeWithContentDescription("kg", substring = true).performTouchInput { click(androidx.compose.ui.geometry.Offset(16f, center.y)) }
         compose.onNodeWithContentDescription("Progress photo for selected bodyweight day").assertIsDisplayed()
         compose.onNodeWithText("Close").performClick()
+        compose.onNodeWithText("Mood").performScrollTo().assertIsDisplayed()
+        assertTrue(compose.onAllNodesWithContentDescription("1 mood intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithContentDescription("2 mood intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithContentDescription("3 mood intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
+        compose.onNodeWithText("Journal").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Reading").performScrollTo().assertIsDisplayed()
 
         compose.onNodeWithText("Choose exercise").performScrollTo().performClick()
         compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextInput("No history exercise")

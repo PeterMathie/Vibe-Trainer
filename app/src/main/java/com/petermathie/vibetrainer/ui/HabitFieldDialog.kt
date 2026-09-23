@@ -27,7 +27,7 @@ internal fun HabitFieldDialog(
             LazyColumn {
                 item {
                     Text("Add one thing you want to record for this habit.")
-                    EditField("Name, for example Duration or Protein", form.name) {
+                    EditField("Name, for example Minutes or Protein", form.name) {
                         form = form.copy(name = it)
                     }
                     Text("How will you record it?", style = MaterialTheme.typography.labelLarge)
@@ -91,12 +91,10 @@ internal fun HabitFieldDialog(
 internal fun habitTypeLabel(type: String): String = when (type) {
     "BOOLEAN" -> "Yes or no"
     "NUMBER" -> "Number"
-    "COUNT" -> "Count"
-    "DURATION" -> "Duration"
-    "RATING" -> "Rating"
+    "COUNT", "DURATION", "RATING" -> "Number"
     "TEXT" -> "Written note"
     HabitFieldForm.CHOICE -> "Choose from a list"
-    "DATETIME" -> "Date and time"
+    "DATETIME" -> "Written note"
     else -> type.lowercase().replace('_', ' ')
 }
 
