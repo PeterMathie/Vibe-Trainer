@@ -177,8 +177,6 @@ internal fun ChoiceScaleEditor(
         syncChoices()
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Choice shade scale", style = MaterialTheme.typography.titleMedium)
-        Text("Drag a choice across either line to change its shade.")
         choiceOrder.ordered(choices) { it.id }.forEachIndexed { index, choice ->
             val shade = when {
                 index <= lightThrough -> "Light"

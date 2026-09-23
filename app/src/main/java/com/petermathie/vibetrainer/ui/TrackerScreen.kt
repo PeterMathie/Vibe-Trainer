@@ -261,31 +261,31 @@ private fun HabitSettingsDialog(
                                     )
                                 }
                             }
-                            Text("Icon", style = MaterialTheme.typography.titleMedium)
-                            Row(
-                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                HabitIconCatalog.options.forEach { option ->
-                                    Surface(
-                                        onClick = { iconName = option.key },
-                                        color = if (iconName == option.key) {
-                                            Color(colour.toInt()).copy(alpha = 0.24f)
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceVariant
-                                        },
-                                        shape = CircleShape,
-                                        modifier = Modifier.semantics {
-                                            contentDescription = "Set ${tracker.name} icon ${option.label}"
-                                        },
-                                    ) {
-                                        Icon(
-                                            option.icon,
-                                            contentDescription = null,
-                                            tint = Color(colour.toInt()),
-                                            modifier = Modifier.padding(12.dp).size(28.dp),
-                                        )
-                                    }
+                        }
+                        Text("Icon", style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            HabitIconCatalog.options.forEach { option ->
+                                Surface(
+                                    onClick = { iconName = option.key },
+                                    color = if (iconName == option.key) {
+                                        Color(colour.toInt()).copy(alpha = 0.24f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                    shape = CircleShape,
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Set ${tracker.name} icon ${option.label}"
+                                    },
+                                ) {
+                                    Icon(
+                                        option.icon,
+                                        contentDescription = null,
+                                        tint = Color(colour.toInt()),
+                                        modifier = Modifier.padding(8.dp).size(24.dp),
+                                    )
                                 }
                             }
                         }
@@ -323,7 +323,7 @@ private fun HabitSettingsDialog(
                                     if (activeFields.size > 1) {
                                         ReorderHandle(fieldOrder, habitField.id, habitField.name)
                                     }
-                                    Text(habitField.name, modifier = Modifier.weight(1f))
+                                    Text(habitTypeLabel(habitField.valueType), modifier = Modifier.weight(1f))
                                     if (habitField.valueType != HabitFieldForm.CHOICE) {
                                         TextButton(onClick = { onEditMeasurement(habitField) }) { Text("Edit") }
                                     }
@@ -361,30 +361,29 @@ private fun HabitSettingsDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                enabled = name.isNotBlank() &&
-                    (!hasNumericField || valid) &&
-                    choiceForms.values.all { it.canSave },
-                onClick = {
-                    onSave(
-                        tracker.copy(
-                            name = name,
-                            colourArgb = colour,
-                            iconName = iconName,
-                            heatmapLightBelow = light ?: tracker.heatmapLightBelow,
-                            heatmapMediumBelow = medium ?: tracker.heatmapMediumBelow,
-                        ),
-                        choiceForms.mapNotNull { (id, form) ->
-                            activeFields.find { it.id == id }?.let(form::applyTo)
-                        },
-                    )
-                },
-            ) { Text("Save settings") }
-        },
-        dismissButton = {
-            Row {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 TextButton(onClick = onArchiveHabit) { Text("Archive") }
+                Spacer(Modifier.weight(1f))
                 TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(
+                    enabled = name.isNotBlank() &&
+                        (!hasNumericField || valid) &&
+                        choiceForms.values.all { it.canSave },
+                    onClick = {
+                        onSave(
+                            tracker.copy(
+                                name = name,
+                                colourArgb = colour,
+                                iconName = iconName,
+                                heatmapLightBelow = light ?: tracker.heatmapLightBelow,
+                                heatmapMediumBelow = medium ?: tracker.heatmapMediumBelow,
+                            ),
+                            choiceForms.mapNotNull { (id, form) ->
+                                activeFields.find { it.id == id }?.let(form::applyTo)
+                            },
+                        )
+                    },
+                ) { Text("Save settings") }
             }
         },
     )

@@ -41,7 +41,7 @@ class HabitUiTest {
                     com.petermathie.vibetrainer.data.local.TrackerFieldEntity(
                         id = "mood",
                         trackerId = "tracker",
-                        name = "Mood",
+                        name = "Feeling",
                         valueType = "CHOICE",
                         unit = null,
                         targetComparison = null,
@@ -64,9 +64,9 @@ class HabitUiTest {
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Change colour").fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithContentDescription("Set Wellbeing icon Mood").assertExists().performClick()
         compose.onNodeWithText("Change colour").performClick()
         compose.onNodeWithContentDescription("Set Wellbeing colour 2").performClick()
-        compose.onNodeWithContentDescription("Set Wellbeing icon Mood").performClick()
         compose.onNodeWithText("Save settings").performClick()
         compose.waitUntil(15_000) {
             runBlocking {
@@ -76,7 +76,9 @@ class HabitUiTest {
             }
         }
         compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
-        compose.onNodeWithText("Choice shade scale").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Choose from a list").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Choice shade scale").assertDoesNotExist()
+        compose.onNodeWithText("Drag a choice across either line to change its shade.").assertDoesNotExist()
         compose.onNodeWithText("What would you like to track?").assertDoesNotExist()
         compose.onNodeWithText("Save settings").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Choose…").fetchSemanticsNodes().isNotEmpty() }
@@ -92,7 +94,7 @@ class HabitUiTest {
         assertEquals(0, field.choiceLightThrough)
         assertEquals(2, field.choiceDarkFrom)
         compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
-        compose.onNodeWithText("Choice shade scale").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Choose from a list").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Choice 3").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("What would you like to track?").assertDoesNotExist()
         compose.onNodeWithText("Heat-map intensity").assertDoesNotExist()
