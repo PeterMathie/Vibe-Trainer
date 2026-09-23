@@ -187,11 +187,15 @@ The final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugA
 
 ### UX-09 — Progress exercise eligibility
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Restrict the Progress exercise picker to exercises with at least one valid progress point from a finished workout.
-- [ ] Replace the shared 100-result catalogue picker so Progress has no artificial alphabetical cutoff and the complete eligible set can scroll.
-- [ ] Cover eligible/ineligible selection and deep scrolling, then run one final validation gate and inspect the installed screen.
+- [x] Restrict the Progress exercise picker to exercises with at least one valid performance or ROM progress point from a finished workout.
+- [x] Replace the shared 100-result catalogue picker so Progress has no artificial alphabetical cutoff and the complete eligible set can scroll.
+- [x] Cover eligible/ineligible selection and deep scrolling, then run one final validation gate and inspect the installed screen.
+
+Evidence: commit `5b6c7ec` gives Progress a dedicated lazy picker. Eligibility requires a finished workout row with either a valid completed working set or a recorded ROM value, so catalogue-only and archived exercises are absent while both performance and flexibility charts remain reachable. The shared picker’s `.take(100)` cap no longer applies. Search still matches eligible canonical names, aliases and mapped muscles, and an explicit empty result is shown.
+
+`ProgressUiTest` proves an exercise without history is excluded, an eligible exercise opens its charts, and the lazy picker can scroll to item 105 rather than stopping at the former 100-item boundary. Final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 34 unit tests and 43 API 35 instrumentation tests. The exact APK has SHA-256 `76c8bb5c6250de2a1f69bec5925a7037079a079640ee4f48424de0840ea73782`; `files/ux-09-final/progress-picker-5b6c7ec.png` shows only the eight demo exercises with qualifying history. MainActivity remains resumed with PID 26663 and no crash.
 
 ### QA-01 — Real-phone timers
 

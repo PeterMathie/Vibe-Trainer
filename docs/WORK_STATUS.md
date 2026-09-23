@@ -2,7 +2,9 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-09 Progress exercise eligibility is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. Progress will use a dedicated, fully scrollable picker containing only exercises with at least one valid progress point from a finished workout, removing the shared catalogue picker’s 100-result cutoff.
+Current implementation task: **UX-09 Progress exercise eligibility is complete at `5b6c7ec`** on `pmathie-cicpilot-persist-workout-drafts`. Progress now uses a dedicated lazy picker containing only exercises backed by a finished workout and either a valid completed working set or ROM measurement. Catalogue-only and archived exercises are excluded, while eligible name/alias/muscle search remains. The shared catalogue picker’s 100-result cap no longer applies.
+
+`ProgressUiTest` excludes an explicitly seeded no-history exercise, opens an eligible chart and scrolls through 105 eligible exercises to the final item. The final combined gate passed with 34 unit tests and 43 API 35 instrumentation tests. Exact APK SHA-256 is `76c8bb5c6250de2a1f69bec5925a7037079a079640ee4f48424de0840ea73782`. Installed screenshot `files/ux-09-final/progress-picker-5b6c7ec.png` shows the eight demo exercises with qualifying history; MainActivity remains resumed with PID 26663 and no AndroidRuntime crash.
 
 UX-08 stable drag and programme preview is complete at `bbe3818`. Direction-change hysteresis prevents boundary hover from immediately reversing a drag. Tapping a programme name smoothly expands every workout/day exercise and target summary read-only, with decorative motion disabled by the reduced-motion preference. The programme editor’s Back control is now a left chevron with an accessible label.
 
