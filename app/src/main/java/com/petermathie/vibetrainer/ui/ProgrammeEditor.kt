@@ -1,7 +1,14 @@
 package com.petermathie.vibetrainer.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -18,11 +26,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
 import com.petermathie.vibetrainer.domain.model.TrainingMode
 import com.petermathie.vibetrainer.domain.programme.ProgrammeEntryForm
+import com.petermathie.vibetrainer.ui.theme.LocalVibeReducedMotion
 
 @Composable
 fun ProgrammeEditor(
@@ -36,6 +46,7 @@ fun ProgrammeEditor(
     val entries by vm.entries.collectAsStateWithLifecycle()
     val exercises by vm.exercises.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedProgrammeId by rememberSaveable { mutableStateOf<String?>(null) }
     var rename by remember { mutableStateOf<ProgrammeEntity?>(null) }
     var editEntry by remember { mutableStateOf<ProgrammeExerciseEntity?>(null) }
     var addExerciseDayId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -51,6 +62,7 @@ fun ProgrammeEditor(
     val dayOrder = rememberReorderState(dayRows.map { it.id }) { key, from, to ->
         vm.moveDay(key as String, to - from)
     }
+    val reducedMotion = LocalVibeReducedMotion.current
     BackHandler(selected != null) { selected = null }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
@@ -59,7 +71,11 @@ fun ProgrammeEditor(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             ) {
-                if (selected != null) VibeActionButton("Back", { selected = null }, importance = ActionImportance.COMPACT)
+                if (selected != null) {
+                    IconButton(onClick = { selected = null }) {
+                        Icon(Icons.Outlined.ChevronLeft, contentDescription = "Back")
+                    }
+                }
                 Text(
                     if (selected == null) "Programmes" else "Edit programme",
                     modifier = Modifier.weight(1f),
@@ -71,15 +87,64 @@ fun ProgrammeEditor(
         if (selected == null) {
             item { Button(onClick = { rename = ProgrammeEntity(newId(), "", mode.name, false) }) { Text("Create programme") } }
             items(programmeOrder.ordered(programmeRows) { it.id }, key = { it.id }) { p ->
-                Card(Modifier.fillMaxWidth().animateItem()) {
+                val expanded = expandedProgrammeId == p.id
+                val previewDays = days.filter { it.programmeId == p.id }.sortedBy { it.position }
+                Card(Modifier.fillMaxWidth().animateItem().animateContentSize()) {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         if (programmeRows.size > 1) ReorderHandle(programmeOrder, p.id, p.name)
-                        Text(p.name, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            p.name,
+                            Modifier
+                                .weight(1f)
+                                .clickable {
+                                    expandedProgrammeId = if (expanded) null else p.id
+                                }
+                                .semantics {
+                                    stateDescription = if (expanded) "Exercises shown" else "Exercises hidden"
+                                },
+                            style = MaterialTheme.typography.titleLarge,
+                        )
                         IconButton(onClick = { selected = p.id }) {
                             Icon(Icons.Outlined.Edit, contentDescription = "Edit programme ${p.name}")
                         }
                         IconButton(onClick = { selected = p.id }) {
                             Icon(Icons.Outlined.PlayArrow, contentDescription = "Choose workout in ${p.name}")
+                        }
+                    }
+                    AnimatedVisibility(
+                        visible = expanded,
+                        enter = if (reducedMotion) EnterTransition.None else expandVertically() + fadeIn(),
+                        exit = if (reducedMotion) ExitTransition.None else shrinkVertically() + fadeOut(),
+                    ) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = 60.dp, end = 16.dp, bottom = 16.dp)
+                                .semantics { contentDescription = "Read-only exercises for ${p.name}" },
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            previewDays.forEach { day ->
+                                if (previewDays.size > 1) {
+                                    Text(day.name, style = MaterialTheme.typography.titleMedium)
+                                }
+                                val previewEntries = entries
+                                    .filter { it.programmeDayId == day.id }
+                                    .sortedBy { it.position }
+                                if (previewEntries.isEmpty()) {
+                                    Text("No exercises yet", style = MaterialTheme.typography.bodyMedium)
+                                } else {
+                                    previewEntries.forEach { entry ->
+                                        val exerciseName = exercises
+                                            .find { it.id == entry.exerciseId }
+                                            ?.canonicalName
+                                            .orEmpty()
+                                        Column {
+                                            Text(exerciseName, style = MaterialTheme.typography.bodyLarge)
+                                            Text(targetSummary(entry), style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

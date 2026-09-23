@@ -53,8 +53,16 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Duplicate").assertDoesNotExist()
         compose.onNodeWithText("Archive").assertDoesNotExist()
         compose.onNodeWithContentDescription("Reorder Alpha").assertDoesNotExist()
+        compose.onNodeWithText("Bench press").assertDoesNotExist()
+        compose.onNodeWithText("Alpha").performClick()
+        compose.onNodeWithContentDescription("Read-only exercises for Alpha").assertIsDisplayed()
+        compose.onNodeWithText("Bench press").assertIsDisplayed()
+        compose.onNodeWithText("3 sets · 5–8 reps · 120s rest").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Edit targets for Bench press").assertDoesNotExist()
         compose.onNodeWithContentDescription("Edit programme Alpha").performClick()
 
+        compose.onNodeWithContentDescription("Back").assertIsDisplayed()
+        compose.onNodeWithText("Back").assertDoesNotExist()
         compose.onNodeWithText("Strength").assertDoesNotExist()
         compose.onNodeWithText("Add workout").assertDoesNotExist()
         compose.onNode(hasSetTextAction() and hasText("Alpha")).assertIsDisplayed()
@@ -117,6 +125,29 @@ class ProgrammeUiTest {
                     .sortedBy { it.position }
                     .map { it.id }
             } == listOf("entry-b", "entry-a")
+        }
+    }
+
+    @Test
+    fun stretchingUsesTheSamePreviewAndDayReordering() {
+        seedStretchProgramme()
+        setProgrammeContent(mode = TrainingMode.STRETCHING) {}
+
+        compose.onNodeWithText("Stretching").performClick()
+        compose.onNodeWithContentDescription("Read-only exercises for Stretching").assertIsDisplayed()
+        compose.onNodeWithText("Front split").assertIsDisplayed()
+        compose.onNodeWithText("Forward fold").assertIsDisplayed()
+
+        compose.onNodeWithContentDescription("Edit programme Stretching").performClick()
+        compose.onNodeWithContentDescription("Reorder Front Splits").assertIsDisplayed()
+        dragDown("Reorder Front Splits")
+        compose.waitUntil(15_000) {
+            runBlocking {
+                database.editorDao().days().first()
+                    .filter { it.programmeId == "programme-stretch" }
+                    .sortedBy { it.position }
+                    .map { it.id }
+            } == listOf("day-fold", "day-splits")
         }
     }
 
@@ -191,17 +222,37 @@ class ProgrammeUiTest {
         }
     }
 
+    private fun seedStretchProgramme() {
+        createDatabase()
+        runBlocking {
+            val dao = database.editorDao()
+            dao.exercise(ExerciseEntity("stretch-split", "Front split", "STRETCHING", "ROM_MEASUREMENT", null, null, "custom", true))
+            dao.exercise(ExerciseEntity("stretch-fold", "Forward fold", "STRETCHING", "ROM_MEASUREMENT", null, null, "custom", true))
+            dao.programme(ProgrammeEntity("programme-stretch", "Stretching", "STRETCHING", false, position = 0))
+            dao.day(ProgrammeDayEntity("day-splits", "programme-stretch", "Front Splits", 0))
+            dao.day(ProgrammeDayEntity("day-fold", "programme-stretch", "Forward Fold", 1))
+            dao.entry(ProgrammeExerciseEntity("entry-split", "day-splits", "stretch-split", 0, 3, null, null, null, 60, null, "", null))
+            dao.entry(ProgrammeExerciseEntity("entry-fold", "day-fold", "stretch-fold", 0, 3, null, null, null, 60, null, "", null))
+        }
+    }
+
     private fun setProgrammeContent(
+        mode: TrainingMode = TrainingMode.STRENGTH,
         onModeChange: (TrainingMode) -> Unit = {},
         onStart: (String) -> Unit,
     ) {
         val viewModel = EditorViewModel(database)
         compose.setContent {
             VibeTrainerTheme {
-                ProgrammeEditor(viewModel, TrainingMode.STRENGTH, onModeChange, onStart)
+                ProgrammeEditor(viewModel, mode, onModeChange, onStart)
             }
         }
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("Alpha").fetchSemanticsNodes().isNotEmpty() || activeProgrammes().isEmpty() }
+        compose.waitUntil(15_000) {
+            val activeForMode = activeProgrammes().filter { it.mode == mode.name }
+            activeForMode.isEmpty() || activeForMode.any { programme ->
+                compose.onAllNodesWithText(programme.name).fetchSemanticsNodes().isNotEmpty()
+            }
+        }
     }
 
     private fun activeProgrammes() = runBlocking {

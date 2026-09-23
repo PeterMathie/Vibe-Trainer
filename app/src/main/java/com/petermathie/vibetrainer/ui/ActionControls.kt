@@ -85,6 +85,7 @@ class ReorderState internal constructor(
     private var draggingKey by mutableStateOf<Any?>(null)
     private var startIndex by mutableIntStateOf(-1)
     private var dragDistance by mutableFloatStateOf(0f)
+    private var lastMoveDirection by mutableIntStateOf(0)
 
     fun update(keys: List<Any>) {
         sourceKeys = keys
@@ -103,20 +104,25 @@ class ReorderState internal constructor(
         draggingKey = key
         startIndex = orderedKeys.indexOf(key)
         dragDistance = 0f
+        lastMoveDirection = 0
     }
 
     fun dragBy(delta: Float, threshold: Float) {
         val key = draggingKey ?: return
         dragDistance += delta
         var index = orderedKeys.indexOf(key)
-        while (dragDistance >= threshold && index < orderedKeys.lastIndex) {
+        val downThreshold = if (lastMoveDirection < 0) threshold * 1.5f else threshold
+        val upThreshold = if (lastMoveDirection > 0) threshold * 1.5f else threshold
+        while (dragDistance >= downThreshold && index < orderedKeys.lastIndex) {
             orderedKeys[index] = orderedKeys[index + 1].also { orderedKeys[index + 1] = key }
             dragDistance -= threshold
+            lastMoveDirection = 1
             index++
         }
-        while (dragDistance <= -threshold && index > 0) {
+        while (dragDistance <= -upThreshold && index > 0) {
             orderedKeys[index] = orderedKeys[index - 1].also { orderedKeys[index - 1] = key }
             dragDistance += threshold
+            lastMoveDirection = -1
             index--
         }
     }
@@ -128,6 +134,7 @@ class ReorderState internal constructor(
         draggingKey = null
         dragDistance = 0f
         startIndex = -1
+        lastMoveDirection = 0
         if (initialIndex >= 0 && endIndex >= 0 && initialIndex != endIndex) {
             onMove(key, initialIndex, endIndex)
         }
@@ -137,6 +144,7 @@ class ReorderState internal constructor(
         draggingKey = null
         dragDistance = 0f
         startIndex = -1
+        lastMoveDirection = 0
         orderedKeys.clear()
         orderedKeys.addAll(sourceKeys)
     }
