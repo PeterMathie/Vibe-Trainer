@@ -20,6 +20,10 @@ class ExerciseEditorUiTest {
 
     @Test
     fun canonicalSettingsCanBeEditedForSeededExercise() {
+        val preferences = androidx.test.core.app.ApplicationProvider
+            .getApplicationContext<android.content.Context>()
+            .getSharedPreferences("settings", 0)
+        preferences.edit().putBoolean("lb", true).commit()
         val exercise = ExerciseEntity(
             "handstand", "Handstand", "STRENGTH", "SKILL_HOLD", null, null, "core", false,
         )
@@ -35,6 +39,8 @@ class ExerciseEditorUiTest {
         }
 
         compose.onNodeWithText("Exercise settings").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Weight (lb)").assertExists()
+        compose.onNodeWithContentDescription("Weight (kg)").assertDoesNotExist()
         compose.onNodeWithContentDescription("Time under tension (seconds)").performClick()
         compose.onNodeWithContentDescription("Sets").performTextInput("4")
         compose.onNodeWithContentDescription("Rest seconds").performTextClearance()
@@ -47,5 +53,6 @@ class ExerciseEditorUiTest {
         assertTrue(config.timeUnderTension)
         assertEquals(4, result.targetSets)
         assertEquals(90, result.restSeconds)
+        preferences.edit().putBoolean("lb", false).commit()
     }
 }

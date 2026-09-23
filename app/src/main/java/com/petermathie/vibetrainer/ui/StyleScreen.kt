@@ -1,5 +1,6 @@
 package com.petermathie.vibetrainer.ui
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -92,22 +93,56 @@ internal fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemov
 
 @Composable
 private fun PaletteCard(palette: VibePalette, selected: Boolean, onSelect: () -> Unit) {
+    val colors = listOf(
+        palette.background,
+        palette.surface,
+        palette.surfaceRaised,
+        palette.surfaceSelected,
+        palette.accent,
+        palette.onAccent,
+        palette.textPrimary,
+        palette.textSecondary,
+        palette.textFaint,
+        palette.border,
+        palette.diagramBackground,
+        palette.diagramBody,
+        palette.diagramLine,
+        palette.recencyUnder24,
+        palette.recency24To48,
+        palette.recency48To72,
+        palette.recency3To7,
+        palette.recencyOver7,
+        palette.recencyNever,
+        palette.heatmapNeutral,
+        palette.heatmapOne,
+        palette.heatmapTwo,
+        palette.heatmapThreePlus,
+        palette.danger,
+    )
     Card(
         onClick = onSelect,
         colors = CardDefaults.cardColors(containerColor = LocalVibePalette.current.surface),
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) LocalVibePalette.current.accent else LocalVibePalette.current.border),
         shape = RoundedCornerShape(VibeShapes.card),
     ) {
-        Row(
+        Column(
             Modifier.fillMaxWidth().padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            listOf(palette.accent, palette.recencyUnder24, palette.heatmapThreePlus).forEach { color ->
-                Box(Modifier.size(28.dp).background(color, RoundedCornerShape(50)))
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(palette.displayName, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                if (selected) Icon(Icons.Outlined.Check, "Selected")
             }
-            Text(palette.displayName, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-            if (selected) Icon(Icons.Outlined.Check, "Selected")
+            colors.chunked(8).forEach { rowColors ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    rowColors.forEach { color ->
+                        Box(Modifier.size(18.dp).background(color, RoundedCornerShape(50)))
+                    }
+                }
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -28,18 +29,36 @@ fun ExerciseEditor(vm: EditorViewModel) {
     var variation by remember { mutableStateOf<String?>(null) }
     val matchingMuscles=muscles.filter { it.displayName.contains(query,true) }.map { it.id }.toSet()
     val matchingIds=mappings.filter { it.muscleId in matchingMuscles }.map { it.exerciseId }.toSet()+aliases.filter { it.alias.contains(query,true) }.map { it.exerciseId }
+    val filteredExercises = exercises.filter {
+        !it.isArchived && (it.canonicalName.contains(query, true) || it.id in matchingIds)
+    }
+    val groupedExercises = filteredExercises
+        .filter { it.tag != "STRETCHING" }
+        .map { "Strength exercises" to it } +
+        filteredExercises
+            .filter { it.tag == "STRETCHING" }
+            .map { "Stretching exercises" to it }
     LazyColumn(Modifier.fillMaxSize(), contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-        item { Text("Exercises",style=MaterialTheme.typography.headlineSmall); EditField("Name, alias or muscle",query){query=it}; Button(onClick={selected=ExerciseEntity(newId(),"","STRENGTH","WEIGHT_REPS",null,null,"custom",true)}){Text("Custom exercise")} }
-        items(exercises.filter { !it.isArchived && (it.canonicalName.contains(query,true)||it.id in matchingIds) },key={it.id}) { e ->
-            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+        item {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Exercises",style=MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                Button(onClick={selected=ExerciseEntity(newId(),"","STRENGTH","WEIGHT_REPS",null,null,"custom",true)}){Text("Custom exercise")}
+            }
+            EditField("Name, alias or muscle",query){query=it}
+        }
+        items(groupedExercises,key={it.second.id}) { (section, e) ->
+            if (groupedExercises.firstOrNull { it.first == section }?.second?.id == e.id) {
+                Text(section, style = MaterialTheme.typography.titleLarge)
+            }
+            VibeCard {
                 Text(e.canonicalName,style=MaterialTheme.typography.titleMedium)
                 Text(mappings.filter { it.exerciseId==e.id }.joinToString { m -> "${muscles.find { it.id==m.muscleId }?.displayName} (${m.role.lowercase()})" },style=MaterialTheme.typography.bodySmall)
-                Row {
-                    VibeActionButton("Settings", { configuring=e }, importance = ActionImportance.COMPACT)
-                    VibeActionButton(if(e.isCustom)"Edit" else "Duplicate", { selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id) }, importance = ActionImportance.COMPACT)
-                    VibeActionButton("Add variation", { variation=e.id }, importance = ActionImportance.COMPACT)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VibeActionButton("Settings", { configuring=e }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
+                    VibeActionButton(if(e.isCustom)"Edit" else "Duplicate", { selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id) }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
+                    VibeActionButton("Variation", { variation=e.id }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
                 }
-                if(e.isCustom) VibeActionButton("Archive", { vm.saveExercise(e.copy(isArchived=true),aliases.filter { it.exerciseId==e.id }.map { it.alias },mappings.filter { it.exerciseId==e.id }.associate { it.muscleId to it.role }) }, importance = ActionImportance.COMPACT)
+                if(e.isCustom) VibeActionButton("Archive", { vm.saveExercise(e.copy(isArchived=true),aliases.filter { it.exerciseId==e.id }.map { it.alias },mappings.filter { it.exerciseId==e.id }.associate { it.muscleId to it.role }) }, importance = ActionImportance.SECONDARY)
                 val seededVariations = variations.filter { it.exerciseId==e.id && it.isSeeded }.sortedBy { it.progressionRank }
                 val customVariations = variations.filter { it.exerciseId==e.id && !it.isSeeded }.sortedBy { it.progressionRank }
                 val variationOrder = rememberReorderState(customVariations.map { it.id }) { key, from, to ->
@@ -51,7 +70,7 @@ fun ExerciseEditor(vm: EditorViewModel) {
                         Text(v.name,Modifier.weight(1f))
                     }
                 }
-            } }
+            }
         }
     }
     variation?.let { id -> NameDialog("Variation name","",{variation=null}) { vm.save(ExerciseVariationEntity(newId(),id,it,(variations.filter { it.exerciseId==id }.maxOfOrNull { it.progressionRank } ?: 0)+1,false));variation=null } }
@@ -88,8 +107,11 @@ internal fun ExerciseSettingsDialog(
         onDismiss: () -> Unit,
         onSave: (ExerciseEntity) -> Unit,
     ) {
+        val pounds = LocalContext.current.getSharedPreferences("settings", 0).getBoolean("lb", false)
+        val weightUnit = if (pounds) "lb" else "kg"
         var config by remember(exercise.id) {
-            mutableStateOf(ExerciseInputConfig.decode(exercise.inputConfig, exercise.trackingType))
+            val decoded = ExerciseInputConfig.decode(exercise.inputConfig, exercise.trackingType)
+            mutableStateOf(if (decoded.weightUnit == null) decoded else decoded.copy(weightUnit = weightUnit))
         }
         var sets by remember(exercise.id) { mutableStateOf(exercise.targetSets?.toString().orEmpty()) }
         var minimum by remember(exercise.id) { mutableStateOf(exercise.targetRepsMin?.toString().orEmpty()) }
@@ -104,11 +126,8 @@ internal fun ExerciseSettingsDialog(
                     item {
                         Text(exercise.canonicalName, style = MaterialTheme.typography.titleMedium)
                         Text("Resistance", style = MaterialTheme.typography.titleMedium)
-                        ExerciseSettingCheckbox("Weight (kg)", config.weightUnit == "kg") {
-                            config = config.copy(weightUnit = if (it) "kg" else null)
-                        }
-                        ExerciseSettingCheckbox("Weight (lb)", config.weightUnit == "lb") {
-                            config = config.copy(weightUnit = if (it) "lb" else null)
+                        ExerciseSettingCheckbox("Weight ($weightUnit)", config.weightUnit == weightUnit) {
+                            config = config.copy(weightUnit = if (it) weightUnit else null)
                         }
                         ExerciseSettingCheckbox("Band resistance", config.bandResistance) {
                             config = config.copy(bandResistance = it)

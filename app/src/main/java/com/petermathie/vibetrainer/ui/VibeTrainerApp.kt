@@ -1,5 +1,7 @@
 package com.petermathie.vibetrainer.ui
 
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.OutlinedButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -93,11 +95,11 @@ internal enum class Destination(val label: String, val icon: ImageVector) {
     ACTIVE_WORKOUT("Workout", Icons.Outlined.PlayArrow),
     PROGRESS("Progress", Icons.Outlined.BarChart),
     MORE("More", Icons.Outlined.MoreHoriz),
-    EXERCISES("Exercises", Icons.Outlined.LibraryBooks),
+    EXERCISES("Exercises", Icons.Outlined.FitnessCenter),
     HABITS("Habits", Icons.Outlined.Check),
     HISTORY("History", Icons.Outlined.LibraryBooks),
     MEASUREMENTS("Body", Icons.Outlined.AccessibilityNew),
-    SETTINGS("Settings", Icons.Outlined.Palette),
+    SETTINGS("Settings", Icons.Outlined.Settings),
     STYLE("Style", Icons.Outlined.Palette),
 }
 
@@ -226,13 +228,19 @@ internal fun MoreScreen(onSelect: (Destination) -> Unit) {
     ScreenList {
         item { Text("More", style = MaterialTheme.typography.headlineLarge) }
         items(moreDestinations.toList(), key = { it.name }) { destination ->
-            VibeActionButton(
-                label = destination.label,
+            OutlinedButton(
                 onClick = { onSelect(destination) },
                 modifier = Modifier.fillMaxWidth(),
-                importance = ActionImportance.SECONDARY,
-                icon = destination.icon,
-            )
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(destination.icon, contentDescription = null)
+                    Spacer(Modifier.width(12.dp))
+                    Text(destination.label)
+                }
+            }
         }
     }
 }

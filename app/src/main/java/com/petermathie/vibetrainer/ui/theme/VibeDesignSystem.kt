@@ -93,7 +93,62 @@ object VibePalettes {
         border = Color(0xFF3C3F47),
     )
 
-    val builtIns: Map<String, VibePalette> = listOf(MidnightLime, GraphiteCoral).associateBy { it.id }
+    val OceanCyan = MidnightLime.copy(
+        id = "ocean-cyan",
+        displayName = "Ocean Cyan",
+        background = Color(0xFF06141F),
+        surface = Color(0xFF0D2230),
+        surfaceRaised = Color(0xFF153243),
+        surfaceSelected = Color(0xFF204657),
+        accent = Color(0xFF55D9F3),
+        onAccent = Color(0xFF001417),
+        border = Color(0xFF2A5264),
+    )
+
+    val PlumOrchid = MidnightLime.copy(
+        id = "plum-orchid",
+        displayName = "Plum Orchid",
+        background = Color(0xFF160D1C),
+        surface = Color(0xFF24152C),
+        surfaceRaised = Color(0xFF34203E),
+        surfaceSelected = Color(0xFF493052),
+        accent = Color(0xFFE6A6F2),
+        onAccent = Color(0xFF210526),
+        border = Color(0xFF5B4063),
+    )
+
+    val AmberSlate = MidnightLime.copy(
+        id = "amber-slate",
+        displayName = "Amber Slate",
+        background = Color(0xFF15120D),
+        surface = Color(0xFF242019),
+        surfaceRaised = Color(0xFF332D23),
+        surfaceSelected = Color(0xFF484033),
+        accent = Color(0xFFFFC857),
+        onAccent = Color(0xFF211500),
+        border = Color(0xFF5C513F),
+    )
+
+    val ForestMint = MidnightLime.copy(
+        id = "forest-mint",
+        displayName = "Forest Mint",
+        background = Color(0xFF07140F),
+        surface = Color(0xFF10231B),
+        surfaceRaised = Color(0xFF193429),
+        surfaceSelected = Color(0xFF26483A),
+        accent = Color(0xFF79E6B1),
+        onAccent = Color(0xFF001B0F),
+        border = Color(0xFF355C4A),
+    )
+
+    val builtIns: Map<String, VibePalette> = listOf(
+        MidnightLime,
+        GraphiteCoral,
+        OceanCyan,
+        PlumOrchid,
+        AmberSlate,
+        ForestMint,
+    ).associateBy { it.id }
 
     /** Public factory used by future user-authored palettes and design experiments. */
     fun custom(id: String, name: String, base: VibePalette = MidnightLime, transform: VibePalette.() -> VibePalette): VibePalette =
