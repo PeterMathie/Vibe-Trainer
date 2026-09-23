@@ -156,89 +156,91 @@ private fun HabitSettingsDialog(
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
-                    EditField("Habit name", name) { name = it }
-                    OutlinedButton(
-                        onClick = { coloursOpen = !coloursOpen },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Box(Modifier.size(20.dp).background(Color(colour.toInt()), CircleShape))
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (coloursOpen) "Hide colours" else "Change colour")
-                    }
-                    if (coloursOpen) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        EditField("Habit name", name) { name = it }
+                        OutlinedButton(
+                            onClick = { coloursOpen = !coloursOpen },
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            HABIT_COLOURS.forEachIndexed { index, option ->
-                                Box(
-                                    Modifier
-                                        .size(if (colour == option) 38.dp else 34.dp)
-                                        .background(Color(option.toInt()), CircleShape)
-                                        .semantics {
-                                            contentDescription = "Set ${tracker.name} colour ${index + 1}"
-                                        }
-                                        .clickable { colour = option },
-                                )
-                            }
+                            Box(Modifier.size(20.dp).background(Color(colour.toInt()), CircleShape))
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (coloursOpen) "Hide colours" else "Change colour")
                         }
-                    }
-                    Text("Heat-map intensity", style = MaterialTheme.typography.titleMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = lightBelow,
-                            onValueChange = { lightBelow = it },
-                            label = { Text("Light below$suffix") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                        OutlinedTextField(
-                            value = mediumBelow,
-                            onValueChange = { mediumBelow = it },
-                            label = { Text("Dark from$suffix") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    Text(
-                        if (valid) {
-                            "Values from ${formatThreshold(light!!)} to under ${formatThreshold(medium!!)}${unit?.let { " $it" }.orEmpty()} use the medium shade."
-                        } else {
-                            "Dark from must be greater than Light below."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Text("Measurements", style = MaterialTheme.typography.titleMedium)
-                    fieldOrder.ordered(activeFields) { it.id }.forEach { habitField ->
-                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            if (activeFields.size > 1) {
-                                ReorderHandle(fieldOrder, habitField.id, habitField.name)
-                            }
-                            Text(habitField.name, modifier = Modifier.weight(1f))
-                            TextButton(onClick = { onEditMeasurement(habitField) }) { Text("Edit") }
-                            TextButton(onClick = { onArchiveMeasurement(habitField) }) { Text("Archive") }
-                        }
-                    }
-                    VibeActionButton(
-                        "Add measurement",
-                        { onAddMeasurement(activeFields.size) },
-                        modifier = Modifier.fillMaxWidth(),
-                        importance = ActionImportance.SECONDARY,
-                    )
-                    if (archivedFields.isNotEmpty()) {
-                        Text("Archived measurements", style = MaterialTheme.typography.labelLarge)
-                        archivedFields.forEach { archived ->
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                Text(archived.name, modifier = Modifier.weight(1f))
-                                TextButton(onClick = { onRestoreMeasurement(archived, activeFields.size) }) {
-                                    Text("Restore")
+                        if (coloursOpen) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                HABIT_COLOURS.forEachIndexed { index, option ->
+                                    Box(
+                                        Modifier
+                                            .size(if (colour == option) 38.dp else 34.dp)
+                                            .background(Color(option.toInt()), CircleShape)
+                                            .semantics {
+                                                contentDescription = "Set ${tracker.name} colour ${index + 1}"
+                                            }
+                                            .clickable { colour = option },
+                                    )
                                 }
                             }
                         }
+                        Text("Heat-map intensity", style = MaterialTheme.typography.titleMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = lightBelow,
+                                onValueChange = { lightBelow = it },
+                                label = { Text("Light below$suffix") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                            OutlinedTextField(
+                                value = mediumBelow,
+                                onValueChange = { mediumBelow = it },
+                                label = { Text("Dark from$suffix") },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        Text(
+                            if (valid) {
+                                "Values from ${formatThreshold(light!!)} to under ${formatThreshold(medium!!)}${unit?.let { " $it" }.orEmpty()} use the medium shade."
+                            } else {
+                                "Dark from must be greater than Light below."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Text("Measurements", style = MaterialTheme.typography.titleMedium)
+                        fieldOrder.ordered(activeFields) { it.id }.forEach { habitField ->
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                if (activeFields.size > 1) {
+                                    ReorderHandle(fieldOrder, habitField.id, habitField.name)
+                                }
+                                Text(habitField.name, modifier = Modifier.weight(1f))
+                                TextButton(onClick = { onEditMeasurement(habitField) }) { Text("Edit") }
+                                TextButton(onClick = { onArchiveMeasurement(habitField) }) { Text("Archive") }
+                            }
+                        }
+                        VibeActionButton(
+                            "Add measurement",
+                            { onAddMeasurement(activeFields.size) },
+                            modifier = Modifier.fillMaxWidth(),
+                            importance = ActionImportance.SECONDARY,
+                        )
+                        if (archivedFields.isNotEmpty()) {
+                            Text("Archived measurements", style = MaterialTheme.typography.labelLarge)
+                            archivedFields.forEach { archived ->
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Text(archived.name, modifier = Modifier.weight(1f))
+                                    TextButton(onClick = { onRestoreMeasurement(archived, activeFields.size) }) {
+                                        Text("Restore")
+                                    }
+                                }
+                            }
+                        }
+                        TextButton(onClick = onArchiveHabit) { Text("Archive habit") }
                     }
-                    TextButton(onClick = onArchiveHabit) { Text("Archive habit") }
                 }
             }
         },

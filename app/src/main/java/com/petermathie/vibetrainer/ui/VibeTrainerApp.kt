@@ -63,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -308,7 +309,7 @@ internal fun HomeScreen(
                     view = AnatomyView.FRONT,
                     states = state.recency.associate { it.muscleId to it.band },
                     onMuscleTap = { selectedMuscle = it },
-                    modifier = Modifier.weight(1f).fillMaxSize(),
+                    modifier = Modifier.weight(1f).fillMaxSize().graphicsLayer(scaleX = 1.12f, scaleY = 1.12f),
                     selectedMuscleId = selectedMuscle,
                 )
                 MuscleMap(
@@ -316,7 +317,7 @@ internal fun HomeScreen(
                     view = AnatomyView.BACK,
                     states = state.recency.associate { it.muscleId to it.band },
                     onMuscleTap = { selectedMuscle = it },
-                    modifier = Modifier.weight(1f).fillMaxSize(),
+                    modifier = Modifier.weight(1f).fillMaxSize().graphicsLayer(scaleX = 1.12f, scaleY = 1.12f),
                     selectedMuscleId = selectedMuscle,
                 )
             }
@@ -353,7 +354,7 @@ internal fun HomeScreen(
             }
         }
         VibeCard {
-            Text("LAST 5 WEEKS", color = palette.accent, style = MaterialTheme.typography.labelLarge)
+            Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelLarge)
             ActivityHeatmap(state.activityDays, onDayClick, compact = true)
             Text("0 neutral · 1 light · 2 medium · 3+ dark", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
         }

@@ -111,6 +111,7 @@ class ProgressUiTest {
         compose.onNodeWithText("All variations").performClick()
         compose.onNodeWithText("Variations").assertIsDisplayed()
         compose.onAllNodes(hasContentDescription("Progress chart", substring = true)).assertCountEquals(4)
+        compose.onNodeWithContentDescription("0 to 10 RPE", substring = true).assertExists()
         compose.onNodeWithText("Personal records").assertExists()
         compose.onNodeWithText("Best performance").assertExists()
         compose.onNodeWithText("Longest hold").assertExists()

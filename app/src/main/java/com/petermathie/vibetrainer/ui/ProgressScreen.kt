@@ -194,7 +194,10 @@ fun ProgressScreen(vm:EditorViewModel) {
                                     val last=points.mapNotNull { it.trend }.takeLast(2)
                                     if(last.size==2) Text(if(last[1]>last[0]*1.01)"Rising" else if(last[1]<last[0]*0.99)"Falling" else "Flat")
                                     Text("RPE")
-                                    MiniChart(points.map { it.performance.rpe ?: Double.NaN },dates=points.map { it.date },unit="RPE"){selected=it}
+                                    RpeBarChart(
+                                        values = points.map { it.performance.rpe ?: Double.NaN },
+                                        dates = points.map { it.date },
+                                    ) { selected = it }
                                     selected?.let { points.getOrNull(it) }?.let { p ->
                                         Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")
                                         Text("Bands: ${p.bands.joinToString().ifBlank { "None" }} · RPE ${p.performance.rpe ?: "not recorded"}")
@@ -510,6 +513,61 @@ fun MiniChart(values:List<Double>,smooth:List<Double?> = emptyList(),dates:List<
             Text(formatChartDate(dates.lastOrNull()),style=MaterialTheme.typography.labelSmall,textAlign=TextAlign.End,modifier=Modifier.weight(1f))
         }
         Text("${formatAxis(min)} $unit",style=MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+private fun RpeBarChart(values: List<Double>, dates: List<Long>, onSelect: (Int) -> Unit) {
+    if (values.none(Double::isFinite)) return
+    val color = MaterialTheme.colorScheme.primary
+    val axis = MaterialTheme.colorScheme.outline
+    fun select(x: Float, width: Float) {
+        if (values.isNotEmpty()) onSelect(((x / width) * values.size).toInt().coerceIn(values.indices))
+    }
+    Column(
+        Modifier.semantics {
+            contentDescription =
+                "Progress chart from ${formatChartDate(dates.firstOrNull())} to ${formatChartDate(dates.lastOrNull())}, 0 to 10 RPE"
+        },
+    ) {
+        Text("10 RPE", style = MaterialTheme.typography.labelSmall)
+        Canvas(
+            Modifier.fillMaxWidth().height(130.dp)
+                .pointerInput(values) { detectTapGestures { select(it.x, size.width.toFloat()) } }
+                .pointerInput(values) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.type == PointerEventType.Move || event.type == PointerEventType.Enter) {
+                                event.changes.firstOrNull()?.position?.let { select(it.x, size.width.toFloat()) }
+                            }
+                        }
+                    }
+                },
+        ) {
+            val left = 12f
+            val bottom = size.height - 10f
+            val top = 4f
+            val slot = (size.width - left) / values.size
+            val barWidth = (slot * 0.72f).coerceAtLeast(1f)
+            drawLine(axis, Offset(left, top), Offset(left, bottom), 2f)
+            drawLine(axis, Offset(left, bottom), Offset(size.width, bottom), 2f)
+            values.forEachIndexed { index, value ->
+                if (value.isFinite()) {
+                    val height = ((value.coerceIn(0.0, 10.0) / 10.0) * (bottom - top)).toFloat()
+                    drawRect(
+                        color = color,
+                        topLeft = Offset(left + index * slot + (slot - barWidth) / 2f, bottom - height),
+                        size = androidx.compose.ui.geometry.Size(barWidth, height),
+                    )
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth()) {
+            Text(formatChartDate(dates.firstOrNull()), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+            Text(formatChartDate(dates.lastOrNull()), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+        }
+        Text("0 RPE", style = MaterialTheme.typography.labelSmall)
     }
 }
 
