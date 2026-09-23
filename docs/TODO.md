@@ -479,13 +479,17 @@ Evidence: commit `386a598` implements the shared chart/calendar/day selection an
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
 
 - [x] Replace comma-separated list configuration with draggable, named choice rows ordered from lightest to darkest.
-- [x] Preview every choice in the habit colour and expose explicit last-light and first-dark boundary selectors.
+- [x] Preview every choice in the habit colour and show fixed Light/Medium and Medium/Dark divider lines.
 - [x] Persist choice order and shade boundaries and use them for Progress heat-map intensity.
 - [x] Add a reusable habit icon catalogue, persist each habit’s icon and render it on the compact card.
 - [x] Replace the full-width card settings action with an accessible pencil action.
+- [x] Edit choice lists directly in the main habit settings dialog with compact rows; adding defaults to Medium and dragging across a divider changes shade.
+- [x] Save daily habit values automatically and remove the separate daily Save action.
 - [x] Preserve existing databases through an explicit Room 10→11 migration and schema export.
 
 Evidence: commit `5ce5fb2` implements the visual editor, icon catalogue and preserving schema 11 migration. Unit tests and debug app/test assembly passed. Focused API 35 `HabitUiTest` (2), `ProgressUiTest` (2) and the 10→11 migration test passed; coverage proves icon persistence, accessible choice reordering, persisted boundaries, boundary-driven Mood intensity and preservation of existing tracker/field values. Exact APK SHA-256 is `38bff4fe233e4b7cddb9933e91ceeedeb11500dd08d764f033bc7e23c90d2b10`; installed evidence is under `files/ux-25-habit-choice/`.
+
+Follow-up commits `4439ea3` and `0e9e3ce` move the full list editor into the main habit settings dialog, replace boundary selectors with spatial divider lines, autosave daily input, move the pencil into the title row and shorten each choice box. Unit tests and API 35 `HabitUiTest` (2) passed after the compact-row change; the preceding inline-editor checkpoint also passed `ProgressUiTest` (2) and debug app/test assembly. The installed APK SHA-256 is `f52a20948af92ce1268e1472cadfa39db8c2d9c4067d96c511dc5c42fd0987d8`; inspected evidence is under `files/ux-26-inline-habits/`.
 
 ## Intentionally deferred
 
