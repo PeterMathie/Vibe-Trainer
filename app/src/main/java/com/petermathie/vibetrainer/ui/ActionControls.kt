@@ -182,7 +182,7 @@ fun ReorderHandle(
     val reducedMotion = LocalVibeReducedMotion.current
     val dragging = state.isDragging(itemKey)
     val highlight by animateColorAsState(
-        if (dragging) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent,
+        if (dragging) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
         if (reducedMotion) snap() else tween(120),
         label = "reorder handle highlight",
     )
