@@ -65,20 +65,33 @@ UI-01f (emulator screenshot review): **COMPLETED**. Owner: GitHub Copilot sessio
 - [x] Check every relevant SVG region, selected outlines and TalkBack actions.
 - [x] Capture screenshots and report concrete defects; add focused regression coverage.
 
-### UX-02 — Programme editing and primary navigation correction
+### UX-02 — End-user controls, navigation and programme flow
 
 Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
 
-Scope: correct the product-facing discoverability defect reported after UI-01. Programme cards will expose an explicit primary **Edit programme** action that opens their days. Programme-day cards will expose explicit **Edit workout** and **Start workout** peer actions. Rename, duplicate, archive/delete and reordering will remain available but move into a clearly secondary edit/overflow context instead of dominating list cards. The horizontally scrolling ten-destination strip will be replaced with a fixed compact primary bar for Home, Programmes, Workout, Progress and More; More will visibly expose Exercises, Habits, History, Body, Settings and Style without horizontal swiping.
+The initial docs-only claim at `160e9cc` is superseded by the user-approved three-checkpoint scope below. Preserve data/domain behavior and the established visual language; do not redesign Strength/Stretch behavior.
 
-Acceptance plan:
+Checkpoint 1 — global controls and Home:
 
-- [ ] End-user Compose coverage proves visible **Edit programme** opens programme days.
-- [ ] End-user Compose coverage proves visible **Edit workout** opens the exercise/target editor and **Start workout** still invokes workout start.
-- [ ] Programme/day list cards keep secondary management controls out of the primary flow while preserving their functionality in an accessible secondary context.
-- [ ] A visible fixed **More** destination exposes **Habits**, and selecting it opens the habit tracker; primary navigation fits a phone width without horizontal scrolling.
-- [ ] Focused programme/navigation suites and the full unit/instrumentation/debug build pass.
-- [ ] Install the exact resulting APK on the visible emulator and inspect programme/navigation screenshots before recording final evidence.
+- [ ] Remove the repeated product/header copy from page content and remove the three specified Home headings while retaining the recency maps and heat map as the visual focus.
+- [ ] Replace naked clickable action text with reusable, importance-appropriate action controls.
+- [ ] Replace textual reorder controls in every ordered list with a consistent six-dot drag handle, stable-key drag/drop, placement animation, persistence on completed drag and accessibility reorder actions.
+- [ ] Keep Earlier, date range and Later in one coherent Home row; add focused semantics/interaction evidence.
+
+Checkpoint 2 — discoverable navigation:
+
+- [ ] Remove Workout as a top-level destination while retaining contextual active-workout access.
+- [ ] Replace the horizontally scrolling destination row with a fixed Home/Programmes/Progress/More bar.
+- [ ] More visibly exposes Exercises, Habits, History, Body, Settings and Style; Compose coverage proves Habits is reachable without horizontal swiping.
+
+Checkpoint 3 — programme user flow:
+
+- [ ] Programme list cards show name, edit pencil, start/play affordance and drag handle only; secondary actions live in the editor.
+- [ ] A coherent programme editor exposes rename, duplicate, archive/delete, workout/day and exercise management.
+- [ ] Workout/day exercise summaries are visible by default, with prominent Start and a small edit pencil.
+- [ ] Programme/day/exercise drag interactions persist order; creation, targets/rest/groups/notes and start/finish behavior remain available.
+- [ ] End-user Compose tests cover edit/start/default exercise visibility/secondary-action placement plus drag persistence.
+- [ ] Run focused validation after every checkpoint, full unit/instrumentation/debug validation at the end, then install and inspect the exact APK on the visible emulator with Home, navigation/More, programme-list and programme-editor screenshots.
 
 ### QA-01 — Real-phone timers
 
