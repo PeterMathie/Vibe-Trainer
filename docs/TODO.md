@@ -131,6 +131,14 @@ Focused `ProgrammeUiTest`, `HistoryUiTest`, `EndUserControlsTest` and `HabitUiTe
 
 The exact `7d96f8b` debug APK has SHA-256 `626cf6d3ce834fbeaaf823822eb0578c7f0d894a218b4ea836d83069aff0259e`. It installed and cold-launched on visible `vibe-log01-api35` (Android 15/API 35); MainActivity remained resumed with PID 15321 and the crash log contained no AndroidRuntime failure. Screenshots under `files/ux-04-final/` show Home, the programme list, the programme editor’s top and bottom, and historical-day details. Inspection found no clipping, overlap or unresolved defect in this slice. Real-phone behavior remains governed by QA-01 and was not claimed.
 
+### UX-05 — Remove duplicated workout-card controls
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+- [ ] Remove the duplicated workout title, Rename workout action and Delete workout action from the expanded programme workout card.
+- [ ] Preserve Start workout, exercise editing/reordering/removal and the full-width Add exercise control.
+- [ ] Update focused end-user coverage, validate, install and inspect the exact build.
+
 ### QA-01 — Real-phone timers
 
 - [ ] Record phone model, Android version and notification/alarm permissions.
