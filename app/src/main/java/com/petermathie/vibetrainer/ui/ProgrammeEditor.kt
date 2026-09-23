@@ -70,10 +70,20 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
             val programme = programmes.find { it.id == selected }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VibeActionButton(
+                        "Rename programme",
+                        { programme?.let { rename = it } },
+                        modifier = Modifier.fillMaxWidth(),
+                        importance = ActionImportance.SECONDARY,
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        VibeActionButton("Rename programme", { programme?.let { rename = it } }, importance = ActionImportance.SECONDARY)
-                        VibeActionButton("Duplicate", { programme?.let(vm::duplicate) }, importance = ActionImportance.COMPACT)
-                        VibeActionButton("Archive", { programme?.let { vm.save(it.copy(isArchived = true)); selected = null } }, importance = ActionImportance.COMPACT)
+                        VibeActionButton("Duplicate", { programme?.let(vm::duplicate) }, modifier = Modifier.weight(1f), importance = ActionImportance.COMPACT)
+                        VibeActionButton(
+                            "Archive",
+                            { programme?.let { vm.save(it.copy(isArchived = true)); selected = null } },
+                            modifier = Modifier.weight(1f),
+                            importance = ActionImportance.COMPACT,
+                        )
                     }
                     VibeActionButton(
                         "Add workout",
