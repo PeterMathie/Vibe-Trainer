@@ -67,6 +67,8 @@ class WorkoutEntryDraftTest {
             warmUp = true,
             bandIds = "[\"band:red\"]",
             leftValue = "6",
+            timeHeld = "12",
+            timeUnderTension = "30",
         )
         database.editorDao().entryDraft(draft)
 
@@ -173,6 +175,7 @@ class WorkoutEntryDraftTest {
                 com.petermathie.vibetrainer.data.local.MIGRATION_3_4,
                 com.petermathie.vibetrainer.data.local.MIGRATION_4_5,
                 com.petermathie.vibetrainer.data.local.MIGRATION_5_6,
+                com.petermathie.vibetrainer.data.local.MIGRATION_6_7,
             )
             .build()
         repository = TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao())

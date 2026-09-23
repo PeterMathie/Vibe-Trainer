@@ -94,6 +94,7 @@ class TrainingRepository @Inject constructor(
                 exerciseName = row.canonicalName,
                 trackingType = row.trackingType,
                 targets = target?.let { "${it.targetSets ?: 3} sets · ${it.targetRepsMin ?: it.targetHoldSeconds ?: 0}${if(it.targetHoldSeconds!=null) " seconds" else " reps"} · RPE ${it.targetRpe ?: "—"}" }.orEmpty(),
+                inputConfig = target?.inputConfig.orEmpty(),
             )
             workoutDao.insertWorkoutExercises(listOf(snapshot))
             database.editorDao().workoutMuscles(database.editorDao().muscleMappings(row.exerciseId).map { com.petermathie.vibetrainer.data.local.WorkoutMuscleEntity(snapshot.id,it.muscleId,it.role) })

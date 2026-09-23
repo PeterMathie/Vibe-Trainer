@@ -156,6 +156,7 @@ data class ProgrammeExerciseEntity(
     val targetRpe: Double?,
     val notes: String,
     val supersetGroup: String?,
+    @androidx.room.ColumnInfo(defaultValue = "''") val inputConfig: String = "",
 )
 
 @Entity(
@@ -213,6 +214,7 @@ data class WorkoutExerciseEntity(
     @androidx.room.ColumnInfo(defaultValue = "''") val exerciseName: String = "",
     @androidx.room.ColumnInfo(defaultValue = "''") val trackingType: String = "",
     @androidx.room.ColumnInfo(defaultValue = "''") val targets: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "''") val inputConfig: String = "",
 )
 
 @Entity(tableName="workout_muscles",primaryKeys=["workoutExerciseId","muscleId"],foreignKeys=[ForeignKey(entity=WorkoutExerciseEntity::class,parentColumns=["id"],childColumns=["workoutExerciseId"],onDelete=ForeignKey.CASCADE)],indices=[Index("workoutExerciseId")])
@@ -252,6 +254,8 @@ data class WorkoutSetEntity(
     val loggedAt: Long,
     val updatedAt: Long,
     val variationRankSnapshot: Int? = null,
+    val timeUnderTensionMillis: Long? = null,
+    @androidx.room.ColumnInfo(defaultValue = "0") val bandResistance: Boolean = false,
 )
 
 @Entity(
@@ -310,6 +314,8 @@ data class WorkoutEntryDraftEntity(
     val romValue: String,
     val romUnit: String,
     val updatedAt: Long,
+    @androidx.room.ColumnInfo(defaultValue = "''") val timeHeld: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "''") val timeUnderTension: String = "",
 )
 
 @Entity(tableName = "trackers", primaryKeys = ["id"])

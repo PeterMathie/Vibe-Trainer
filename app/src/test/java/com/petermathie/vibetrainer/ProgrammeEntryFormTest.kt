@@ -24,7 +24,10 @@ class ProgrammeEntryFormTest {
 
     @Test
     fun formRoundTripPreservesConfiguredTargets() {
-        assertEquals(entry, ProgrammeEntryForm.from(entry).applyTo(entry))
+        assertEquals(
+            entry.copy(inputConfig = "weightUnit=kg;bandResistance=false;timeHeld=false;timeUnderTension=false;reps=true"),
+            ProgrammeEntryForm.from(entry, "WEIGHT_REPS").applyTo(entry),
+        )
     }
 
     @Test
@@ -33,23 +36,25 @@ class ProgrammeEntryFormTest {
             sets = "",
             minimumReps = "invalid",
             maximumReps = "",
-            holdSeconds = "30",
             restSeconds = "invalid",
             targetRpe = "12.5",
-            group = " ",
             notes = "Updated",
+            weightUnit = null,
+            bandResistance = true,
+            timeHeld = true,
+            timeUnderTension = true,
         ).applyTo(entry)
 
         assertNull(result.targetSets)
         assertNull(result.targetRepsMin)
         assertNull(result.targetRepsMax)
-        assertEquals(30, result.targetHoldSeconds)
+        assertNull(result.targetHoldSeconds)
         assertEquals(120, result.restSeconds)
         assertEquals(10.0, result.targetRpe ?: -1.0, 0.0)
-        assertNull(result.supersetGroup)
+        assertEquals("A", result.supersetGroup)
         assertEquals("Updated", result.notes)
 
-        val negative = ProgrammeEntryForm.from(entry).copy(restSeconds = "-5", targetRpe = "-1").applyTo(entry)
+        val negative = ProgrammeEntryForm.from(entry, "WEIGHT_REPS").copy(restSeconds = "-5", targetRpe = "-1").applyTo(entry)
         assertEquals(0, negative.restSeconds)
         assertEquals(0.0, negative.targetRpe ?: -1.0, 0.0)
     }

@@ -98,7 +98,13 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     suspend fun entryDraft(workoutExerciseId: String) = dao.entryDraft(workoutExerciseId)
     suspend fun entryDrafts(workoutExerciseId: String) = dao.entryDrafts(workoutExerciseId)
     fun saveEntryDraft(row: WorkoutEntryDraftEntity) = write {
-        if (!row.detailsOpen && row.performance.isBlank() && row.rpe.isBlank()) dao.deleteEntryDraft(row.workoutExerciseId, row.ordinal)
+        if (
+            !row.detailsOpen &&
+            row.performance.isBlank() &&
+            row.rpe.isBlank() &&
+            row.timeHeld.isBlank() &&
+            row.timeUnderTension.isBlank()
+        ) dao.deleteEntryDraft(row.workoutExerciseId, row.ordinal)
         else dao.persistEntryDraft(row)
     }
     fun discardEntryDraft(workoutExerciseId: String, ordinal: Int) = write { dao.deleteEntryDraft(workoutExerciseId, ordinal) }

@@ -19,6 +19,7 @@ import com.petermathie.vibetrainer.ui.EditorViewModel
 import com.petermathie.vibetrainer.ui.WorkoutEditor
 import com.petermathie.vibetrainer.ui.emptySet
 import com.petermathie.vibetrainer.ui.theme.VibeTrainerTheme
+import com.petermathie.vibetrainer.domain.programme.ExerciseInputConfig
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -68,18 +69,61 @@ class WorkoutLoggingUiTest {
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
-        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Seconds for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithContentDescription("Seconds for Handstand set 1").performTextInput("8")
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Time held for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("8")
         compose.onNodeWithContentDescription("Save set 1 for Handstand").performClick()
         val handstandId = runBlocking { database.editorDao().workoutExercises().first().first { it.workoutId == workoutId && it.actualExerciseId == "core:handstand" }.id }
         compose.waitUntil(15_000) { runBlocking { database.editorDao().sets().first().any { it.workoutExerciseId == handstandId && it.holdMillis == 8_000L } } }
 
-        compose.onNodeWithContentDescription("Seconds for Handstand set 1").performTextClearance()
-        compose.onNodeWithContentDescription("Seconds for Handstand set 1").performTextInput("10")
+        compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextClearance()
+        compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("10")
         compose.onNodeWithContentDescription("Save set 1 for Handstand").performClick()
 
         compose.waitUntil(15_000) { runBlocking { database.editorDao().sets().first().any { it.workoutExerciseId == handstandId && it.holdMillis == 10_000L } } }
         assertEquals(0, runBlocking { database.editorDao().sets().first().count { it.workoutExerciseId == handstandId && it.holdMillis == 8_000L } })
+    }
+
+    @Test
+    fun handstandCanTrackFreestandingAndTotalTensionTime() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
+        runBlocking {
+            DatabaseSeeder(context, database).seedIfNeeded()
+            val handstand = database.editorDao().programmeEntries("demo-day-push")
+                .first { it.exerciseId == "core:handstand" }
+            database.editorDao().entry(
+                handstand.copy(
+                    inputConfig = ExerciseInputConfig(
+                        timeHeld = true,
+                        timeUnderTension = true,
+                    ).encode(),
+                ),
+            )
+        }
+        val workoutId = runBlocking {
+            TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao())
+                .startWorkout("demo-day-push")
+        }
+        val viewModel = EditorViewModel(database)
+        compose.setContent { VibeTrainerTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
+
+        compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("12")
+        compose.onNodeWithContentDescription("Time under tension for Handstand set 1").performTextInput("30")
+        compose.onNodeWithContentDescription("Save set 1 for Handstand").performClick()
+
+        val handstandId = runBlocking {
+            database.editorDao().workoutExercises().first()
+                .first { it.workoutId == workoutId && it.actualExerciseId == "core:handstand" }.id
+        }
+        compose.waitUntil(15_000) {
+            runBlocking {
+                database.editorDao().sets().first().any {
+                    it.workoutExerciseId == handstandId &&
+                        it.holdMillis == 12_000L &&
+                        it.timeUnderTensionMillis == 30_000L
+                }
+            }
+        }
     }
 
     @Test
@@ -147,7 +191,8 @@ class WorkoutLoggingUiTest {
         compose.onNodeWithText("Add set").assertDoesNotExist()
         compose.onNodeWithContentDescription("Start 120 second rest for Bench press").assertExists()
 
-        compose.onNodeWithContentDescription("Add set for Bench press").performClick()
+        compose.onNodeWithContentDescription("Add set for Bench press").performScrollTo().performClick()
+        compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasContentDescription("Set 4 for Bench press"))
         compose.onNodeWithContentDescription("Set 4 for Bench press").assertExists()
         compose.onNodeWithContentDescription("Resistance for Bench press set 1").performTextInput("60")
         compose.onNodeWithContentDescription("Reps for Bench press set 1").performTextInput("5")

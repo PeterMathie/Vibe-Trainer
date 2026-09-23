@@ -131,3 +131,14 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
             db.execSQL("CREATE INDEX index_workout_entry_drafts_workoutExerciseId ON workout_entry_drafts(workoutExerciseId)")
     }
 }
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE programme_exercises ADD COLUMN inputConfig TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE workout_exercises ADD COLUMN inputConfig TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE workout_sets ADD COLUMN timeUnderTensionMillis INTEGER")
+        db.execSQL("ALTER TABLE workout_sets ADD COLUMN bandResistance INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE workout_entry_drafts ADD COLUMN timeHeld TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE workout_entry_drafts ADD COLUMN timeUnderTension TEXT NOT NULL DEFAULT ''")
+    }
+}

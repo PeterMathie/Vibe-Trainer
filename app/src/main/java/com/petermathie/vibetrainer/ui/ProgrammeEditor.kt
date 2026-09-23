@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -275,7 +276,13 @@ fun ProgrammeEditor(
             }
         }
     rename?.let { p -> NameDialog("Programme name", p.name, { rename = null }) { vm.save(p.copy(name = it)); rename = null } }
-    editEntry?.let { e -> EntryDialog(e, { editEntry = null }) { vm.save(it); editEntry = null } }
+    editEntry?.let { e ->
+        EntryDialog(
+            e,
+            exercises.find { it.id == e.exerciseId }?.trackingType.orEmpty(),
+            { editEntry = null },
+        ) { vm.save(it); editEntry = null }
+    }
     addExerciseDayId?.let { targetDayId ->
         ExercisePicker(vm, { addExerciseDayId = null }) { exercise ->
             vm.save(
@@ -335,20 +342,48 @@ fun ExercisePicker(vm: EditorViewModel, onDismiss: () -> Unit, onChoose: (Exerci
 }
 
 @Composable
-private fun EntryDialog(e: ProgrammeExerciseEntity, onDismiss: () -> Unit, onSave: (ProgrammeExerciseEntity) -> Unit) {
-    var form by remember(e) { mutableStateOf(ProgrammeEntryForm.from(e)) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Targets and rest") }, text = {
+private fun EntryDialog(e: ProgrammeExerciseEntity, trackingType: String, onDismiss: () -> Unit, onSave: (ProgrammeExerciseEntity) -> Unit) {
+    var form by remember(e, trackingType) { mutableStateOf(ProgrammeEntryForm.from(e, trackingType)) }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Exercise settings") }, text = {
         LazyColumn { item {
+            Text("Resistance", style = MaterialTheme.typography.titleMedium)
+            SettingCheckbox("Weight (kg)", form.weightUnit == "kg") {
+                form = form.copy(weightUnit = if (it) "kg" else null)
+            }
+            SettingCheckbox("Weight (lb)", form.weightUnit == "lb") {
+                form = form.copy(weightUnit = if (it) "lb" else null)
+            }
+            SettingCheckbox("Band resistance", form.bandResistance) {
+                form = form.copy(bandResistance = it)
+            }
+            SettingCheckbox("Time held (seconds)", form.timeHeld) {
+                form = form.copy(timeHeld = it)
+            }
+            SettingCheckbox("Time under tension (seconds)", form.timeUnderTension) {
+                form = form.copy(timeUnderTension = it)
+            }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Text("Reps", style = MaterialTheme.typography.titleMedium)
             EditField("Sets", form.sets) { form = form.copy(sets = it) }
-            EditField("Reps minimum", form.minimumReps) { form = form.copy(minimumReps = it) }
-            EditField("Reps maximum", form.maximumReps) { form = form.copy(maximumReps = it) }
-            EditField("Hold seconds", form.holdSeconds) { form = form.copy(holdSeconds = it) }
-            EditField("Rest seconds", form.restSeconds) { form = form.copy(restSeconds = it) }
+            EditField("Minimum target", form.minimumReps) { form = form.copy(minimumReps = it) }
+            EditField("Upper target", form.maximumReps) { form = form.copy(maximumReps = it) }
             EditField("Target RPE", form.targetRpe) { form = form.copy(targetRpe = it) }
-            EditField("Circuit/group name (optional)", form.group) { form = form.copy(group = it) }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Text("Rest", style = MaterialTheme.typography.titleMedium)
+            EditField("Rest seconds", form.restSeconds) { form = form.copy(restSeconds = it) }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Text("Notes", style = MaterialTheme.typography.titleMedium)
             EditField("Exercise notes", form.notes) { form = form.copy(notes = it) }
         } }
     }, confirmButton = { TextButton(onClick = { onSave(form.applyTo(e)) }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+}
+
+@Composable
+private fun SettingCheckbox(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Text(label)
+    }
 }
 
 @Composable

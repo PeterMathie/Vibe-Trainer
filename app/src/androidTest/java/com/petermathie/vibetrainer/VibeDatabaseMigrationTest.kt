@@ -7,6 +7,7 @@ import com.petermathie.vibetrainer.data.local.MIGRATION_2_3
 import com.petermathie.vibetrainer.data.local.MIGRATION_3_4
 import com.petermathie.vibetrainer.data.local.MIGRATION_4_5
 import com.petermathie.vibetrainer.data.local.MIGRATION_5_6
+import com.petermathie.vibetrainer.data.local.MIGRATION_6_7
 import com.petermathie.vibetrainer.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -122,4 +123,24 @@ class VibeDatabaseMigrationTest {
             }
         }
     }
+
+    @Test
+    fun migrate6To7AddsExerciseInputConfigurationWithoutLosingDrafts() {
+        helper.createDatabase(databaseName, 6).apply {
+            execSQL("INSERT INTO exercises (id,canonicalName,tag,trackingType,equipment,instructions,source,isCustom,isArchived) VALUES ('e','Exercise','STRENGTH','WEIGHT_REPS',NULL,NULL,'USER',1,0)")
+            execSQL("INSERT INTO workouts (id,programmeDayId,name,mode,status,startedAt,finishedAt,notes,bodyweightKg,isDemo) VALUES ('w',NULL,'Workout','STRENGTH','DRAFT',1,NULL,'',NULL,0)")
+            execSQL("INSERT INTO workout_exercises (id,workoutId,plannedExerciseId,actualExerciseId,position,notes,restSeconds,supersetGroup,exerciseName,trackingType,targets) VALUES ('we','w','e','e',0,'',60,NULL,'Exercise','WEIGHT_REPS','3 sets')")
+            execSQL("INSERT INTO workout_entry_drafts VALUES ('we','set-1',1,'50 x 5','8',0,0,0,'[]',NULL,'','','','','','cm',1)")
+            close()
+        }
+
+        helper.runMigrationsAndValidate(databaseName, 7, true, MIGRATION_6_7).use { migrated ->
+            migrated.query("SELECT performance,timeHeld,timeUnderTension FROM workout_entry_drafts WHERE workoutExerciseId='we'").use {
+                assertTrue(it.moveToFirst())
+                assertEquals("50 x 5", it.getString(0))
+                assertEquals("", it.getString(1))
+                assertEquals("", it.getString(2))
+            }
+        }
 }
+    }
