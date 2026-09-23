@@ -57,15 +57,16 @@ class ProgrammeUiTest {
 
         compose.onNodeWithText("Strength").assertDoesNotExist()
         compose.onNode(hasSetTextAction() and hasText("Alpha")).assertIsDisplayed()
-        compose.onNodeWithText("Morning").assertIsDisplayed()
+        compose.onNodeWithText("Morning").assertDoesNotExist()
         compose.onNodeWithContentDescription("Reorder Morning").assertDoesNotExist()
         compose.onNodeWithText("Bench press").assertIsDisplayed()
         compose.onNodeWithText("3 sets · 5–8 reps · 120s rest").assertIsDisplayed()
         compose.onNodeWithText("Start workout").performClick()
         assertEquals("day-a", startedDay)
 
-        compose.onNodeWithContentDescription("Edit workout Morning").performClick()
-        compose.onNodeWithText("Rename workout").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Edit workout Morning").assertDoesNotExist()
+        compose.onNodeWithText("Rename workout").assertDoesNotExist()
+        compose.onNodeWithText("Delete workout").assertDoesNotExist()
         compose.onNodeWithText("Add exercise").assertDoesNotExist()
         compose.onNodeWithContentDescription("Add exercise").assertIsDisplayed()
         compose.onNodeWithContentDescription("Edit targets for Bench press").assertIsDisplayed()
@@ -104,7 +105,6 @@ class ProgrammeUiTest {
             } == listOf("day-b", "day-a")
         }
 
-        compose.onNodeWithContentDescription("Edit workout Morning").performScrollTo().performClick()
         val entryHandleLeft = compose.onNodeWithContentDescription("Reorder Bench press").fetchSemanticsNode().boundsInRoot.left
         val entryTitleLeft = compose.onNodeWithText("Bench press").fetchSemanticsNode().boundsInRoot.left
         assertTrue(entryHandleLeft < entryTitleLeft)
@@ -133,7 +133,9 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Add workout").performClick()
         compose.onAllNodes(hasSetTextAction())[1].performTextInput("Push")
         compose.onNodeWithText("Save").performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("Push").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) {
+            runBlocking { database.editorDao().days().first().any { it.name == "Push" } }
+        }
         val dayId = runBlocking { database.editorDao().days().first().single().id }
         runBlocking {
             database.editorDao().workout(
