@@ -288,6 +288,24 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 
 Evidence: commit `bdccd30` updates the shared `VibeShapes.card` token rather than overriding individual screens. Progress uses `ScreenList` and `VibeSpacing.medium`, so its charts and habit cards no longer touch while retaining the same spacing source as Home and Programmes. Unit tests, debug app/test assembly and `ProgressUiTest` (2) passed. Exact APK SHA-256: `d6ac4138be3a1ba84d103f8cbacdced856b7bb12f093efa006fc025d9fd153df`. Installed screenshot: `files/ux-17-final/progress-spacing-final.png`.
 
+### UX-18 — Reorderable Progress cards and configurable habit intensity
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Reorder Overall training trend, Bodyweight, each habit heat map and Training progress through top-right drag handles; persist the custom Progress order.
+- [x] Put exercise and variation selection inside the Training progress card.
+- [x] Configure each habit's light/medium/dark value boundaries using plain-language labels.
+- [x] Use the habit's chosen color for all three intensity shades and remove the redundant color dot.
+- [x] Default Piano/Meditation to 7/15 minutes and Protein to 140/160 grams.
+- [x] Add persistent habit ordering and threshold fields through Room schema 10 with migration coverage.
+- [x] Replace technical habit setup labels with user-facing names and goal comparisons.
+- [x] Restore historical muscle-map highlighting for seeded completed workouts.
+- [x] Promote Habits and Body to a fixed, non-scrolling six-item bottom bar.
+
+Evidence: implementation commit `9b4e07f` adds persistent Progress layout ordering, Room 9→10 habit settings, value-derived heat-map intensity, plain-language habit configuration, the historical muscle-snapshot backfill, and direct bottom navigation. The compact navigation label is `Plans`; the programme page title remains unchanged.
+
+The exact build passed unit tests and debug app/test assembly. Focused API 35 instrumentation passed: `ProgressUiTest` (2), `HabitUiTest` (1), `VibeDatabaseMigrationTest` (8), `HistoryUiTest` (2) and `NavigationUiTest` (1). APK SHA-256: `e51a218809c807f0636cdfab20f5190116887abc2df1391c34d9c73294374814`. Installed screenshots are `files/ux-18-final/home-nav-final.png`, `habits-final.png` and `progress-final.png`.
+
 ### UX-11 — Exercise-aware personal records
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.

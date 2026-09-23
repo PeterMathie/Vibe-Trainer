@@ -2,11 +2,15 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-17 shared card spacing and sharper corners is complete** at `bdccd30` on `pmathie-cicpilot-persist-workout-drafts`. Progress now uses the shared `ScreenList` layout and the shared 16dp spacing token between every top-level section, eliminating the touching chart and habit cards. The global card radius is reduced from 22dp to 16dp through `VibeShapes.card`, so Home, Programmes, Progress and other shared cards retain one centrally controlled shape.
+Current implementation task: **UX-18 reorderable Progress cards, configurable habit intensity and direct navigation is complete** at `9b4e07f` on `pmathie-cicpilot-persist-workout-drafts`.
 
-Unit tests, debug app/test assembly and both `ProgressUiTest` cases passed. Exact APK SHA-256 is `d6ac4138be3a1ba84d103f8cbacdced856b7bb12f093efa006fc025d9fd153df`; installed evidence is `files/ux-17-final/progress-spacing-final.png`.
+Every major Progress card—overall trend, bodyweight, each habit and training progress—has a top-right six-dot handle and a persisted custom order. Exercise and variation selectors now live inside Training progress. Habit heat maps classify the actual daily numeric total against per-habit boundaries, using light/medium/dark alpha shades of the selected habit color. Piano and Meditation default to 7/15 minutes; Protein defaults to 140/160 grams.
 
-Previous task: **UX-16 Progress overview, habit heat maps and bodyweight photos is complete** at `1b4df3b`. Progress begins with an aggregate weekly normalized training trend and one year of bodyweight history. Selecting a bodyweight point opens a progress photo recorded on the same local calendar date when available.
+Room schema 10 persists habit order and thresholds, with a preserving 9→10 migration. Habit setup now says Yes or no, Number, Count, Duration, Rating, Written note, Choose from a list and Date and time, and goal comparisons read At least, At most, Exactly or Between two values. Missing muscle snapshots are backfilled for all workout rows, restoring selected historical-day map highlighting. Habits and Body are direct destinations in the fixed Home/Plans/Progress/Habits/Body/More bar.
+
+Unit tests, debug app/test assembly and focused API 35 instrumentation passed: Progress (2), Habits (1), migrations (8), History (2) and Navigation (1). Exact APK SHA-256 is `e51a218809c807f0636cdfab20f5190116887abc2df1391c34d9c73294374814`; installed evidence is under `files/ux-18-final/`.
+
+Previous task: **UX-17 shared card spacing and sharper corners is complete** at `bdccd30`. Progress uses shared 16dp spacing and all shared cards use the centralized 16dp radius.
 
 Each active habit has its own heat map using a persisted user-selected color. Room schema 9 and migration 8→9 add `trackers.colourArgb` without replacing existing tracker data. Progress demo version 4 retains the 156 annual workouts and adds 52 bodyweight records plus year-long Piano, Meditation and Protein values.
 
