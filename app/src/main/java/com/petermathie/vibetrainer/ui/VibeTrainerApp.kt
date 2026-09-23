@@ -43,6 +43,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -271,79 +272,90 @@ internal fun HomeScreen(
     val selectedRecencyDay = state.homeRecencyDay ?: today
     var recencySliderDay by rememberSaveable { mutableFloatStateOf(selectedRecencyDay.toFloat()) }
     LaunchedEffect(selectedRecencyDay) { recencySliderDay = selectedRecencyDay.toFloat() }
-    ScreenList {
+    val palette = LocalVibePalette.current
+    Column(
+        Modifier.fillMaxSize().padding(VibeSpacing.medium),
+        verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
+    ) {
         state.activeWorkout?.let { workout ->
-            item {
-                VibeCard {
-                    Text("ACTIVE WORKOUT", color = LocalVibePalette.current.accent, style = MaterialTheme.typography.labelLarge)
-                    Text(workout.name, style = MaterialTheme.typography.titleLarge)
-                    Text("${workout.exercises.sumOf { it.sets.size }} sets autosaved", color = LocalVibePalette.current.textSecondary)
-                    Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) { Text("Continue workout") }
-                }
-            }
-        }
-        item {
             VibeCard {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        if (state.mode == TrainingMode.STRENGTH) "MUSCLE RECENCY" else "STRETCH RECENCY",
-                        modifier = Modifier.weight(1f),
-                        color = LocalVibePalette.current.accent,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                    ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MuscleMap(
-                        sex = sex,
-                        view = AnatomyView.FRONT,
-                        states = state.recency.associate { it.muscleId to it.band },
-                        onMuscleTap = { selectedMuscle = it },
-                        modifier = Modifier.weight(1f),
-                        selectedMuscleId = selectedMuscle,
-                    )
-                    MuscleMap(
-                        sex = sex,
-                        view = AnatomyView.BACK,
-                        states = state.recency.associate { it.muscleId to it.band },
-                        onMuscleTap = { selectedMuscle = it },
-                        modifier = Modifier.weight(1f),
-                        selectedMuscleId = selectedMuscle,
-                    )
-                }
-                Text(
-                    "Recency through ${LocalDate.ofEpochDay(recencySliderDay.toLong()).format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
-                    color = LocalVibePalette.current.textSecondary,
-                )
-                Slider(
-                    value = recencySliderDay,
-                    onValueChange = {
-                        recencySliderDay = it
-                        onRecencyDayChange(it.toLong())
-                    },
-                    valueRange = (today - 365).toFloat()..today.toFloat(),
-                    steps = 364,
-                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Home recency date" },
-                )
-                selectedMuscle?.let { muscle ->
-                    Text(muscle.replace('_', ' '), fontWeight = FontWeight.Bold)
-                    Text(
-                        selected?.let { "${it.band.name.replace('_', ' ').lowercase()} · ${"%.1f".format(it.setEquivalents)} set-equivalents in 7 days" }
-                            ?: "Never recorded",
-                        color = LocalVibePalette.current.textSecondary,
-                    )
-                    selected?.contributingExerciseNames?.takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(), color = LocalVibePalette.current.textFaint) }
-                    selected?.lastTrainedAt?.let { Text("Last trained: ${java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy HH:mm"))}") }
+                    Column(Modifier.weight(1f)) {
+                        Text("ACTIVE WORKOUT", color = palette.accent, style = MaterialTheme.typography.labelLarge)
+                        Text(workout.name, style = MaterialTheme.typography.titleLarge)
+                        Text("${workout.exercises.sumOf { it.sets.size }} sets autosaved", color = palette.textSecondary)
+                    }
+                    Button(onClick = onContinue) { Text("Continue") }
                 }
             }
         }
-        item {
-            VibeCard {
-                Text("LAST 5 WEEKS", color = LocalVibePalette.current.accent, style = MaterialTheme.typography.labelLarge)
-                Spacer(Modifier.height(8.dp))
-                ActivityHeatmap(state.activityDays, onDayClick)
-                Text("0 neutral · 1 light · 2 medium · 3+ dark", color = LocalVibePalette.current.textFaint, style = MaterialTheme.typography.bodyMedium)
+        VibeCard(Modifier.weight(1f), fillHeight = true) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (state.mode == TrainingMode.STRENGTH) "MUSCLE RECENCY" else "STRETCH RECENCY",
+                    modifier = Modifier.weight(1f),
+                    color = palette.accent,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
             }
+            Row(
+                Modifier.fillMaxWidth().weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MuscleMap(
+                    sex = sex,
+                    view = AnatomyView.FRONT,
+                    states = state.recency.associate { it.muscleId to it.band },
+                    onMuscleTap = { selectedMuscle = it },
+                    modifier = Modifier.weight(1f).fillMaxSize(),
+                    selectedMuscleId = selectedMuscle,
+                )
+                MuscleMap(
+                    sex = sex,
+                    view = AnatomyView.BACK,
+                    states = state.recency.associate { it.muscleId to it.band },
+                    onMuscleTap = { selectedMuscle = it },
+                    modifier = Modifier.weight(1f).fillMaxSize(),
+                    selectedMuscleId = selectedMuscle,
+                )
+            }
+            Text(
+                "Recency through ${LocalDate.ofEpochDay(recencySliderDay.toLong()).format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
+                color = palette.textSecondary,
+            )
+            Slider(
+                value = recencySliderDay,
+                onValueChange = {
+                    recencySliderDay = it
+                    onRecencyDayChange(it.toLong())
+                },
+                valueRange = (today - 365).toFloat()..today.toFloat(),
+                steps = 364,
+                colors = SliderDefaults.colors(
+                    thumbColor = palette.accent,
+                    activeTrackColor = palette.border,
+                    inactiveTrackColor = palette.border,
+                    activeTickColor = Color.Transparent,
+                    inactiveTickColor = Color.Transparent,
+                ),
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Home recency date" },
+            )
+            selectedMuscle?.let { muscle ->
+                Text(muscle.replace('_', ' '), fontWeight = FontWeight.Bold)
+                Text(
+                    selected?.let { "${it.band.name.replace('_', ' ').lowercase()} · ${"%.1f".format(it.setEquivalents)} set-equivalents in 7 days" }
+                        ?: "Never recorded",
+                    color = palette.textSecondary,
+                )
+                selected?.contributingExerciseNames?.takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(), color = palette.textFaint) }
+                selected?.lastTrainedAt?.let { Text("Last trained: ${java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy HH:mm"))}") }
+            }
+        }
+        VibeCard {
+            Text("LAST 5 WEEKS", color = palette.accent, style = MaterialTheme.typography.labelLarge)
+            ActivityHeatmap(state.activityDays, onDayClick, compact = true)
+            Text("0 neutral · 1 light · 2 medium · 3+ dark", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -354,12 +366,15 @@ fun ActivityHeatmap(
     onDayClick: (Long) -> Unit,
     activityColor: androidx.compose.ui.graphics.Color? = null,
     itemLabel: String = "activities",
+    compact: Boolean = false,
 ) {
     val palette = LocalVibePalette.current
     val counts = days.associate { it.epochDay to it.activityCount }
     var offset by rememberSaveable { mutableStateOf(0L) }
     val today = LocalDate.now().toEpochDay() + offset
     val start = today - 34
+    val cellSpacing = if (compact) 4.dp else 6.dp
+    val cellHeight = if (compact) 14.dp else 22.dp
     Row(
         Modifier.fillMaxWidth().semantics { contentDescription = "Activity date navigation" },
         verticalAlignment = Alignment.CenterVertically,
@@ -374,9 +389,9 @@ fun ActivityHeatmap(
         )
         VibeActionButton("Later", { offset = (offset + 35).coerceAtMost(0) }, importance = ActionImportance.COMPACT, enabled = offset < 0)
     }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(cellSpacing)) {
         repeat(5) { week ->
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(cellSpacing)) {
                 repeat(7) { day ->
                     val epochDay = start + week * 7 + day
                     val count = counts[epochDay] ?: 0
@@ -387,7 +402,7 @@ fun ActivityHeatmap(
                         else -> palette.heatmapNeutral
                     }
                     Box(
-                        Modifier.fillMaxWidth().height(22.dp)
+                        Modifier.fillMaxWidth().height(cellHeight)
                             .semantics { contentDescription = "${LocalDate.ofEpochDay(epochDay)}: $count $itemLabel" }
                             .background(color, RoundedCornerShape(5.dp))
                             .clickable { onDayClick(epochDay) },
@@ -423,6 +438,7 @@ private fun ExerciseLibraryScreen(exercises: List<ExerciseSummary>, onSearch: (S
 @Composable
 internal fun VibeCard(
    modifier: Modifier = Modifier,
+   fillHeight: Boolean = false,
    content: @Composable ColumnScope.() -> Unit,
 ) {
     val palette = LocalVibePalette.current
@@ -432,7 +448,8 @@ internal fun VibeCard(
         shape = RoundedCornerShape(VibeShapes.card),
         modifier = modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.fillMaxWidth().padding(VibeSpacing.medium), verticalArrangement = Arrangement.spacedBy(VibeSpacing.small)) { content() }
+        val contentModifier = if (fillHeight) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
+        Column(contentModifier.padding(VibeSpacing.medium), verticalArrangement = Arrangement.spacedBy(VibeSpacing.small)) { content() }
     }
 }
 

@@ -119,8 +119,8 @@ fun MuscleMap(
                     side = item.def.side,
                     centerX = diagram.centerX,
                     color = color,
-                    strokeColor = if (selected) palette.accent else palette.diagramLine.copy(alpha = .42f),
-                    strokeWidth = if (selected) 3f else .8f,
+                    strokeColor = if (selected) palette.accent else color,
+                    strokeWidth = if (selected) 3f else 2.5f,
                 )
             }
         }
