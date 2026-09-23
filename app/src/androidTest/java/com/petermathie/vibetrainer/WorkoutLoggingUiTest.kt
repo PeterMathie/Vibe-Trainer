@@ -72,13 +72,13 @@ class WorkoutLoggingUiTest {
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
-        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Time held for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("8")
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Time Under Tension for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").performTextInput("8")
         val handstandId = runBlocking { database.editorDao().workoutExercises().first().first { it.workoutId == workoutId && it.actualExerciseId == "core:handstand" }.id }
         compose.waitUntil(15_000) { runBlocking { database.editorDao().sets().first().any { it.workoutExerciseId == handstandId && it.holdMillis == 8_000L } } }
 
-        compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextClearance()
-        compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("10")
+        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").performTextClearance()
+        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").performTextInput("10")
 
         compose.waitUntil(15_000) { runBlocking { database.editorDao().sets().first().any { it.workoutExerciseId == handstandId && it.holdMillis == 10_000L } } }
         assertEquals(0, runBlocking { database.editorDao().sets().first().count { it.workoutExerciseId == handstandId && it.holdMillis == 8_000L } })
@@ -108,16 +108,16 @@ class WorkoutLoggingUiTest {
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
-        compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("12")
-        compose.onNodeWithContentDescription("Time under tension for Handstand set 1").performTextInput("30")
-        compose.onNodeWithContentDescription("Time held for Handstand set 1").assertTextContains("Freestanding s")
-        compose.onNodeWithContentDescription("Time under tension for Handstand set 1").assertTextContains("Total wall s")
+        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").performTextInput("12")
+        compose.onNodeWithContentDescription("Total Time for Handstand set 1").performTextInput("30")
+        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").assertTextContains("Freestanding s")
+        compose.onNodeWithContentDescription("Total Time for Handstand set 1").assertTextContains("Total wall s")
         compose.onNodeWithText("Freestanding sec").assertDoesNotExist()
         compose.onNodeWithText("Total wall sec").assertDoesNotExist()
         compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("99")
         compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("8")
-        val heldBounds = compose.onNodeWithContentDescription("Time held for Handstand set 1").fetchSemanticsNode().boundsInRoot
-        val tensionBounds = compose.onNodeWithContentDescription("Time under tension for Handstand set 1").fetchSemanticsNode().boundsInRoot
+        val heldBounds = compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").fetchSemanticsNode().boundsInRoot
+        val tensionBounds = compose.onNodeWithContentDescription("Total Time for Handstand set 1").fetchSemanticsNode().boundsInRoot
         val rpeBounds = compose.onNodeWithContentDescription("RPE for Handstand set 1").fetchSemanticsNode().boundsInRoot
         assertTrue(kotlin.math.abs(heldBounds.center.y - tensionBounds.center.y) < 2f)
         assertTrue(kotlin.math.abs(heldBounds.center.y - rpeBounds.center.y) < 2f)

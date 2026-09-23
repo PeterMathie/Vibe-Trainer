@@ -90,7 +90,6 @@ fun ProgrammeEditor(
             }
         }
         if (selected == null) {
-            item { Button(onClick = { rename = ProgrammeEntity(newId(), "", mode.name, false) }) { Text("Create programme") } }
             items(programmeOrder.ordered(programmeRows) { it.id }, key = { it.id }) { p ->
                 val expanded = expandedProgrammeId == p.id
                 val previewDays = days.filter { it.programmeId == p.id }.sortedBy { it.position }
@@ -155,6 +154,16 @@ fun ProgrammeEditor(
                             }
                         }
                     }
+                }
+            }
+            item {
+                Button(
+                    onClick = { rename = ProgrammeEntity(newId(), "", mode.name, false) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Add programme" },
+                ) {
+                    Icon(Icons.Outlined.Add, contentDescription = null)
                 }
             }
         } else {
@@ -330,6 +339,17 @@ fun ExercisePicker(vm: EditorViewModel, onDismiss: () -> Unit, onChoose: (Exerci
 }
 
 @Composable
-fun EditField(label: String, value: String, onChange: (String) -> Unit) {
-    OutlinedTextField(value, onChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth().semantics { contentDescription = label }, singleLine = true)
+fun EditField(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    onChange: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value,
+        onChange,
+        label = { Text(label) },
+        modifier = modifier.fillMaxWidth().semantics { contentDescription = label },
+        singleLine = true,
+    )
 }

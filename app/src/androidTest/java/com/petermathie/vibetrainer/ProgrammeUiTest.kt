@@ -161,7 +161,7 @@ class ProgrammeUiTest {
         createDatabase()
         setProgrammeContent { _, _ -> }
 
-        compose.onNodeWithText("Create programme").performClick()
+        compose.onNodeWithContentDescription("Add programme").performScrollTo().performClick()
         compose.onNode(hasSetTextAction()).performTextInput("My gym plan")
         compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) { activeProgrammes().any { it.name == "My gym plan" } }

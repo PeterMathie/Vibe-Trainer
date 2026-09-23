@@ -212,7 +212,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                         },
                         label = {
                             Text(
-                                if (exercise?.canonicalName?.contains("Handstand", true) == true) "Freestanding s" else "Held s",
+                                if (exercise?.canonicalName?.contains("Handstand", true) == true) "Freestanding s" else "TUT s",
                                 maxLines = 1,
                                 softWrap = false,
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
@@ -220,7 +220,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                         },
                         singleLine = true,
                         modifier = Modifier.weight(1f).semantics {
-                            contentDescription = "Time held for ${exercise?.canonicalName.orEmpty()} set $ordinal"
+                            contentDescription = "Time Under Tension for ${exercise?.canonicalName.orEmpty()} set $ordinal"
                         },
                     )
                     if (inputConfig.timeUnderTension) OutlinedTextField(
@@ -230,7 +230,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                         },
                         label = {
                             Text(
-                                if (exercise?.canonicalName?.contains("Handstand", true) == true) "Total wall s" else "Tension s",
+                                if (exercise?.canonicalName?.contains("Handstand", true) == true) "Total wall s" else "Total s",
                                 maxLines = 1,
                                 softWrap = false,
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
@@ -238,7 +238,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                         },
                         singleLine = true,
                         modifier = Modifier.weight(1f).semantics {
-                            contentDescription = "Time under tension for ${exercise?.canonicalName.orEmpty()} set $ordinal"
+                            contentDescription = "Total Time for ${exercise?.canonicalName.orEmpty()} set $ordinal"
                         },
                     )
                     OutlinedTextField(

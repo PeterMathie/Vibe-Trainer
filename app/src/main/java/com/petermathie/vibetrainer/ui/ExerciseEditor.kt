@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -27,29 +29,46 @@ fun ExerciseEditor(vm: EditorViewModel) {
     var selected by remember { mutableStateOf<ExerciseEntity?>(null) }
     var configuring by remember { mutableStateOf<ExerciseEntity?>(null) }
     var variation by remember { mutableStateOf<String?>(null) }
+    var exerciseType by remember { mutableStateOf("STRENGTH") }
     val matchingMuscles=muscles.filter { it.displayName.contains(query,true) }.map { it.id }.toSet()
     val matchingIds=mappings.filter { it.muscleId in matchingMuscles }.map { it.exerciseId }.toSet()+aliases.filter { it.alias.contains(query,true) }.map { it.exerciseId }
     val filteredExercises = exercises.filter {
         !it.isArchived && (it.canonicalName.contains(query, true) || it.id in matchingIds)
     }
-    val groupedExercises = filteredExercises
-        .filter { it.tag != "STRETCHING" }
-        .map { "Strength exercises" to it } +
-        filteredExercises
-            .filter { it.tag == "STRETCHING" }
-            .map { "Stretching exercises" to it }
+    val visibleExercises = filteredExercises.filter {
+        it.tag == exerciseType || it.tag == "BOTH"
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Exercises",style=MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-                Button(onClick={selected=ExerciseEntity(newId(),"","STRENGTH","WEIGHT_REPS",null,null,"custom",true)}){Text("Custom exercise")}
+                SingleChoiceSegmentedButtonRow {
+                    listOf("STRENGTH" to "Strength", "STRETCHING" to "Stretch").forEachIndexed { index, option ->
+                        SegmentedButton(
+                            selected = exerciseType == option.first,
+                            onClick = { exerciseType = option.first },
+                            shape = SegmentedButtonDefaults.itemShape(index, 2),
+                        ) { Text(option.second) }
+                    }
+                }
             }
-            EditField("Name, alias or muscle",query){query=it}
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                EditField("Name, alias or muscle", query, Modifier.weight(1f)) { query = it }
+                IconButton(
+                    onClick = {
+                        selected = ExerciseEntity(newId(), "", exerciseType, "WEIGHT_REPS", null, null, "custom", true)
+                    },
+                    modifier = Modifier.semantics { contentDescription = "Add custom exercise" },
+                ) {
+                    Icon(Icons.Outlined.Add, contentDescription = null)
+                }
+            }
         }
-        items(groupedExercises,key={it.second.id}) { (section, e) ->
-            if (groupedExercises.firstOrNull { it.first == section }?.second?.id == e.id) {
-                Text(section, style = MaterialTheme.typography.titleLarge)
-            }
+        items(visibleExercises,key={it.id}) { e ->
             VibeCard {
                 Text(e.canonicalName,style=MaterialTheme.typography.titleMedium)
                 Text(mappings.filter { it.exerciseId==e.id }.joinToString { m -> "${muscles.find { it.id==m.muscleId }?.displayName} (${m.role.lowercase()})" },style=MaterialTheme.typography.bodySmall)
@@ -132,10 +151,10 @@ internal fun ExerciseSettingsDialog(
                         ExerciseSettingCheckbox("Band resistance", config.bandResistance) {
                             config = config.copy(bandResistance = it)
                         }
-                        ExerciseSettingCheckbox("Time held (seconds)", config.timeHeld) {
+                        ExerciseSettingCheckbox("Time Under Tension (seconds)", config.timeHeld) {
                             config = config.copy(timeHeld = it)
                         }
-                        ExerciseSettingCheckbox("Time under tension (seconds)", config.timeUnderTension) {
+                        ExerciseSettingCheckbox("Total Time (seconds)", config.timeUnderTension) {
                             config = config.copy(timeUnderTension = it)
                         }
                         HorizontalDivider(Modifier.padding(vertical = 8.dp))

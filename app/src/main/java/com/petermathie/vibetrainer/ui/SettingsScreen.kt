@@ -7,6 +7,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,6 +39,7 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
     var message by remember { mutableStateOf("") };var last by remember { mutableStateOf(prefs.getLong("backup",0)) }
     var notices by remember { mutableStateOf<String?>(null) }
     var reducedMotionInfo by remember { mutableStateOf(false) }
+    var preciseTimerInfo by remember { mutableStateOf(false) }
     var lb by remember { mutableStateOf(prefs.getBoolean("lb",false)) };var female by remember { mutableStateOf(prefs.getBoolean("female",false)) }
     var auto by remember { mutableStateOf(prefs.getBoolean("autoRest",false)) };var haptic by remember { mutableStateOf(prefs.getBoolean("haptic",true)) };var reduced by remember { mutableStateOf(prefs.getBoolean("reducedMotion",false)) }
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> if(uri!=null)scope.launch { try { val text=BackupPreferences.attach(vm.exportJson(),prefs);withContext(Dispatchers.IO){requireNotNull(context.contentResolver.openOutputStream(uri)){"Cannot open backup destination"}.bufferedWriter().use{it.write(text)}};last=System.currentTimeMillis();prefs.edit().putLong("backup",last).apply();message="Backup saved" }catch(e:Exception){message=e.message.orEmpty()} } }
@@ -47,7 +50,7 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item {
             Text("Settings and data",style=MaterialTheme.typography.headlineSmall)
-            TextButton(onClick=onStyle){Text("Colour palette")}
+            VibeActionButton("Colour palette", onStyle, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
             SettingToggle("Pounds (lb)",lb){lb=it;prefs.edit().putBoolean("lb",it).apply()}
             SettingToggle("Female anatomy",female){female=it;prefs.edit().putBoolean("female",it).apply()}
             SettingToggle("Start rest automatically",auto){auto=it;prefs.edit().putBoolean("autoRest",it).apply()}
@@ -57,16 +60,36 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
                 reduced,
                 onInfo = { reducedMotionInfo = true },
             ) { reduced=it;prefs.edit().putBoolean("reducedMotion",it).apply() }
-            TextButton(onClick={if(Build.VERSION.SDK_INT>=33)notify.launch(Manifest.permission.POST_NOTIFICATIONS) else message="Notifications are enabled in Android settings"}){Text("Enable timer notifications")}
-            if(Build.VERSION.SDK_INT>=31) TextButton(onClick={context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:${context.packageName}")))}){Text("Allow precise background timers")}
-            if(Build.VERSION.SDK_INT>=31 && !context.getSystemService(android.app.AlarmManager::class.java).canScheduleExactAlarms()) Text("Without precise-timer permission, Android may delay background alerts.")
-            TextButton(onClick={RestTimer.cancel(context);message="Timer cancelled"}){Text("Cancel rest timer")}
-            Button(onClick={export.launch("vibe-trainer-backup.json")}){Text("JSON backup")}
-            TextButton(onClick={restore.launch(arrayOf("application/json","text/plain"))}){Text("Restore / import structured JSON")}
-            TextButton(onClick={csv.launch("vibe-trainer-workouts.csv")}){Text("CSV export")}
+            VibeActionButton(
+                "Enable timer notifications",
+                { if(Build.VERSION.SDK_INT>=33)notify.launch(Manifest.permission.POST_NOTIFICATIONS) else message="Notifications are enabled in Android settings" },
+                Modifier.fillMaxWidth(),
+                ActionImportance.SECONDARY,
+            )
+            if(Build.VERSION.SDK_INT>=31) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    VibeActionButton(
+                        "Allow precise background timers",
+                        { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:${context.packageName}"))) },
+                        Modifier.weight(1f),
+                        ActionImportance.SECONDARY,
+                    )
+                    IconButton(onClick = { preciseTimerInfo = true }) {
+                        Icon(Icons.Outlined.Info, contentDescription = "About precise background timers")
+                    }
+                }
+            }
+            VibeActionButton("Cancel rest timer", {RestTimer.cancel(context);message="Timer cancelled"}, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
+            VibeActionButton("JSON backup", {export.launch("vibe-trainer-backup.json")}, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
+            VibeActionButton("Restore / import structured JSON", {restore.launch(arrayOf("application/json","text/plain"))}, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
+            VibeActionButton("CSV export", {csv.launch("vibe-trainer-workouts.csv")}, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
             Text("Last backup: ${if(last==0L)"Never" else Instant.ofEpochMilli(last)}")
-            TextButton(onClick=onRemoveDemo){Text("Remove demo data")}
-            TextButton(onClick={notices=context.assets.open("THIRD_PARTY_NOTICES.md").bufferedReader().use { it.readText() }}){Text("Open-source asset notices")}
+            VibeActionButton("Remove demo data", onRemoveDemo, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
+            VibeActionButton("Open-source asset notices", {notices=context.assets.open("THIRD_PARTY_NOTICES.md").bufferedReader().use { it.readText() }}, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
             Text(message)
         }
     }
@@ -76,6 +99,12 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
         title = { Text("Reduced motion") },
         text = { Text("Reduced motion disables touch ripples and app-owned animated transitions.") },
         confirmButton = { TextButton(onClick = { reducedMotionInfo = false }) { Text("Close") } },
+    )
+    if (preciseTimerInfo) AlertDialog(
+        onDismissRequest = { preciseTimerInfo = false },
+        title = { Text("Precise background timers") },
+        text = { Text("This permission lets Android deliver rest-timer alerts at the requested time. Without it, background alerts may be delayed.") },
+        confirmButton = { TextButton(onClick = { preciseTimerInfo = false }) { Text("Close") } },
     )
     if(pendingImport!=null)AlertDialog(onDismissRequest={pendingImport=null},title={Text("Import records?")},text={Text("Matching record IDs will be updated. Other records are retained. Make a backup first if you want to keep the previous values.")},confirmButton={TextButton(onClick={val text=pendingImport!!;pendingImport=null;scope.launch{try{val restored=BackupPreferences.validate(text);vm.importJson(text);BackupPreferences.restore(restored,prefs);lb=prefs.getBoolean("lb",false);female=prefs.getBoolean("female",false);auto=prefs.getBoolean("autoRest",false);haptic=prefs.getBoolean("haptic",true);reduced=prefs.getBoolean("reducedMotion",false);message="Import complete. Restored colours are active."}catch(e:Exception){message="Import failed: ${e.message}"}}}){Text("Import")}},dismissButton={TextButton(onClick={pendingImport=null}){Text("Cancel")}})
 }
@@ -87,9 +116,17 @@ private fun SettingToggle(
     onInfo: (() -> Unit)? = null,
     onChange: (Boolean) -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
         Text(label, Modifier.weight(1f))
-        onInfo?.let { TextButton(onClick = it) { Text("(i)") } }
+        onInfo?.let {
+            IconButton(onClick = it) {
+                Icon(Icons.Outlined.Info, contentDescription = "About $label")
+            }
+        }
         Switch(value, onChange)
     }
 }
