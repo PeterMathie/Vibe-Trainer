@@ -1,6 +1,8 @@
 package com.petermathie.vibetrainer.ui
 
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
@@ -22,9 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
@@ -157,6 +157,7 @@ fun ReorderHandle(
     enabled: Boolean = true,
 ) {
     val threshold = with(LocalDensity.current) { 48.dp.toPx() }
+    val dragState = rememberDraggableState { delta -> state.dragBy(delta, threshold) }
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -172,18 +173,13 @@ fun ReorderHandle(
                     }
                 }
             }
-            .pointerInput(state, itemKey, enabled) {
-                if (!enabled) return@pointerInput
-                detectDragGestures(
-                    onDragStart = { state.begin(itemKey) },
-                    onDragEnd = state::end,
-                    onDragCancel = state::cancel,
-                    onDrag = { change, dragAmount: Offset ->
-                        change.consume()
-                        state.dragBy(dragAmount.y, threshold)
-                    },
-                )
-            },
+            .draggable(
+                state = dragState,
+                orientation = Orientation.Vertical,
+                enabled = enabled,
+                onDragStarted = { state.begin(itemKey) },
+                onDragStopped = { state.end() },
+            ),
     ) {
         Icon(Icons.Outlined.DragIndicator, contentDescription = null)
     }
