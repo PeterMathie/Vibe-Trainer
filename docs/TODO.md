@@ -448,6 +448,20 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 
 Evidence: commit `6f3519e` implements the refinements. Unit tests and debug app/test assembly passed; focused API 35 `HabitUiTest` (1) and `ProgressUiTest` (2) passed, including a semantic assertion for the fixed 0–10 RPE range. Final debug assembly passed with APK SHA-256 `983bf1520c8199baf02ec99a05c8364b5abee8653bd769942b9cbef0cdedd6cf`. `files/ux-22-home-final.png` shows the enlarged transparent figures and renamed Work tracker while retaining the one-screen Home layout.
 
+### UX-23 — Simplified habits and representative body photos
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Remove the Habits date override and always record against today.
+- [x] Show each habit colour beside its card title.
+- [x] Consolidate Count, Duration and Rating into Number with a configurable unit; remove Date and time from new field configuration.
+- [x] Map ordered choice values from light to dark and define meaningful yes/no and written-entry shades.
+- [x] Seed Mood, Journal and Reading examples with annual values across non-numeric input types.
+- [x] Seed four local placeholder progress images tied to bodyweight dates and show them ahead of the long measurement history.
+- [x] Remove the plate calculator while retaining the on-demand reduced-motion information dialog.
+
+Evidence: commit `272f902` implements the simplified field model, non-numeric heat-map classification, extra demo habits, placeholder photo generation and settings cleanup. Unit tests and debug app/test assembly passed. Focused API 35 `HabitUiTest` (1), `ProgressUiTest` (2) and `MeasurementsUiTest` (1) passed; unit coverage pins ordered-choice, boolean and written-entry shades. The exact APK SHA-256 is `85034bb7814f57e77c8bd375f1259449f51975ee5d5a9bf281099ea7f2663358`; `files/ux-23-habits.png` and `files/ux-23-body.png` record the colour markers, alternate habit inputs and visible demo photo gallery.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.
