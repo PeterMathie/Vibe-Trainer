@@ -38,22 +38,25 @@ class HabitUiTest {
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { TrackerScreen(viewModel) } }
 
+        compose.onNodeWithContentDescription("Set Wellbeing colour 2").assertDoesNotExist()
+        compose.onNodeWithText("Edit settings").performClick()
+        compose.onNodeWithText("Change colour").performClick()
         compose.onNodeWithContentDescription("Set Wellbeing colour 2").performClick()
-        compose.waitUntil(15_000) {
-            runBlocking { database.editorDao().trackers().first().single().colourArgb == 0xFF42A5F5L }
-        }
         compose.onNode(hasText("Light below") and hasSetTextAction()).performTextClearance()
         compose.onNode(hasText("Light below") and hasSetTextAction()).performTextInput("8")
-        compose.onNode(hasText("Medium below") and hasSetTextAction()).performTextClearance()
-        compose.onNode(hasText("Medium below") and hasSetTextAction()).performTextInput("20")
-        compose.onNodeWithText("Save heat-map shades").performClick()
+        compose.onNode(hasText("Dark from") and hasSetTextAction()).performTextClearance()
+        compose.onNode(hasText("Dark from") and hasSetTextAction()).performTextInput("20")
+        compose.onNodeWithText("Save settings").performClick()
         compose.waitUntil(15_000) {
             runBlocking {
                 database.editorDao().trackers().first().single().let {
-                    it.heatmapLightBelow == 8.0 && it.heatmapMediumBelow == 20.0
+                    it.colourArgb == 0xFF42A5F5L &&
+                        it.heatmapLightBelow == 8.0 &&
+                        it.heatmapMediumBelow == 20.0
                 }
             }
         }
+        compose.onNodeWithText("Edit settings").performClick()
         compose.onNodeWithText("Add measurement").performScrollTo().performClick()
         compose.onNodeWithText("What would you like to track?").assertIsDisplayed()
         compose.onNodeWithContentDescription("Name, for example Duration or Protein").performTextInput("Mood")

@@ -247,17 +247,41 @@ class DatabaseSeeder @Inject constructor(
             repeat(7) { day ->
                 if (day in listOf(0, 2, 4, 6)) {
                     database.trackerDao().upsertValue(
-                        TrackerDailyValueEntity("demo-piano-minutes", weekStart + day, 20.0 + week / 4.0, null, null, "", now),
+                        TrackerDailyValueEntity(
+                            "demo-piano-minutes",
+                            weekStart + day,
+                            listOf(5.0, 10.0, 20.0)[(week + day) % 3],
+                            null,
+                            null,
+                            "",
+                            now,
+                        ),
                     )
                 }
                 if (day < 5) {
                     database.trackerDao().upsertValue(
-                        TrackerDailyValueEntity("demo-meditation-minutes", weekStart + day, 10.0 + (week % 4), null, null, "", now),
+                        TrackerDailyValueEntity(
+                            "demo-meditation-minutes",
+                            weekStart + day,
+                            listOf(5.0, 10.0, 20.0)[(week + day) % 3],
+                            null,
+                            null,
+                            "",
+                            now,
+                        ),
                     )
                 }
                 if (day != 5) {
                     database.trackerDao().upsertValue(
-                        TrackerDailyValueEntity("demo-protein-grams", weekStart + day, 115.0 + (week + day) % 18, null, null, "", now),
+                        TrackerDailyValueEntity(
+                            "demo-protein-grams",
+                            weekStart + day,
+                            listOf(130.0, 150.0, 170.0)[(week + day) % 3],
+                            null,
+                            null,
+                            "",
+                            now,
+                        ),
                     )
                 }
             }
@@ -388,7 +412,7 @@ class DatabaseSeeder @Inject constructor(
         private const val SCHEDULE_FREE_DEMO_KEY = "schedule_free_demo"
         private const val SCHEDULE_FREE_DEMO_VERSION = 1
         private const val PROGRESS_DEMO_KEY = "progress_demo"
-        private const val PROGRESS_DEMO_VERSION = 4
+        private const val PROGRESS_DEMO_VERSION = 5
 
         private val MUSCLES = listOf(
             "ABDUCTORS" to "Abductors", "ADDUCTORS" to "Adductors", "BACK_LOWER" to "Lower back",
