@@ -158,6 +158,14 @@ Evidence: commits `fd8f0f1` and `ca70b76` remove the empty clickable/long-press 
 
 The exact `ca70b76` APK has SHA-256 `5c052cf9f065fad606af57fa1333c2b4a3de4e260a499a06f7b40ac47187d34f`. An actual `adb input swipe` on the visible Handstand handle immediately placed Back squat first and Handstand second; the on-device Room database contained the same persisted positions. `files/ux-06-final/persisted-order-ca70b76.png` records the result. MainActivity remains resumed with PID 20421 and no AndroidRuntime crash.
 
+### UX-07 — Drag feedback and motion
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+- [ ] Highlight and animate the active six-dot handle so touch drag state is immediately visible.
+- [ ] Make programme exercise rows follow the drag and animate displaced-row placement.
+- [ ] Preserve persisted ordering, reduced-motion behavior and accessibility actions; validate and inspect the installed interaction.
+
 ### QA-01 — Real-phone timers
 
 - [ ] Record phone model, Android version and notification/alarm permissions.

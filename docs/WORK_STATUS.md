@@ -2,7 +2,9 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-06 direct handle dragging is complete through `ca70b76`** on `pmathie-cicpilot-persist-workout-drafts`. The shared six-dot handle no longer requires a long press or sits behind an empty click target. A dedicated vertical `draggable` modifier claims normal thumb movement and commits once its stop callback runs; accessibility Move earlier/Move later actions remain.
+Current implementation task: **UX-07 drag feedback and motion is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. The active handle will receive animated high-contrast feedback, and programme exercise rows will follow the thumb and animate displaced placement while preserving reduced-motion and persistence behavior.
+
+UX-06 direct handle dragging is complete through `ca70b76`. The shared six-dot handle no longer requires a long press or sits behind an empty click target. A dedicated vertical `draggable` modifier claims normal thumb movement and commits once its stop callback runs; accessibility Move earlier/Move later actions remain.
 
 Focused `ProgrammeUiTest` now drags without a hold and proves programme/day/exercise Room order, followed by full validation with 33 unit tests and 41 API 35 instrumentation tests. The exact APK SHA-256 is `5c052cf9f065fad606af57fa1333c2b4a3de4e260a499a06f7b40ac47187d34f`. A real `adb input swipe` moved Handstand below Back squat, and a direct read of the on-device Room database confirmed Back squat at position 0 and Handstand at position 1. Screenshot `files/ux-06-final/persisted-order-ca70b76.png` records the installed result; MainActivity remains resumed with PID 20421 and no crash.
 
