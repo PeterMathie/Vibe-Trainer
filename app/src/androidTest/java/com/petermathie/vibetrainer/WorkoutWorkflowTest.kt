@@ -126,4 +126,14 @@ class WorkoutWorkflowTest {
         assertEquals(77, legsSnapshot.restSeconds)
         assertTrue(legsSnapshot.targets.startsWith("4 sets"))
     }
+
+    @Test(timeout = 120_000)
+    fun freshCatalogueContainsOnlyMaintainedExercises() = runBlocking {
+        val exercises = database.editorDao().exercises().first()
+        assertEquals(17, exercises.size)
+        assertTrue(exercises.none { it.source == "free-exercise-db" })
+        assertTrue(exercises.all { it.source == "vibe-trainer" })
+        val usedIds = database.editorDao().entries().first().map { it.exerciseId }.toSet()
+        assertEquals(exercises.map { it.id }.toSet(), usedIds)
+    }
 }

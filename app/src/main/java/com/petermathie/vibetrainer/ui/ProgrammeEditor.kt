@@ -322,7 +322,7 @@ fun ExercisePicker(vm: EditorViewModel, onDismiss: () -> Unit, onChoose: (Exerci
     val mappedIds = mappings.filter { it.muscleId in muscleIds }.map { it.exerciseId }.toSet()
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Choose exercise") }, text = {
         Column { OutlinedTextField(query, { query = it }, label = { Text("Name, alias or muscle") })
-            LazyColumn(Modifier.heightIn(max = 420.dp)) { items(exercises.filter { !it.isArchived && (it.canonicalName.contains(query, true) || it.id in aliasIds || it.id in mappedIds) }.take(100)) { e ->
+            LazyColumn(Modifier.heightIn(max = 420.dp)) { items(exercises.filter { !it.isArchived && (it.canonicalName.contains(query, true) || it.id in aliasIds || it.id in mappedIds) }) { e ->
                 Text(e.canonicalName, Modifier.fillMaxWidth().clickable { onChoose(e) }.padding(vertical = 14.dp))
             } }
         }

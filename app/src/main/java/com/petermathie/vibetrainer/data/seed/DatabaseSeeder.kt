@@ -29,12 +29,8 @@ import com.petermathie.vibetrainer.domain.model.TrainingMode
 import com.petermathie.vibetrainer.domain.model.WorkoutStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
-import java.io.SequenceInputStream
-import java.util.Collections
-import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
-import org.json.JSONArray
 
 @Singleton
 class DatabaseSeeder @Inject constructor(
@@ -46,6 +42,18 @@ class DatabaseSeeder @Inject constructor(
             if ((database.metadataDao().version(CATALOGUE_KEY) ?: 0) < CATALOGUE_VERSION) {
                 seedCatalogue()
                 database.metadataDao().put(SeedMetadataEntity(CATALOGUE_KEY, CATALOGUE_VERSION))
+            }
+            if ((database.metadataDao().version(CURATED_ONLY_KEY) ?: 0) < CURATED_ONLY_VERSION) {
+                database.openHelper.writableDatabase.execSQL(
+                    """
+                    UPDATE exercises
+                    SET isArchived = 1
+                    WHERE (source = 'free-exercise-db' OR id = 'core:lat-pulldown')
+                      AND id NOT IN (SELECT exerciseId FROM programme_exercises)
+                    """.trimIndent(),
+                )
+                database.openHelper.writableDatabase.execSQL("UPDATE workouts SET notes = '' WHERE isDemo = 1")
+                database.metadataDao().put(SeedMetadataEntity(CURATED_ONLY_KEY, CURATED_ONLY_VERSION))
             }
             if (BuildConfig.DEBUG && (database.metadataDao().version(DEMO_KEY) ?: 0) < DEMO_VERSION) {
                 seedDemo()
@@ -72,85 +80,14 @@ class DatabaseSeeder @Inject constructor(
     private suspend fun seedCatalogue() {
         database.catalogueDao().insertMuscles(MUSCLES)
         database.catalogueDao().insertBands(BANDS)
-
-        val parts = context.assets.list("").orEmpty()
-            .filter { it.startsWith("free_exercises.json.gz.part") }
-            .sorted()
-            .map { context.assets.open(it) }
-        check(parts.isNotEmpty()) { "Bundled exercise catalogue is missing" }
-        val raw = GZIPInputStream(SequenceInputStream(Collections.enumeration(parts)))
-            .bufferedReader()
-            .use { it.readText() }
-        val array = JSONArray(raw)
-        val exercises = mutableListOf<ExerciseEntity>()
-        val aliases = mutableListOf<ExerciseAliasEntity>()
-        val mappings = mutableMapOf<Pair<String, String>, ExerciseMuscleEntity>()
-
-        repeat(array.length()) { index ->
-            val item = array.getJSONObject(index)
-            val sourceId = item.getString("id")
-            val id = "free:$sourceId"
-            val name = item.getString("name")
-            val category = item.optString("category")
-            val equipment = item.optString("equipment").takeIf { it.isNotBlank() && it != "null" }
-            val tag = if (category == "stretching") ExerciseTag.STRETCHING else ExerciseTag.STRENGTH
-            val tracking = inferTrackingType(name, equipment, tag)
-            val instructionsArray = item.optJSONArray("instructions")
-            val instructions = instructionsArray?.let { values ->
-                buildList { repeat(values.length()) { add(values.getString(it)) } }.joinToString("\n")
-            }
-            exercises += ExerciseEntity(
-                id = id,
-                canonicalName = name,
-                tag = tag.name,
-                trackingType = tracking.name,
-                equipment = equipment,
-                instructions = instructions,
-                source = "free-exercise-db",
-                isCustom = false,
-            )
-            aliasCandidates(name).forEach { alias ->
-                aliases += ExerciseAliasEntity(id, alias, alias.normalized())
-            }
-            addMappings(mappings, id, name, item.optJSONArray("primaryMuscles"), MuscleRole.PRIMARY)
-            addMappings(mappings, id, name, item.optJSONArray("secondaryMuscles"), MuscleRole.SECONDARY)
-        }
-
-        CURATED_EXERCISES.forEach { seed ->
-            exercises.removeAll { it.id == seed.id }
-            exercises += seed
-        }
-        CURATED_ALIASES.forEach { (exerciseId, values) ->
-            values.forEach { aliases += ExerciseAliasEntity(exerciseId, it, it.normalized()) }
-        }
-        CURATED_MAPPINGS.forEach { mapping ->
-            mappings[mapping.exerciseId to mapping.muscleId] = mapping
-        }
-
-        database.catalogueDao().insertExercises(exercises)
-        database.catalogueDao().insertAliases(aliases.distinctBy { it.exerciseId to it.normalizedAlias })
-        database.catalogueDao().insertExerciseMuscles(mappings.values.toList())
+        database.catalogueDao().insertExercises(CURATED_EXERCISES)
+        database.catalogueDao().insertAliases(
+            CURATED_ALIASES.flatMap { (exerciseId, values) ->
+                values.map { ExerciseAliasEntity(exerciseId, it, it.normalized()) }
+            },
+        )
+        database.catalogueDao().insertExerciseMuscles(CURATED_MAPPINGS)
         database.catalogueDao().insertVariations(SKILL_VARIATIONS)
-    }
-
-    private fun addMappings(
-        output: MutableMap<Pair<String, String>, ExerciseMuscleEntity>,
-        exerciseId: String,
-        exerciseName: String,
-        sourceMuscles: JSONArray?,
-        role: MuscleRole,
-    ) {
-        if (sourceMuscles == null) return
-        repeat(sourceMuscles.length()) { index ->
-            val source = sourceMuscles.getString(index)
-            canonicalMuscles(source, exerciseName).forEach { muscleId ->
-                val key = exerciseId to muscleId
-                val previous = output[key]
-                if (previous == null || role == MuscleRole.PRIMARY) {
-                    output[key] = ExerciseMuscleEntity(exerciseId, muscleId, role.name)
-                }
-            }
-        }
     }
 
     private suspend fun seedDemo() {
@@ -255,53 +192,18 @@ class DatabaseSeeder @Inject constructor(
         status = WorkoutStatus.FINISHED.name,
         startedAt = finishedAt - 3_600_000L,
         finishedAt = finishedAt,
-        notes = "Representative demo history",
+        notes = "",
         bodyweightKg = 76.0,
         isDemo = true,
     )
-
-    private fun inferTrackingType(name: String, equipment: String?, tag: ExerciseTag): TrackingType = when {
-        tag == ExerciseTag.STRETCHING -> TrackingType.HOLD
-        name.contains("hold", ignoreCase = true) -> TrackingType.HOLD
-        equipment == "body only" -> TrackingType.BODYWEIGHT_REPS
-        else -> TrackingType.WEIGHT_REPS
-    }
-
-    private fun aliasCandidates(name: String): List<String> = buildList {
-        val withoutPunctuation = name.replace(Regex("[^A-Za-z0-9 ]"), " ").replace(Regex("\\s+"), " ").trim()
-        if (!withoutPunctuation.equals(name, ignoreCase = true)) add(withoutPunctuation)
-    }
-
-    private fun canonicalMuscles(source: String, exerciseName: String): List<String> = when (source) {
-        "abdominals" -> if (exerciseName.contains(Regex("oblique|side|twist", RegexOption.IGNORE_CASE))) listOf("CORE", "OBLIQUES") else listOf("CORE")
-        "abductors" -> listOf("ABDUCTORS")
-        "adductors" -> listOf("ADDUCTORS")
-        "biceps" -> listOf("BICEPS")
-        "calves" -> listOf("CALVES")
-        "chest" -> listOf("CHEST")
-        "forearms" -> listOf("FOREARMS")
-        "glutes" -> listOf("GLUTES")
-        "hamstrings" -> listOf("HAMSTRINGS")
-        "lats" -> listOf("LATS")
-        "lower back" -> listOf("BACK_LOWER")
-        "middle back" -> listOf("RHOMBOIDS")
-        "neck", "traps" -> listOf("TRAPEZIUS")
-        "quadriceps" -> listOf("QUADS")
-        "shoulders" -> when {
-            exerciseName.contains(Regex("rear|reverse", RegexOption.IGNORE_CASE)) -> listOf("SHOULDERS_REAR")
-            exerciseName.contains(Regex("lateral|side", RegexOption.IGNORE_CASE)) -> listOf("SHOULDERS_SIDE")
-            exerciseName.contains(Regex("press|front", RegexOption.IGNORE_CASE)) -> listOf("SHOULDERS_FRONT", "SHOULDERS_SIDE")
-            else -> listOf("SHOULDERS_FRONT", "SHOULDERS_SIDE", "SHOULDERS_REAR")
-        }
-        "triceps" -> listOf("TRICEPS")
-        else -> emptyList()
-    }
 
     private fun String.normalized(): String = lowercase().replace(Regex("[^a-z0-9]+"), " ").trim()
 
     companion object {
         private const val CATALOGUE_KEY = "exercise-catalogue"
         private const val CATALOGUE_VERSION = 1
+        private const val CURATED_ONLY_KEY = "curated-exercise-catalogue"
+        private const val CURATED_ONLY_VERSION = 1
         private const val DEMO_KEY = "debug-demo"
         private const val DEMO_VERSION = 1
         private const val SCHEDULE_FREE_DEMO_KEY = "schedule_free_demo"
@@ -355,7 +257,6 @@ class DatabaseSeeder @Inject constructor(
             curated("core:cossack-squat", "Cossack squat", TrackingType.WEIGHT_REPS),
             curated("core:jefferson-curl", "Jefferson curl", TrackingType.WEIGHT_REPS),
             curated("core:pull-up", "Pull-up", TrackingType.ASSISTED_REPS),
-            curated("core:lat-pulldown", "Lat pulldown", TrackingType.WEIGHT_REPS),
             curated("core:overhead-press", "Overhead press", TrackingType.WEIGHT_REPS),
             curated("core:back-extension", "Back extension", TrackingType.WEIGHT_REPS),
             curated("core:front-split", "Front split", TrackingType.ROM_MEASUREMENT, ExerciseTag.STRETCHING),
@@ -369,7 +270,6 @@ class DatabaseSeeder @Inject constructor(
             "core:dip" to listOf("dips"),
             "core:pull-up" to listOf("pullup", "pullups", "pull ups", "negative pull-up"),
             "core:overhead-press" to listOf("OHP", "shoulder press"),
-            "core:lat-pulldown" to listOf("lat pull down", "pulldown"),
             "core:cossack-squat" to listOf("cossack"),
         )
 
@@ -386,7 +286,6 @@ class DatabaseSeeder @Inject constructor(
             mapping("core:cossack-squat", "ADDUCTORS", MuscleRole.PRIMARY), mapping("core:cossack-squat", "QUADS", MuscleRole.PRIMARY), mapping("core:cossack-squat", "GLUTES", MuscleRole.SECONDARY),
             mapping("core:jefferson-curl", "BACK_LOWER", MuscleRole.PRIMARY), mapping("core:jefferson-curl", "HAMSTRINGS", MuscleRole.SECONDARY),
             mapping("core:pull-up", "LATS", MuscleRole.PRIMARY), mapping("core:pull-up", "BICEPS", MuscleRole.SECONDARY), mapping("core:pull-up", "FOREARMS", MuscleRole.SECONDARY),
-            mapping("core:lat-pulldown", "LATS", MuscleRole.PRIMARY), mapping("core:lat-pulldown", "BICEPS", MuscleRole.SECONDARY),
             mapping("core:overhead-press", "SHOULDERS_FRONT", MuscleRole.PRIMARY), mapping("core:overhead-press", "SHOULDERS_SIDE", MuscleRole.PRIMARY), mapping("core:overhead-press", "TRICEPS", MuscleRole.SECONDARY),
             mapping("core:back-extension", "BACK_LOWER", MuscleRole.PRIMARY), mapping("core:back-extension", "GLUTES", MuscleRole.SECONDARY), mapping("core:back-extension", "HAMSTRINGS", MuscleRole.SECONDARY),
             mapping("core:front-split", "HAMSTRINGS", MuscleRole.PRIMARY), mapping("core:front-split", "QUADS", MuscleRole.SECONDARY),

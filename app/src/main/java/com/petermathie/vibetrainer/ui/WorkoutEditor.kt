@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.*
@@ -15,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
@@ -38,7 +39,6 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
     LaunchedEffect(Unit) { while(true) { restRemaining=(context.getSharedPreferences("settings",0).getLong("restEnd",0)-System.currentTimeMillis()).coerceAtLeast(0)/1000;kotlinx.coroutines.delay(500) } }
     val workout = workouts.find { it.id == workoutId }
     var add by remember { mutableStateOf(false) }
-    var editNotes by remember { mutableStateOf(false) }
     var bodyweight by remember { mutableStateOf(false) }
     var editDate by remember { mutableStateOf(false) }
     if (workout == null) { Button(onClick = onChoose, modifier = Modifier.padding(16.dp)) { Text("Choose a programme") }; return }
@@ -54,10 +54,7 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
             Text(workout.name, style = MaterialTheme.typography.headlineSmall)
             if(restRemaining>0) VibeActionButton("Rest: ${restRemaining/60}:${(restRemaining%60).toString().padStart(2,'0')} · cancel", { RestTimer.cancel(context) }, importance = ActionImportance.COMPACT)
             if (logged.isNotEmpty()) Text("Logged duration: ${((logged.maxOf { it.loggedAt } - logged.minOf { it.loggedAt }) / 60000)} min")
-            Row {
-                VibeActionButton("Workout notes", { editNotes = true }, importance = ActionImportance.COMPACT)
-                VibeActionButton("Bodyweight: ${workout.bodyweightKg ?: "—"} kg", { bodyweight = true }, importance = ActionImportance.COMPACT)
-            }
+            VibeActionButton("Bodyweight: ${workout.bodyweightKg ?: "—"} kg", { bodyweight = true }, importance = ActionImportance.COMPACT)
             if(workout.status=="FINISHED") VibeActionButton("Change workout date", { editDate=true }, importance = ActionImportance.COMPACT)
         }
         items(rows, key = { it.id }) { row ->
@@ -66,22 +63,13 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
             val previousRow = sets.filter { it.workoutExerciseId in previousIds }.maxByOrNull { it.loggedAt }?.workoutExerciseId
             val previous = sets.filter { it.workoutExerciseId==previousRow }.sortedBy { it.ordinal }
             val restSeconds=if(row.supersetGroup==null)row.restSeconds else rows.filter { it.supersetGroup==row.supersetGroup }.maxOf { it.restSeconds }
-            WorkoutExerciseCard(vm, row, exercise, sets.filter { it.workoutExerciseId == row.id }, previous,restSeconds) {
-                val group = row.supersetGroup
-                val groupRows = rows.filter { it.supersetGroup == group }
-                val roundComplete = group == null || groupRows.all { member ->
-                    member.id == row.id || sets.count { it.workoutExerciseId == member.id } > sets.count { it.workoutExerciseId == row.id }
-                }
-                if (roundComplete && context.getSharedPreferences("settings", 0).getBoolean("autoRest", false))
-                    RestTimer.start(context, if (group == null) row.restSeconds else groupRows.maxOf { it.restSeconds })
-            }
+            WorkoutExerciseCard(vm, row, exercise, sets.filter { it.workoutExerciseId == row.id }, previous, restSeconds)
         }
         item {
             VibeActionButton("Add exercise to workout", { add = true }, importance = ActionImportance.SECONDARY)
             Button(onClick = { onFinish(workout.id) }, modifier = Modifier.fillMaxWidth()) { Text(if (workout.status == "FINISHED") "Done editing" else "Finish workout") }
         }
     }
-    if (editNotes) NameDialog("Workout notes", workout.notes, { editNotes = false }, allowEmpty = true) { vm.save(workout.copy(notes = it)); editNotes = false }
     if (bodyweight) NameDialog("Bodyweight in kg", workout.bodyweightKg?.toString().orEmpty(), { bodyweight = false }) { it.toDoubleOrNull()?.takeIf { n -> n > 0 }?.let { n -> vm.save(workout.copy(bodyweightKg = n)) }; bodyweight = false }
     if(editDate)NameDialog("Workout date (YYYY-MM-DD)",Instant.ofEpochMilli(workout.finishedAt ?: workout.startedAt).atZone(ZoneId.systemDefault()).toLocalDate().toString(),{editDate=false}) { value ->
         runCatching { java.time.LocalDate.parse(value) }.getOrNull()?.let { date ->
@@ -94,7 +82,7 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
 }
 
 @Composable
-private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity, exercise: ExerciseEntity?, sets: List<WorkoutSetEntity>, previous: List<WorkoutSetEntity>, restSeconds: Int, onSaved: () -> Unit) {
+private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity, exercise: ExerciseEntity?, sets: List<WorkoutSetEntity>, previous: List<WorkoutSetEntity>, restSeconds: Int) {
     val assignments by vm.setBands.collectAsStateWithLifecycle()
     var notes by rememberSaveable(row.id) { mutableStateOf(row.notes) }
     var substitute by remember { mutableStateOf(false) }
@@ -102,7 +90,6 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     var expanded by rememberSaveable(row.id) { mutableStateOf(false) }
     var visibleRows by rememberSaveable(row.id) { mutableIntStateOf(0) }
     val drafts = remember(row.id) { mutableStateMapOf<Int, WorkoutEntryDraftEntity>() }
-    val submitting = remember(row.id) { mutableStateMapOf<Int, Boolean>() }
     val context = LocalContext.current
     val inputConfig = ExerciseInputConfig.decode(row.inputConfig, exercise?.trackingType.orEmpty())
     val hold = inputConfig.timeHeld
@@ -125,26 +112,15 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
         draftLoaded = true
     }
     fun draftAt(ordinal: Int) = drafts[ordinal] ?: emptyEntryDraft(row.id, ordinal).also { drafts[ordinal] = it }
-    fun updateDraft(updated: WorkoutEntryDraftEntity) {
-        drafts[updated.ordinal] = updated
-        vm.saveEntryDraft(updated)
-    }
     fun performanceParts(draft: WorkoutEntryDraftEntity): Pair<String,String> {
         if (!weighted) return "" to if (inputConfig.reps) draft.performance else ""
         val parts = draft.performance.split(Regex("\\s*[x×]\\s*"), limit = 2)
         return parts.getOrElse(0) { "" } to parts.getOrElse(1) { "" }
     }
-    fun updatePerformance(ordinal: Int, resistance: String, result: String) {
-        val performance = if (weighted) {
-            if (resistance.isBlank() && result.isBlank()) "" else "$resistance x $result"
-        } else result
-        updateDraft(draftAt(ordinal).copy(performance = performance, updatedAt = System.currentTimeMillis()))
-    }
-    fun submit(ordinal: Int) {
-        val pending = draftAt(ordinal)
+    fun parsedSet(pending: WorkoutEntryDraftEntity): WorkoutSetEntity? {
         val (resistance, reps) = performanceParts(pending)
-        val base = sets.find { it.ordinal == ordinal }
-            ?: emptySet(row.id, ordinal).copy(id = pending.setId)
+        val base = sets.find { it.ordinal == pending.ordinal }
+            ?: emptySet(row.id, pending.ordinal).copy(id = pending.setId)
         val parsed = base.copy(
             weightKg = resistance.toDoubleOrNull()?.let {
                 if (inputConfig.weightUnit == "lb") it / 2.2046226218 else it
@@ -162,13 +138,24 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
             parsed.holdMillis == null &&
             parsed.timeUnderTensionMillis == null &&
             !inputConfig.bandResistance
-        ) return
-        submitting[ordinal] = true
-        vm.submitEntryDraft(parsed, bandIds(pending.bandIds)) {
-            drafts[ordinal] = draftFromSet(parsed, hold, inputConfig.weightUnit, bandIds(pending.bandIds))
-            submitting[ordinal] = false
-            onSaved()
+        ) return null
+        return parsed
+    }
+    fun updateDraft(updated: WorkoutEntryDraftEntity) {
+        drafts[updated.ordinal] = updated
+        val parsed = parsedSet(updated)
+        if (parsed == null) {
+            vm.saveEntryDraft(updated)
+            sets.find { it.ordinal == updated.ordinal }?.let { vm.removeSet(it.id) }
+        } else {
+            vm.submitEntryDraft(parsed, bandIds(updated.bandIds)) {}
         }
+    }
+    fun updatePerformance(ordinal: Int, resistance: String, result: String) {
+        val performance = if (weighted) {
+            if (resistance.isBlank() && result.isBlank()) "" else "$resistance x $result"
+        } else result
+        updateDraft(draftAt(ordinal).copy(performance = performance, updatedAt = System.currentTimeMillis()))
     }
     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -184,7 +171,6 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
             val ordinal = index + 1
             val draft = draftAt(ordinal)
             val (resistance,result) = performanceParts(draft)
-            val busy = submitting[ordinal] == true
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -199,7 +185,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                     if (weighted) OutlinedTextField(
                         resistance,
                         { updatePerformance(ordinal,it,result) },
-                        enabled=draftLoaded&&!busy,
+                        enabled=draftLoaded,
                         label={Text(inputConfig.weightUnit.orEmpty())},
                         singleLine=true,
                         modifier=Modifier.weight(1f).semantics { contentDescription="Resistance for ${exercise?.canonicalName.orEmpty()} set $ordinal" },
@@ -207,62 +193,56 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                     if (inputConfig.reps) OutlinedTextField(
                             result,
                             { updatePerformance(ordinal,resistance,it) },
-                            enabled=draftLoaded&&!busy,
+                            enabled=draftLoaded,
                             label={Text("Reps")},
                             singleLine=true,
                             modifier=Modifier.weight(1f).semantics { contentDescription="Reps for ${exercise?.canonicalName.orEmpty()} set $ordinal" },
                         )
+                    if (inputConfig.timeHeld) OutlinedTextField(
+                        value = draft.timeHeld.ifBlank {
+                            if (!inputConfig.reps && !weighted) draft.performance else ""
+                        },
+                        onValueChange = {
+                            updateDraft(draft.copy(timeHeld = it, performance = "", updatedAt = System.currentTimeMillis()))
+                        },
+                        label = {
+                            Text(if (exercise?.canonicalName?.contains("Handstand", true) == true) "Freestanding sec" else "Held sec")
+                        },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f).semantics {
+                            contentDescription = "Time held for ${exercise?.canonicalName.orEmpty()} set $ordinal"
+                        },
+                    )
+                    if (inputConfig.timeUnderTension) OutlinedTextField(
+                        value = draft.timeUnderTension,
+                        onValueChange = {
+                            updateDraft(draft.copy(timeUnderTension = it, updatedAt = System.currentTimeMillis()))
+                        },
+                        label = {
+                            Text(if (exercise?.canonicalName?.contains("Handstand", true) == true) "Total wall sec" else "Tension sec")
+                        },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f).semantics {
+                            contentDescription = "Time under tension for ${exercise?.canonicalName.orEmpty()} set $ordinal"
+                        },
+                    )
                     OutlinedTextField(
                         draft.rpe,
-                        { updateDraft(draft.copy(rpe=it,updatedAt=System.currentTimeMillis())) },
-                        enabled=draftLoaded&&!busy,
+                        {
+                            val value = it.filter(Char::isDigit).take(2)
+                            if (value.toIntOrNull()?.let { number -> number <= 10 } != false) {
+                                updateDraft(draft.copy(rpe=value,updatedAt=System.currentTimeMillis()))
+                            }
+                        },
+                        enabled=draftLoaded,
                         label={Text("RPE")},
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine=true,
-                        modifier=Modifier.weight(1f).semantics { contentDescription="RPE for ${exercise?.canonicalName.orEmpty()} set $ordinal" },
+                        modifier=Modifier.width(68.dp).semantics { contentDescription="RPE for ${exercise?.canonicalName.orEmpty()} set $ordinal" },
                     )
                 }
-                if (inputConfig.bandResistance) {
-                    Text("Band resistance", style = MaterialTheme.typography.labelMedium)
-                }
-                if (inputConfig.timeHeld || inputConfig.timeUnderTension) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                    ) {
-                        if (inputConfig.timeHeld) OutlinedTextField(
-                            value = draft.timeHeld.ifBlank {
-                                if (!inputConfig.reps && !weighted) draft.performance else ""
-                            },
-                            onValueChange = {
-                                updateDraft(draft.copy(timeHeld = it, performance = "", updatedAt = System.currentTimeMillis()))
-                            },
-                            label = {
-                                Text(if (exercise?.canonicalName?.contains("Handstand", true) == true) "Freestanding sec" else "Held sec")
-                            },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).semantics {
-                                contentDescription = "Time held for ${exercise?.canonicalName.orEmpty()} set $ordinal"
-                            },
-                        )
-                        if (inputConfig.timeUnderTension) OutlinedTextField(
-                            value = draft.timeUnderTension,
-                            onValueChange = {
-                                updateDraft(draft.copy(timeUnderTension = it, updatedAt = System.currentTimeMillis()))
-                            },
-                            label = {
-                                Text(if (exercise?.canonicalName?.contains("Handstand", true) == true) "Total wall sec" else "Tension sec")
-                            },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).semantics {
-                                contentDescription = "Time under tension for ${exercise?.canonicalName.orEmpty()} set $ordinal"
-                            },
-                        )
-                    }
-                }
+                if (inputConfig.bandResistance) Text("Band resistance", style = MaterialTheme.typography.labelMedium)
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {
-                    IconButton(onClick={submit(ordinal)},enabled=draftLoaded&&!busy) {
-                        Icon(Icons.Outlined.Check,contentDescription="Save set $ordinal for ${exercise?.canonicalName.orEmpty()}")
-                    }
                     if(sets.any { it.ordinal==ordinal }) IconButton(onClick={
                         sets.find { it.ordinal==ordinal }?.let { vm.removeSet(it.id) }
                         vm.discardEntryDraft(row.id,ordinal)
@@ -271,12 +251,6 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                         Icon(Icons.Outlined.Delete,contentDescription="Remove set $ordinal for ${exercise?.canonicalName.orEmpty()}")
                     }
                 }
-            }
-        }
-        if (hold) {
-            HoldTimerButton { seconds ->
-                val ordinal=(1..visibleRows).firstOrNull { drafts[it]?.timeHeld.isNullOrBlank() } ?: visibleRows
-                updateDraft(draftAt(ordinal).copy(timeHeld = seconds, performance = "", updatedAt = System.currentTimeMillis()))
             }
         }
         FilledTonalButton(

@@ -30,7 +30,7 @@ fun ExerciseEditor(vm: EditorViewModel) {
     val matchingIds=mappings.filter { it.muscleId in matchingMuscles }.map { it.exerciseId }.toSet()+aliases.filter { it.alias.contains(query,true) }.map { it.exerciseId }
     LazyColumn(Modifier.fillMaxSize(), contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item { Text("Exercises",style=MaterialTheme.typography.headlineSmall); EditField("Name, alias or muscle",query){query=it}; Button(onClick={selected=ExerciseEntity(newId(),"","STRENGTH","WEIGHT_REPS",null,null,"custom",true)}){Text("Custom exercise")} }
-        items(exercises.filter { !it.isArchived && (it.canonicalName.contains(query,true)||it.id in matchingIds) }.take(100),key={it.id}) { e ->
+        items(exercises.filter { !it.isArchived && (it.canonicalName.contains(query,true)||it.id in matchingIds) },key={it.id}) { e ->
             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
                 Text(e.canonicalName,style=MaterialTheme.typography.titleMedium)
                 Text(mappings.filter { it.exerciseId==e.id }.joinToString { m -> "${muscles.find { it.id==m.muscleId }?.displayName} (${m.role.lowercase()})" },style=MaterialTheme.typography.bodySmall)

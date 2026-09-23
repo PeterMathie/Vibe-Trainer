@@ -49,6 +49,9 @@ class WorkoutLoggingUiTest {
         }
 
         compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Set 1 for Handstand").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Workout notes").assertDoesNotExist()
+        compose.onNodeWithText("Start hold timer").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Save set 1 for Handstand").assertDoesNotExist()
         compose.onAllNodes(hasText("Exercise notes") and hasSetTextAction())[0].performTextInput("Shoulders stable")
         compose.waitUntil(15_000) {
             runBlocking { database.editorDao().workoutExercises().first().any { it.notes == "Shoulders stable" } }
@@ -71,13 +74,11 @@ class WorkoutLoggingUiTest {
 
         compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Time held for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("8")
-        compose.onNodeWithContentDescription("Save set 1 for Handstand").performClick()
         val handstandId = runBlocking { database.editorDao().workoutExercises().first().first { it.workoutId == workoutId && it.actualExerciseId == "core:handstand" }.id }
         compose.waitUntil(15_000) { runBlocking { database.editorDao().sets().first().any { it.workoutExerciseId == handstandId && it.holdMillis == 8_000L } } }
 
         compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextClearance()
         compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("10")
-        compose.onNodeWithContentDescription("Save set 1 for Handstand").performClick()
 
         compose.waitUntil(15_000) { runBlocking { database.editorDao().sets().first().any { it.workoutExerciseId == handstandId && it.holdMillis == 10_000L } } }
         assertEquals(0, runBlocking { database.editorDao().sets().first().count { it.workoutExerciseId == handstandId && it.holdMillis == 8_000L } })
@@ -109,7 +110,13 @@ class WorkoutLoggingUiTest {
 
         compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("12")
         compose.onNodeWithContentDescription("Time under tension for Handstand set 1").performTextInput("30")
-        compose.onNodeWithContentDescription("Save set 1 for Handstand").performClick()
+        compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("99")
+        compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("8")
+        val heldBounds = compose.onNodeWithContentDescription("Time held for Handstand set 1").fetchSemanticsNode().boundsInRoot
+        val tensionBounds = compose.onNodeWithContentDescription("Time under tension for Handstand set 1").fetchSemanticsNode().boundsInRoot
+        val rpeBounds = compose.onNodeWithContentDescription("RPE for Handstand set 1").fetchSemanticsNode().boundsInRoot
+        assertTrue(kotlin.math.abs(heldBounds.center.y - tensionBounds.center.y) < 2f)
+        assertTrue(kotlin.math.abs(heldBounds.center.y - rpeBounds.center.y) < 2f)
 
         val handstandId = runBlocking {
             database.editorDao().workoutExercises().first()
@@ -120,7 +127,8 @@ class WorkoutLoggingUiTest {
                 database.editorDao().sets().first().any {
                     it.workoutExerciseId == handstandId &&
                         it.holdMillis == 12_000L &&
-                        it.timeUnderTensionMillis == 30_000L
+                    it.timeUnderTensionMillis == 30_000L &&
+                    it.rpe == 8.0
                 }
             }
         }
@@ -197,7 +205,7 @@ class WorkoutLoggingUiTest {
         compose.onNodeWithContentDescription("Resistance for Bench press set 1").performTextInput("60")
         compose.onNodeWithContentDescription("Reps for Bench press set 1").performTextInput("5")
         compose.onNodeWithContentDescription("RPE for Bench press set 1").performTextInput("8")
-        compose.onNodeWithContentDescription("Save set 1 for Bench press").performClick()
+        compose.onNodeWithContentDescription("Save set 1 for Bench press").assertDoesNotExist()
 
         val benchId = runBlocking { database.editorDao().workoutExercises().first().first { it.workoutId == workoutId && it.actualExerciseId == "core:bench-press" }.id }
         compose.waitUntil(15_000) {
