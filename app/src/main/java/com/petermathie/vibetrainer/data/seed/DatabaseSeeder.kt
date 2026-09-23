@@ -177,6 +177,21 @@ class DatabaseSeeder @Inject constructor(
         database.openHelper.writableDatabase.execSQL(
             "UPDATE tracker_fields SET valueType='NUMBER' WHERE trackerId IN ('demo-piano','demo-meditation','demo-protein')",
         )
+        database.openHelper.writableDatabase.execSQL(
+            """
+            UPDATE trackers
+            SET iconName = CASE id
+                WHEN 'demo-piano' THEN 'piano'
+                WHEN 'demo-meditation' THEN 'meditation'
+                WHEN 'demo-protein' THEN 'protein'
+                WHEN 'demo-mood' THEN 'mood'
+                WHEN 'demo-journal' THEN 'journal'
+                WHEN 'demo-reading' THEN 'reading'
+                ELSE iconName
+            END
+            WHERE id LIKE 'demo-%'
+            """.trimIndent(),
+        )
         database.openHelper.writableDatabase.execSQL("DELETE FROM workouts WHERE id LIKE 'demo-progress-%'")
         database.openHelper.writableDatabase.execSQL("DELETE FROM body_measurements WHERE isDemo = 1")
         val now = System.currentTimeMillis()
@@ -482,7 +497,7 @@ class DatabaseSeeder @Inject constructor(
         private const val SCHEDULE_FREE_DEMO_KEY = "schedule_free_demo"
         private const val SCHEDULE_FREE_DEMO_VERSION = 1
         private const val PROGRESS_DEMO_KEY = "progress_demo"
-        private const val PROGRESS_DEMO_VERSION = 7
+        private const val PROGRESS_DEMO_VERSION = 8
 
         private val MUSCLES = listOf(
             "ABDUCTORS" to "Abductors", "ADDUCTORS" to "Adductors", "BACK_LOWER" to "Lower back",
@@ -614,9 +629,9 @@ class DatabaseSeeder @Inject constructor(
         }
 
         private val DEMO_EXTRA_TRACKERS = listOf(
-            TrackerEntity("demo-mood", "Mood", true, colourArgb = 0xFF42A5F5L, position = 3),
-            TrackerEntity("demo-journal", "Journal", true, colourArgb = 0xFFFFB74DL, position = 4),
-            TrackerEntity("demo-reading", "Reading", true, colourArgb = 0xFF5C6BC0L, position = 5),
+            TrackerEntity("demo-mood", "Mood", true, colourArgb = 0xFF42A5F5L, position = 3, iconName = "mood"),
+            TrackerEntity("demo-journal", "Journal", true, colourArgb = 0xFFFFB74DL, position = 4, iconName = "journal"),
+            TrackerEntity("demo-reading", "Reading", true, colourArgb = 0xFF5C6BC0L, position = 5, iconName = "reading"),
         )
         private val DEMO_EXTRA_TRACKER_FIELDS = listOf(
             TrackerFieldEntity(
@@ -629,13 +644,15 @@ class DatabaseSeeder @Inject constructor(
                 null,
                 0,
                 choiceOptions = "Terrified\nLonely\nSad\nHappy\nJoyful\nSuper",
+                choiceLightThrough = 2,
+                choiceDarkFrom = 3,
             ),
             TrackerFieldEntity("demo-journal-entry", "demo-journal", "Entry", "TEXT", null, null, null, 0),
             TrackerFieldEntity("demo-reading-completed", "demo-reading", "Read today", "BOOLEAN", null, null, null, 0),
         )
         private val DEMO_TRACKERS = listOf(
-            TrackerEntity("demo-piano", "Piano", true, colourArgb = 0xFF7E57C2L, position = 0),
-            TrackerEntity("demo-meditation", "Meditation", true, colourArgb = 0xFF26A69AL, position = 1),
+            TrackerEntity("demo-piano", "Piano", true, colourArgb = 0xFF7E57C2L, position = 0, iconName = "piano"),
+            TrackerEntity("demo-meditation", "Meditation", true, colourArgb = 0xFF26A69AL, position = 1, iconName = "meditation"),
             TrackerEntity(
                 "demo-protein",
                 "Protein",
@@ -644,6 +661,7 @@ class DatabaseSeeder @Inject constructor(
                 position = 2,
                 heatmapLightBelow = 140.0,
                 heatmapMediumBelow = 160.0,
+                iconName = "protein",
             ),
         ) + DEMO_EXTRA_TRACKERS
         private val DEMO_TRACKER_FIELDS = listOf(

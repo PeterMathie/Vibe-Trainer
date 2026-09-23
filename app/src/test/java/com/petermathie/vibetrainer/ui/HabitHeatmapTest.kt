@@ -11,10 +11,13 @@ class HabitHeatmapTest {
 
     @Test
     fun orderedChoicesMapFromLightToDark() {
-        val field = field("CHOICE", "Terrified\nLonely\nSad\nHappy\nJoyful\nSuper")
+        val field = field("CHOICE", "Terrified\nLonely\nSad\nHappy\nJoyful\nSuper").copy(
+            choiceLightThrough = 2,
+            choiceDarkFrom = 3,
+        )
 
         assertEquals(1, habitHeatmapLevel(tracker, listOf(field), listOf(value(text = "Terrified"))))
-        assertEquals(2, habitHeatmapLevel(tracker, listOf(field), listOf(value(text = "Happy"))))
+        assertEquals(3, habitHeatmapLevel(tracker, listOf(field), listOf(value(text = "Happy"))))
         assertEquals(3, habitHeatmapLevel(tracker, listOf(field), listOf(value(text = "Super"))))
     }
 

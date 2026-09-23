@@ -334,6 +334,7 @@ data class TrackerEntity(
     @androidx.room.ColumnInfo(defaultValue = "0") val position: Int = 0,
     @androidx.room.ColumnInfo(defaultValue = "7") val heatmapLightBelow: Double = 7.0,
     @androidx.room.ColumnInfo(defaultValue = "15") val heatmapMediumBelow: Double = 15.0,
+    @androidx.room.ColumnInfo(defaultValue = "'habit'") val iconName: String = "habit",
 )
 
 @Entity(
@@ -359,6 +360,8 @@ data class TrackerFieldEntity(
     @androidx.room.ColumnInfo(defaultValue = "''") val choiceOptions: String = "",
     val targetMaxValue: Double? = null,
     @androidx.room.ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
+    @androidx.room.ColumnInfo(defaultValue = "-1") val choiceLightThrough: Int = -1,
+    @androidx.room.ColumnInfo(defaultValue = "-1") val choiceDarkFrom: Int = -1,
 )
 
 @Entity(

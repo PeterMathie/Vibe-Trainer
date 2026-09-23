@@ -10,6 +10,8 @@ data class HabitFieldForm(
     val target: String,
     val targetMaximum: String,
     val comparison: String,
+    val choiceLightThrough: Int = -1,
+    val choiceDarkFrom: Int = -1,
 ) {
     val isNumeric: Boolean
         get() = type in NUMERIC_TYPES
@@ -33,7 +35,14 @@ data class HabitFieldForm(
             )
 
     val canSave: Boolean
-        get() = name.isNotBlank() && isTargetValid && isRangeValid && areChoicesValid
+        get() = name.isNotBlank() && isTargetValid && isRangeValid && areChoicesValid && areChoiceShadesValid
+
+    val areChoiceShadesValid: Boolean
+        get() = type != CHOICE || (
+            choiceLightThrough in 0 until choiceValues.lastIndex &&
+                choiceDarkFrom in 1..choiceValues.lastIndex &&
+                choiceLightThrough < choiceDarkFrom
+            )
 
     fun applyTo(field: TrackerFieldEntity): TrackerFieldEntity {
         val minimum = if (isNumeric) target.toDoubleOrNull() else null
@@ -45,6 +54,8 @@ data class HabitFieldForm(
             targetComparison = if (minimum == null) null else comparison,
             position = field.position,
             choiceOptions = if (type == CHOICE) choiceValues.joinToString("\n") else "",
+            choiceLightThrough = if (type == CHOICE) choiceLightThrough else -1,
+            choiceDarkFrom = if (type == CHOICE) choiceDarkFrom else -1,
             targetMaxValue = if (minimum != null && comparison == RANGE) {
                 targetMaximum.toDoubleOrNull()
             } else {
@@ -77,6 +88,8 @@ data class HabitFieldForm(
             target = field.targetValue?.toString().orEmpty(),
             targetMaximum = field.targetMaxValue?.toString().orEmpty(),
             comparison = field.targetComparison ?: "AT_LEAST",
+            choiceLightThrough = field.choiceLightThrough,
+            choiceDarkFrom = field.choiceDarkFrom,
         )
     }
 }

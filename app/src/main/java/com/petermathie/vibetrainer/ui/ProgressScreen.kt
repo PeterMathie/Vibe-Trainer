@@ -421,7 +421,21 @@ internal fun habitHeatmapLevel(
             HabitFieldForm.CHOICE -> {
                 val options = field.choiceOptions.lineSequence().filter(String::isNotBlank).toList()
                 val index = options.indexOf(value.textValue)
-                if (index < 0 || options.isEmpty()) null else (index * 3 / options.size + 1).coerceAtMost(3)
+                if (index < 0 || options.isEmpty()) {
+                    null
+                } else {
+                    val lightThrough = field.choiceLightThrough
+                        .takeIf { it in 0 until options.lastIndex }
+                        ?: ((options.size - 1) / 3)
+                    val darkFrom = field.choiceDarkFrom
+                        .takeIf { it in 1..options.lastIndex && it > lightThrough }
+                        ?: ((options.size * 2 + 2) / 3).coerceAtMost(options.lastIndex)
+                    when {
+                        index <= lightThrough -> 1
+                        index >= darkFrom -> 3
+                        else -> 2
+                    }
+                }
             }
             "TEXT", "DATETIME" -> value.textValue?.takeIf(String::isNotBlank)?.let { 2 }
             else -> null

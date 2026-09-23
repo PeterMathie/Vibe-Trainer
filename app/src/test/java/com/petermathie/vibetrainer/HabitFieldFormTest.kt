@@ -56,22 +56,49 @@ class HabitFieldFormTest {
         val form = HabitFieldForm.from(field).copy(
             type = HabitFieldForm.CHOICE,
             options = "Good, Bad\nGood",
+            choiceLightThrough = 0,
+            choiceDarkFrom = 2,
         )
 
         assertFalse(form.areChoicesValid)
-        val saved = form.copy(options = " Good, Bad \n").applyTo(field)
+        val saved = form.copy(options = " Good, Bad \n", choiceDarkFrom = 1).applyTo(field)
         assertEquals("Good\nBad", saved.choiceOptions)
         assertNull(saved.targetValue)
         assertNull(saved.targetComparison)
     }
 
     @Test
+    fun choiceShadeBoundariesValidateAndRoundTrip() {
+        val choiceField = field.copy(
+            valueType = HabitFieldForm.CHOICE,
+            choiceOptions = "Terrified\nLonely\nSad\nHappy\nJoyful\nSuper",
+            choiceLightThrough = 2,
+            choiceDarkFrom = 3,
+        )
+        val form = HabitFieldForm.from(choiceField)
+
+        assertTrue(form.canSave)
+        assertFalse(form.copy(choiceDarkFrom = 2).canSave)
+        assertFalse(form.copy(choiceLightThrough = -1).canSave)
+        val saved = form.applyTo(choiceField)
+        assertEquals(2, saved.choiceLightThrough)
+        assertEquals(3, saved.choiceDarkFrom)
+    }
+
+    @Test
     fun nonChoiceTypeClearsStaleChoicesAndTargets() {
         val saved = HabitFieldForm.from(
-            field.copy(choiceOptions = "A\nB", targetMaxValue = 30.0),
+            field.copy(
+                choiceOptions = "A\nB",
+                targetMaxValue = 30.0,
+                choiceLightThrough = 0,
+                choiceDarkFrom = 1,
+            ),
         ).copy(type = "TEXT").applyTo(field)
 
         assertEquals("", saved.choiceOptions)
+        assertEquals(-1, saved.choiceLightThrough)
+        assertEquals(-1, saved.choiceDarkFrom)
         assertNull(saved.targetValue)
         assertNull(saved.targetComparison)
         assertNull(saved.targetMaxValue)

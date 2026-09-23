@@ -233,4 +233,13 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
             """.trimIndent(),
         )
     }
+
+}
+
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE tracker_fields ADD COLUMN choiceLightThrough INTEGER NOT NULL DEFAULT -1")
+        db.execSQL("ALTER TABLE tracker_fields ADD COLUMN choiceDarkFrom INTEGER NOT NULL DEFAULT -1")
+        db.execSQL("ALTER TABLE trackers ADD COLUMN iconName TEXT NOT NULL DEFAULT 'habit'")
+    }
 }

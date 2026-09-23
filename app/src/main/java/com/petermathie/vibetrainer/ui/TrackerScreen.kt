@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,6 +55,13 @@ fun TrackerScreen(vm: EditorViewModel) {
                 modifier = Modifier.reorderItemFeedback(trackerOrder, tracker.id, trackerIndex),
             ) {
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Icon(
+                        HabitIconCatalog.icon(tracker.iconName),
+                        contentDescription = null,
+                        tint = Color(tracker.colourArgb.toInt()),
+                        modifier = Modifier.size(32.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
                     Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                     Box(
                         Modifier
@@ -73,12 +82,16 @@ fun TrackerScreen(vm: EditorViewModel) {
                         epoch,
                     )
                 }
-                VibeActionButton(
-                    "Edit settings",
-                    { settings = tracker },
-                    modifier = Modifier.fillMaxWidth(),
-                    importance = ActionImportance.SECONDARY,
-                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    IconButton(
+                        onClick = { settings = tracker },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Edit ${tracker.name} settings"
+                        },
+                    ) {
+                        Icon(Icons.Outlined.Edit, contentDescription = null)
+                    }
+                }
             }
         }
         if (archivedTrackers.isNotEmpty()) {
@@ -87,6 +100,12 @@ fun TrackerScreen(vm: EditorViewModel) {
                     Text("Archived habits", style = MaterialTheme.typography.titleLarge)
                     archivedTrackers.forEach { tracker ->
                         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Icon(
+                                HabitIconCatalog.icon(tracker.iconName),
+                                contentDescription = null,
+                                tint = Color(tracker.colourArgb.toInt()),
+                            )
+                            Spacer(Modifier.width(8.dp))
                             Box(
                                 Modifier
                                     .size(16.dp)
@@ -154,7 +173,13 @@ fun TrackerScreen(vm: EditorViewModel) {
             },
         )
     }
-    field?.let { HabitFieldDialog(vm, it) { field = null } }
+    field?.let { habitField ->
+        HabitFieldDialog(
+            vm,
+            habitField,
+            Color(trackers.find { it.id == habitField.trackerId }?.colourArgb?.toInt() ?: 0xFF4CAF50.toInt()),
+        ) { field = null }
+    }
     deleteCandidate?.let { tracker ->
         AlertDialog(
             onDismissRequest = { deleteCandidate = null },
@@ -190,6 +215,7 @@ private fun HabitSettingsDialog(
 ) {
     var name by remember(tracker.id) { mutableStateOf(tracker.name) }
     var colour by remember(tracker.id) { mutableLongStateOf(tracker.colourArgb) }
+    var iconName by remember(tracker.id) { mutableStateOf(tracker.iconName) }
     var coloursOpen by remember(tracker.id) { mutableStateOf(false) }
     var lightBelow by remember(tracker.id, tracker.heatmapLightBelow) {
         mutableStateOf(formatThreshold(tracker.heatmapLightBelow))
@@ -241,6 +267,33 @@ private fun HabitSettingsDialog(
                                             }
                                             .clickable { colour = option },
                                     )
+                                }
+                            }
+                            Text("Icon", style = MaterialTheme.typography.titleMedium)
+                            Row(
+                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                HabitIconCatalog.options.forEach { option ->
+                                    Surface(
+                                        onClick = { iconName = option.key },
+                                        color = if (iconName == option.key) {
+                                            Color(colour.toInt()).copy(alpha = 0.24f)
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        },
+                                        shape = CircleShape,
+                                        modifier = Modifier.semantics {
+                                            contentDescription = "Set ${tracker.name} icon ${option.label}"
+                                        },
+                                    ) {
+                                        Icon(
+                                            option.icon,
+                                            contentDescription = null,
+                                            tint = Color(colour.toInt()),
+                                            modifier = Modifier.padding(12.dp).size(28.dp),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -325,6 +378,7 @@ private fun HabitSettingsDialog(
                         tracker.copy(
                             name = name,
                             colourArgb = colour,
+                            iconName = iconName,
                             heatmapLightBelow = light ?: tracker.heatmapLightBelow,
                             heatmapMediumBelow = medium ?: tracker.heatmapMediumBelow,
                         ),

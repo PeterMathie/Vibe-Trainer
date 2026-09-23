@@ -41,16 +41,19 @@ class HabitUiTest {
         compose.onNodeWithText("Date (YYYY-MM-DD)").assertDoesNotExist()
         compose.onNodeWithContentDescription("Wellbeing colour").assertExists()
         compose.onNodeWithContentDescription("Set Wellbeing colour 2").assertDoesNotExist()
-        compose.onNodeWithText("Edit settings").performClick()
+        compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
         compose.onNodeWithText("Change colour").performClick()
         compose.onNodeWithContentDescription("Set Wellbeing colour 2").performClick()
+        compose.onNodeWithContentDescription("Set Wellbeing icon Mood").performClick()
         compose.onNodeWithText("Save settings").performClick()
         compose.waitUntil(15_000) {
             runBlocking {
-                database.editorDao().trackers().first().single().colourArgb == 0xFF42A5F5L
+                database.editorDao().trackers().first().single().let {
+                    it.colourArgb == 0xFF42A5F5L && it.iconName == "mood"
+                }
             }
         }
-        compose.onNodeWithText("Edit settings").performClick()
+        compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
         compose.onNodeWithText("Add measurement").performScrollTo().performClick()
         compose.onNodeWithText("What would you like to track?").assertIsDisplayed()
         compose.onNodeWithContentDescription("Name, for example Minutes or Protein").performTextInput("Mood")
@@ -59,7 +62,15 @@ class HabitUiTest {
         compose.onNodeWithText("Rating").assertDoesNotExist()
         compose.onNodeWithText("Date and time").assertDoesNotExist()
         compose.onNodeWithText("Choose from a list").performClick()
-        compose.onNodeWithContentDescription("Choices, separated by commas").performTextInput("Sad, Happy")
+        compose.onNode(hasText("Light") and hasSetTextAction()).performTextInput("Sad")
+        compose.onNode(hasText("Medium") and hasSetTextAction()).performTextInput("Okay")
+        compose.onNode(hasText("Dark") and hasSetTextAction()).performTextInput("Happy")
+        val actions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =
+            compose.onNodeWithContentDescription("Reorder Happy")
+                .fetchSemanticsNode()
+                .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
+        assertEquals(true, actions.first { it.label == "Move earlier" }.action())
+        compose.waitForIdle()
         compose.onNodeWithText("Save").performClick()
 
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Choose…").fetchSemanticsNodes().isNotEmpty() }
@@ -71,8 +82,10 @@ class HabitUiTest {
             runBlocking { database.editorDao().values().first().any { it.textValue == "Happy" } }
         }
         val field = runBlocking { database.editorDao().fields().first().single() }
-        assertEquals("Sad\nHappy", field.choiceOptions)
-        compose.onNodeWithText("Edit settings").performClick()
+        assertEquals("Sad\nHappy\nOkay", field.choiceOptions)
+        assertEquals(0, field.choiceLightThrough)
+        assertEquals(2, field.choiceDarkFrom)
+        compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
         compose.onNodeWithText("Choices map from light to dark in the order configured.").assertExists()
         compose.onNodeWithText("Delete habit permanently").assertDoesNotExist()
         compose.onNodeWithText("Archive habit").performClick()
@@ -95,7 +108,7 @@ class HabitUiTest {
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { TrackerScreen(viewModel) } }
 
-        compose.onNodeWithText("Edit settings").performClick()
+        compose.onNodeWithContentDescription("Edit Disposable settings").performClick()
         compose.onNodeWithText("Delete habit permanently").performScrollTo().performClick()
         compose.onNodeWithText("Delete permanently").performClick()
         compose.waitUntil(15_000) {
