@@ -142,3 +142,63 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         db.execSQL("ALTER TABLE workout_entry_drafts ADD COLUMN timeUnderTension TEXT NOT NULL DEFAULT ''")
     }
 }
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE exercises ADD COLUMN inputConfig TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE exercises ADD COLUMN targetSets INTEGER")
+            db.execSQL("ALTER TABLE exercises ADD COLUMN targetRepsMin INTEGER")
+            db.execSQL("ALTER TABLE exercises ADD COLUMN targetRepsMax INTEGER")
+            db.execSQL("ALTER TABLE exercises ADD COLUMN targetRpe REAL")
+            db.execSQL("ALTER TABLE exercises ADD COLUMN restSeconds INTEGER NOT NULL DEFAULT 120")
+            db.execSQL(
+                """
+                UPDATE exercises
+                SET inputConfig = COALESCE((
+                        SELECT pe.inputConfig FROM programme_exercises pe
+                        WHERE pe.exerciseId = exercises.id AND pe.inputConfig != ''
+                        ORDER BY pe.position LIMIT 1
+                    ), ''),
+                    targetSets = (SELECT pe.targetSets FROM programme_exercises pe WHERE pe.exerciseId = exercises.id ORDER BY pe.position LIMIT 1),
+                    targetRepsMin = (SELECT pe.targetRepsMin FROM programme_exercises pe WHERE pe.exerciseId = exercises.id ORDER BY pe.position LIMIT 1),
+                    targetRepsMax = (SELECT pe.targetRepsMax FROM programme_exercises pe WHERE pe.exerciseId = exercises.id ORDER BY pe.position LIMIT 1),
+                    targetRpe = (SELECT pe.targetRpe FROM programme_exercises pe WHERE pe.exerciseId = exercises.id ORDER BY pe.position LIMIT 1),
+                    restSeconds = COALESCE((SELECT pe.restSeconds FROM programme_exercises pe WHERE pe.exerciseId = exercises.id ORDER BY pe.position LIMIT 1), 120)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                UPDATE exercises
+                SET inputConfig = 'weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=true;reps=false'
+                WHERE id = 'core:handstand' AND inputConfig = ''
+                """.trimIndent(),
+            )
+            db.execSQL("UPDATE programme_days SET name = 'Stretching', position = 0 WHERE id = 'demo-day-front-splits' AND programmeId = 'demo-programme-stretch'")
+            db.execSQL(
+                """
+                UPDATE programme_exercises
+                SET programmeDayId = 'demo-day-front-splits',
+                    position = CASE exerciseId
+                        WHEN 'core:front-split' THEN 0
+                        WHEN 'core:forward-fold' THEN 1
+                        WHEN 'core:side-split' THEN 2
+                        WHEN 'core:bridge' THEN 3
+                        ELSE position
+                    END
+                WHERE programmeDayId IN (
+                    'demo-day-front-splits',
+                    'demo-day-forward-fold',
+                    'demo-day-side-splits',
+                    'demo-day-bridge'
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                DELETE FROM programme_days
+                WHERE id IN ('demo-day-forward-fold', 'demo-day-side-splits', 'demo-day-bridge')
+                  AND programmeId = 'demo-programme-stretch'
+                """.trimIndent(),
+            )
+    }
+}

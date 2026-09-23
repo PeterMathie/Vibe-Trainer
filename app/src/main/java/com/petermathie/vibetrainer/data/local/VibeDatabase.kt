@@ -27,7 +27,7 @@ import androidx.room.RoomDatabase
         TrackerDayOutcomeEntity::class,
         BodyMeasurementEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class VibeDatabase : RoomDatabase() {

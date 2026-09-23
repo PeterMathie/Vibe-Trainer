@@ -25,6 +25,12 @@ data class ExerciseEntity(
     val source: String,
     val isCustom: Boolean,
     val isArchived: Boolean = false,
+    @androidx.room.ColumnInfo(defaultValue = "''") val inputConfig: String = "",
+    val targetSets: Int? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null,
+    val targetRpe: Double? = null,
+    @androidx.room.ColumnInfo(defaultValue = "120") val restSeconds: Int = 120,
 )
 
 @Entity(

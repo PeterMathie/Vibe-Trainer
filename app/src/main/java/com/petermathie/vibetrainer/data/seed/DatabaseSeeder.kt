@@ -327,7 +327,21 @@ class DatabaseSeeder @Inject constructor(
         )
 
         private fun curated(id: String, name: String, tracking: TrackingType, tag: ExerciseTag = ExerciseTag.STRENGTH) =
-            ExerciseEntity(id, name, tag.name, tracking.name, null, null, "vibe-trainer", false)
+            ExerciseEntity(
+                id,
+                name,
+                tag.name,
+                tracking.name,
+                null,
+                null,
+                "vibe-trainer",
+                false,
+                inputConfig = if (id == "core:handstand") {
+                    "weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=true;reps=false"
+                } else {
+                    ""
+                },
+            )
 
         private val CURATED_EXERCISES = listOf(
             curated("core:handstand", "Handstand", TrackingType.SKILL_HOLD),
@@ -400,10 +414,7 @@ class DatabaseSeeder @Inject constructor(
             ProgrammeDayEntity("demo-day-push", "demo-programme-push", "Planche + Push", 0),
             ProgrammeDayEntity("demo-day-legs", "demo-programme-legs", "Legs + Mobility", 0),
             ProgrammeDayEntity("demo-day-pull", "demo-programme-pull", "Muscle-up + Pull", 0),
-            ProgrammeDayEntity("demo-day-front-splits", "demo-programme-stretch", "Front Splits", 0),
-            ProgrammeDayEntity("demo-day-forward-fold", "demo-programme-stretch", "Forward Fold", 1),
-            ProgrammeDayEntity("demo-day-side-splits", "demo-programme-stretch", "Side Splits", 2),
-            ProgrammeDayEntity("demo-day-bridge", "demo-programme-stretch", "Bridge", 3),
+            ProgrammeDayEntity("demo-day-front-splits", "demo-programme-stretch", "Stretching", 0),
         )
 
         private fun programmeExercise(day: String, exercise: String, position: Int, rest: Int = 120) = ProgrammeExerciseEntity(
@@ -425,10 +436,9 @@ class DatabaseSeeder @Inject constructor(
             listOf("core:handstand", "core:planche", "core:muscle-up", "core:bench-press", "core:dip", "core:leg-raise").forEachIndexed { i, id -> add(programmeExercise("demo-day-push", id, i)) }
             listOf("core:handstand", "core:squat", "core:lunge", "core:cossack-squat", "core:jefferson-curl").forEachIndexed { i, id -> add(programmeExercise("demo-day-legs", id, i)) }
             listOf("core:handstand", "core:muscle-up", "core:planche", "core:pull-up", "core:overhead-press", "core:back-extension").forEachIndexed { i, id -> add(programmeExercise("demo-day-pull", id, i)) }
-            add(programmeExercise("demo-day-front-splits", "core:front-split", 0, 60))
-            add(programmeExercise("demo-day-forward-fold", "core:forward-fold", 0, 60))
-            add(programmeExercise("demo-day-side-splits", "core:side-split", 0, 60))
-            add(programmeExercise("demo-day-bridge", "core:bridge", 0, 60))
+            listOf("core:front-split", "core:forward-fold", "core:side-split", "core:bridge").forEachIndexed { i, id ->
+                add(programmeExercise("demo-day-front-splits", id, i, 60))
+            }
         }
 
         private val DEMO_TRACKERS = listOf(

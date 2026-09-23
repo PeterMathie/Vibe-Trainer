@@ -81,7 +81,14 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
         db.withTransaction {
             val definition=dao.exerciseById(row.actualExerciseId)
             val changed=row.exerciseName.isBlank()
-            dao.workoutExercise(if(changed)row.copy(exerciseName=definition?.canonicalName.orEmpty(),trackingType=definition?.trackingType.orEmpty()) else row)
+            dao.workoutExercise(
+                if(changed) row.copy(
+                    exerciseName=definition?.canonicalName.orEmpty(),
+                    trackingType=definition?.trackingType.orEmpty(),
+                    inputConfig=definition?.inputConfig.orEmpty(),
+                    restSeconds=definition?.restSeconds ?: row.restSeconds,
+                ) else row,
+            )
             if(changed) {
                 dao.clearWorkoutMuscles(row.id)
                 dao.workoutMuscles(dao.muscleMappings(row.actualExerciseId).map { WorkoutMuscleEntity(row.id,it.muscleId,it.role) })
@@ -156,4 +163,5 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
             db.catalogueDao().insertExerciseMuscles(muscleRoles.map { ExerciseMuscleEntity(row.id, it.key, it.value) })
         }
     }
+    fun saveExerciseSettings(row: ExerciseEntity) = write { dao.exercise(row) }
 }

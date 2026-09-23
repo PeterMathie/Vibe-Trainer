@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
 import com.petermathie.vibetrainer.domain.model.TrainingMode
-import com.petermathie.vibetrainer.domain.programme.ProgrammeEntryForm
 import com.petermathie.vibetrainer.ui.theme.LocalVibeReducedMotion
 
 @Composable
@@ -49,7 +48,6 @@ fun ProgrammeEditor(
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     var expandedProgrammeId by rememberSaveable { mutableStateOf<String?>(null) }
     var rename by remember { mutableStateOf<ProgrammeEntity?>(null) }
-    var editEntry by remember { mutableStateOf<ProgrammeExerciseEntity?>(null) }
     var addExerciseDayId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingStartDayId by rememberSaveable { mutableStateOf<String?>(null) }
     val programmeRows = programmes.filter { it.mode == mode.name }.sortedBy { it.position }
@@ -150,7 +148,7 @@ fun ProgrammeEditor(
                                             .orEmpty()
                                         Column {
                                             Text(exerciseName, style = MaterialTheme.typography.bodyLarge)
-                                            Text(targetSummary(entry), style = MaterialTheme.typography.bodySmall)
+                                            Text(targetSummary(exercises.find { it.id == entry.exerciseId }), style = MaterialTheme.typography.bodySmall)
                                         }
                                     }
                                 }
@@ -233,11 +231,8 @@ fun ProgrammeEditor(
                                         }
                                         Column(Modifier.weight(1f)) {
                                             Text(exerciseName, style = MaterialTheme.typography.titleMedium)
-                                            Text(targetSummary(entry), style = MaterialTheme.typography.bodySmall)
+                                            Text(targetSummary(exercises.find { it.id == entry.exerciseId }), style = MaterialTheme.typography.bodySmall)
                                             entry.supersetGroup?.let { Text("Circuit: $it", style = MaterialTheme.typography.bodySmall) }
-                                        }
-                                        IconButton(onClick = { editEntry = entry }) {
-                                            Icon(Icons.Outlined.Edit, contentDescription = "Edit targets for $exerciseName")
                                         }
                                         IconButton(onClick = { vm.removeEntry(entry.id) }) {
                                             Icon(Icons.Outlined.Delete, contentDescription = "Remove $exerciseName")
@@ -276,13 +271,6 @@ fun ProgrammeEditor(
             }
         }
     rename?.let { p -> NameDialog("Programme name", p.name, { rename = null }) { vm.save(p.copy(name = it)); rename = null } }
-    editEntry?.let { e ->
-        EntryDialog(
-            e,
-            exercises.find { it.id == e.exerciseId }?.trackingType.orEmpty(),
-            { editEntry = null },
-        ) { vm.save(it); editEntry = null }
-    }
     addExerciseDayId?.let { targetDayId ->
         ExercisePicker(vm, { addExerciseDayId = null }) { exercise ->
             vm.save(
@@ -306,14 +294,14 @@ fun ProgrammeEditor(
     }
 }
 
-private fun targetSummary(entry: ProgrammeExerciseEntity): String {
-    val target = entry.targetHoldSeconds?.let { "$it sec" }
-        ?: when {
-            entry.targetRepsMin != null && entry.targetRepsMax != null -> "${entry.targetRepsMin}–${entry.targetRepsMax} reps"
-            entry.targetRepsMin != null -> "${entry.targetRepsMin} reps"
-            else -> "reps not set"
-        }
-    return "${entry.targetSets ?: 3} sets · $target · ${entry.restSeconds}s rest"
+private fun targetSummary(exercise: ExerciseEntity?): String {
+    if (exercise == null) return "Exercise settings unavailable"
+    val target = when {
+        exercise.targetRepsMin != null && exercise.targetRepsMax != null -> "${exercise.targetRepsMin}–${exercise.targetRepsMax} reps"
+        exercise.targetRepsMin != null -> "${exercise.targetRepsMin} reps"
+        else -> "targets not set"
+    }
+    return "${exercise.targetSets ?: 3} sets · $target · ${exercise.restSeconds}s rest"
 }
 
 @Composable
@@ -339,51 +327,6 @@ fun ExercisePicker(vm: EditorViewModel, onDismiss: () -> Unit, onChoose: (Exerci
             } }
         }
     }, confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } })
-}
-
-@Composable
-private fun EntryDialog(e: ProgrammeExerciseEntity, trackingType: String, onDismiss: () -> Unit, onSave: (ProgrammeExerciseEntity) -> Unit) {
-    var form by remember(e, trackingType) { mutableStateOf(ProgrammeEntryForm.from(e, trackingType)) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Exercise settings") }, text = {
-        LazyColumn { item {
-            Text("Resistance", style = MaterialTheme.typography.titleMedium)
-            SettingCheckbox("Weight (kg)", form.weightUnit == "kg") {
-                form = form.copy(weightUnit = if (it) "kg" else null)
-            }
-            SettingCheckbox("Weight (lb)", form.weightUnit == "lb") {
-                form = form.copy(weightUnit = if (it) "lb" else null)
-            }
-            SettingCheckbox("Band resistance", form.bandResistance) {
-                form = form.copy(bandResistance = it)
-            }
-            SettingCheckbox("Time held (seconds)", form.timeHeld) {
-                form = form.copy(timeHeld = it)
-            }
-            SettingCheckbox("Time under tension (seconds)", form.timeUnderTension) {
-                form = form.copy(timeUnderTension = it)
-            }
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("Reps", style = MaterialTheme.typography.titleMedium)
-            EditField("Sets", form.sets) { form = form.copy(sets = it) }
-            EditField("Minimum target", form.minimumReps) { form = form.copy(minimumReps = it) }
-            EditField("Upper target", form.maximumReps) { form = form.copy(maximumReps = it) }
-            EditField("Target RPE", form.targetRpe) { form = form.copy(targetRpe = it) }
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("Rest", style = MaterialTheme.typography.titleMedium)
-            EditField("Rest seconds", form.restSeconds) { form = form.copy(restSeconds = it) }
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            Text("Notes", style = MaterialTheme.typography.titleMedium)
-            EditField("Exercise notes", form.notes) { form = form.copy(notes = it) }
-        } }
-    }, confirmButton = { TextButton(onClick = { onSave(form.applyTo(e)) }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
-}
-
-@Composable
-private fun SettingCheckbox(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        Text(label)
-    }
 }
 
 @Composable

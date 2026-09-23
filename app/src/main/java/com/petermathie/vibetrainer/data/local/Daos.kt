@@ -20,6 +20,11 @@ data class ProgrammeExerciseRow(
     val exerciseId: String,
     val canonicalName: String,
     val trackingType: String,
+    val inputConfig: String,
+    val targetSets: Int?,
+    val targetRepsMin: Int?,
+    val targetRepsMax: Int?,
+    val targetRpe: Double?,
     val position: Int,
     val restSeconds: Int,
     val notes: String,
@@ -126,8 +131,9 @@ interface ProgrammeDao {
 
     @Query(
         """
-        SELECT pe.id, pe.exerciseId, e.canonicalName, e.trackingType,
-               pe.position, pe.restSeconds, pe.notes, pe.supersetGroup
+        SELECT pe.id, pe.exerciseId, e.canonicalName, e.trackingType, e.inputConfig,
+               e.targetSets, e.targetRepsMin, e.targetRepsMax, e.targetRpe,
+               pe.position, e.restSeconds, pe.notes, pe.supersetGroup
         FROM programme_exercises pe
         JOIN exercises e ON e.id = pe.exerciseId
         WHERE pe.programmeDayId = :dayId

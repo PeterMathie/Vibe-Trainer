@@ -8,6 +8,7 @@ import com.petermathie.vibetrainer.data.local.MIGRATION_3_4
 import com.petermathie.vibetrainer.data.local.MIGRATION_4_5
 import com.petermathie.vibetrainer.data.local.MIGRATION_5_6
 import com.petermathie.vibetrainer.data.local.MIGRATION_6_7
+import com.petermathie.vibetrainer.data.local.MIGRATION_7_8
 import com.petermathie.vibetrainer.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -142,5 +143,83 @@ class VibeDatabaseMigrationTest {
                 assertEquals("", it.getString(2))
             }
         }
+    }
+
+    @Test
+    fun migrate7To8MovesProgrammeSettingsToExerciseAndPreservesWorkoutSnapshot() {
+        helper.createDatabase(databaseName, 7).apply {
+                execSQL("INSERT INTO exercises (id,canonicalName,tag,trackingType,equipment,instructions,source,isCustom,isArchived) VALUES ('e','Handstand','STRENGTH','SKILL_HOLD',NULL,NULL,'USER',1,0)")
+                execSQL("INSERT INTO programmes (id,name,mode,isDemo,isArchived,position) VALUES ('p','Programme','STRENGTH',0,0,0)")
+                execSQL("INSERT INTO programme_days (id,programmeId,name,position) VALUES ('d','p','Workout',0)")
+                execSQL(
+                    """
+                    INSERT INTO programme_exercises
+                        (id,programmeDayId,exerciseId,position,targetSets,targetRepsMin,targetRepsMax,targetHoldSeconds,restSeconds,targetRpe,notes,supersetGroup,inputConfig)
+                    VALUES ('pe','d','e',0,4,5,8,NULL,90,8.5,'keep note',NULL,'weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=true;reps=false')
+                    """.trimIndent(),
+                )
+                execSQL("INSERT INTO workouts (id,programmeDayId,name,mode,status,startedAt,finishedAt,notes,bodyweightKg,isDemo) VALUES ('w','d','Workout','STRENGTH','FINISHED',1,2,'',NULL,0)")
+                execSQL(
+                    """
+                    INSERT INTO workout_exercises
+                        (id,workoutId,plannedExerciseId,actualExerciseId,position,notes,restSeconds,supersetGroup,exerciseName,trackingType,targets,inputConfig)
+                    VALUES ('we','w','e','e',0,'',60,NULL,'Historical handstand','SKILL_HOLD','old targets','historical-config')
+                    """.trimIndent(),
+                )
+                listOf(
+                    "core:front-split" to "Front split",
+                    "core:forward-fold" to "Forward fold",
+                    "core:side-split" to "Side split",
+                    "core:bridge" to "Bridge",
+                ).forEach { (id, name) ->
+                    execSQL("INSERT INTO exercises (id,canonicalName,tag,trackingType,equipment,instructions,source,isCustom,isArchived) VALUES ('$id','$name','STRETCHING','HOLD',NULL,NULL,'vibe-trainer',0,0)")
+                }
+                execSQL("INSERT INTO programmes (id,name,mode,isDemo,isArchived,position) VALUES ('demo-programme-stretch','Stretching','STRETCHING',1,0,0)")
+                listOf(
+                    Triple("demo-day-front-splits", "Front Splits", "core:front-split"),
+                    Triple("demo-day-forward-fold", "Forward Fold", "core:forward-fold"),
+                    Triple("demo-day-side-splits", "Side Splits", "core:side-split"),
+                    Triple("demo-day-bridge", "Bridge", "core:bridge"),
+                ).forEachIndexed { index, (dayId, name, exerciseId) ->
+                    execSQL("INSERT INTO programme_days (id,programmeId,name,position) VALUES ('$dayId','demo-programme-stretch','$name',$index)")
+                    execSQL(
+                        """
+                        INSERT INTO programme_exercises
+                            (id,programmeDayId,exerciseId,position,targetSets,targetRepsMin,targetRepsMax,targetHoldSeconds,restSeconds,targetRpe,notes,supersetGroup,inputConfig)
+                        VALUES ('$dayId:$exerciseId','$dayId','$exerciseId',0,3,NULL,NULL,NULL,60,NULL,'',NULL,'')
+                        """.trimIndent(),
+                    )
+                }
+            close()
+        }
+
+        helper.runMigrationsAndValidate(databaseName, 8, true, MIGRATION_7_8).use { migrated ->
+                migrated.query("SELECT inputConfig,targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds FROM exercises WHERE id='e'").use {
+                    assertTrue(it.moveToFirst())
+                    assertEquals("weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=true;reps=false", it.getString(0))
+                    assertEquals(4, it.getInt(1))
+                    assertEquals(5, it.getInt(2))
+                    assertEquals(8, it.getInt(3))
+                    assertEquals(8.5, it.getDouble(4), 0.0)
+                    assertEquals(90, it.getInt(5))
+                }
+                migrated.query("SELECT exerciseName,inputConfig,targets FROM workout_exercises WHERE id='we'").use {
+                    assertTrue(it.moveToFirst())
+                    assertEquals("Historical handstand", it.getString(0))
+                    assertEquals("historical-config", it.getString(1))
+                    assertEquals("old targets", it.getString(2))
+                }
+                migrated.query("SELECT id,name FROM programme_days WHERE programmeId='demo-programme-stretch'").use {
+                    assertTrue(it.moveToFirst())
+                    assertEquals("demo-day-front-splits", it.getString(0))
+                    assertEquals("Stretching", it.getString(1))
+                    assertTrue(!it.moveToNext())
+                }
+                migrated.query("SELECT exerciseId,position FROM programme_exercises WHERE programmeDayId='demo-day-front-splits' ORDER BY position").use {
+                    val exercises = mutableListOf<String>()
+                    while (it.moveToNext()) exercises += it.getString(0)
+                    assertEquals(listOf("core:front-split", "core:forward-fold", "core:side-split", "core:bridge"), exercises)
 }
+        }
+            }
     }

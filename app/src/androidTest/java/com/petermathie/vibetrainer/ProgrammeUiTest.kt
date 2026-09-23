@@ -80,22 +80,9 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Delete workout").assertDoesNotExist()
         compose.onNodeWithText("Add exercise").assertDoesNotExist()
         compose.onNodeWithContentDescription("Add exercise").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Edit targets for Bench press").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Edit targets for Bench press").assertDoesNotExist()
         compose.onNodeWithContentDescription("Reorder Bench press").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Edit targets for Bench press").performClick()
-        compose.onNodeWithText("Exercise settings").assertIsDisplayed()
-        compose.onNodeWithText("Resistance").assertIsDisplayed()
-        compose.onNodeWithText("Weight (kg)").assertIsDisplayed()
-        compose.onNodeWithText("Band resistance").assertIsDisplayed()
-        compose.onNodeWithText("Time held (seconds)").assertIsDisplayed()
-        compose.onNodeWithText("Time under tension (seconds)").assertIsDisplayed()
-        compose.onNodeWithText("Reps").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Minimum target").assertExists()
-        compose.onNodeWithContentDescription("Upper target").assertExists()
-        compose.onNodeWithText("Rest").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Rest seconds").assertExists()
-        compose.onNodeWithText("Circuit/group name (optional)").assertDoesNotExist()
-        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Exercise settings").assertDoesNotExist()
 
         compose.onNodeWithText("Duplicate").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Delete").assertIsDisplayed()
@@ -145,7 +132,7 @@ class ProgrammeUiTest {
     }
 
     @Test
-    fun stretchingUsesTheSamePreviewAndDayReordering() {
+    fun stretchingIsOneWorkoutWithIndividuallyReorderableExercises() {
         seedStretchProgramme()
         setProgrammeContent(mode = TrainingMode.STRETCHING) { _, _ -> }
 
@@ -155,15 +142,17 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Forward fold").assertIsDisplayed()
 
         compose.onNodeWithContentDescription("Edit programme Stretching").performClick()
-        compose.onNodeWithContentDescription("Reorder Front Splits").assertIsDisplayed()
-        dragDown("Reorder Front Splits")
+        compose.onNodeWithText("Stretching").assertIsDisplayed()
+        compose.onNodeWithText("Forward Fold").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Reorder Front split").assertIsDisplayed()
+        dragDown("Reorder Front split")
         compose.waitUntil(15_000) {
             runBlocking {
-                database.editorDao().days().first()
-                    .filter { it.programmeId == "programme-stretch" }
+                database.editorDao().entries().first()
+                    .filter { it.programmeDayId == "day-stretch" }
                     .sortedBy { it.position }
                     .map { it.id }
-            } == listOf("day-fold", "day-splits")
+            } == listOf("entry-fold", "entry-split")
         }
     }
 
@@ -225,7 +214,12 @@ class ProgrammeUiTest {
         createDatabase()
         runBlocking {
             val dao = database.editorDao()
-            dao.exercise(ExerciseEntity("exercise-a", "Bench press", "STRENGTH", "WEIGHT_REPS", null, null, "custom", true))
+            dao.exercise(
+                ExerciseEntity(
+                    "exercise-a", "Bench press", "STRENGTH", "WEIGHT_REPS", null, null, "custom", true,
+                    targetSets = 3, targetRepsMin = 5, targetRepsMax = 8,
+                ),
+            )
             dao.exercise(ExerciseEntity("exercise-b", "Row", "STRENGTH", "WEIGHT_REPS", null, null, "custom", true))
             dao.programme(ProgrammeEntity("programme-a", "Alpha", "STRENGTH", false, position = 0))
             dao.day(ProgrammeDayEntity("day-a", "programme-a", "Morning", 0))
@@ -245,10 +239,9 @@ class ProgrammeUiTest {
             dao.exercise(ExerciseEntity("stretch-split", "Front split", "STRETCHING", "ROM_MEASUREMENT", null, null, "custom", true))
             dao.exercise(ExerciseEntity("stretch-fold", "Forward fold", "STRETCHING", "ROM_MEASUREMENT", null, null, "custom", true))
             dao.programme(ProgrammeEntity("programme-stretch", "Stretching", "STRETCHING", false, position = 0))
-            dao.day(ProgrammeDayEntity("day-splits", "programme-stretch", "Front Splits", 0))
-            dao.day(ProgrammeDayEntity("day-fold", "programme-stretch", "Forward Fold", 1))
-            dao.entry(ProgrammeExerciseEntity("entry-split", "day-splits", "stretch-split", 0, 3, null, null, null, 60, null, "", null))
-            dao.entry(ProgrammeExerciseEntity("entry-fold", "day-fold", "stretch-fold", 0, 3, null, null, null, 60, null, "", null))
+            dao.day(ProgrammeDayEntity("day-stretch", "programme-stretch", "Stretching", 0))
+            dao.entry(ProgrammeExerciseEntity("entry-split", "day-stretch", "stretch-split", 0, 3, null, null, null, 60, null, "", null))
+            dao.entry(ProgrammeExerciseEntity("entry-fold", "day-stretch", "stretch-fold", 1, 3, null, null, null, 60, null, "", null))
         }
     }
 
