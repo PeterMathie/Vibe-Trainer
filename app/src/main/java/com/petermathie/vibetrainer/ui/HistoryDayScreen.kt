@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,8 +57,12 @@ internal fun HistoryDayScreen(
     ScreenList(modifier = Modifier.statusBarsPadding()) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Back") }
-                Text(date.format(DateTimeFormatter.ofPattern("d MMMM yyyy")), style = MaterialTheme.typography.headlineMedium)
+                IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Back", tint = LocalVibePalette.current.textPrimary) }
+                Text(
+                    date.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = LocalVibePalette.current.textPrimary,
+                )
             }
         }
         item {
@@ -67,7 +72,7 @@ internal fun HistoryDayScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 IconButton(onClick = { onDayChange(day - 1) }) {
-                    Icon(Icons.Outlined.ArrowBack, "Previous day")
+                    Icon(Icons.Outlined.KeyboardArrowLeft, "Previous day", tint = LocalVibePalette.current.textPrimary)
                 }
                 SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
                     TrainingMode.entries.forEachIndexed { index, mode ->
@@ -80,7 +85,7 @@ internal fun HistoryDayScreen(
                     }
                 }
                 IconButton(onClick = { onDayChange(day + 1) }, enabled = day < LocalDate.now().toEpochDay()) {
-                    Icon(Icons.Outlined.ArrowForward, "Next day")
+                    Icon(Icons.Outlined.KeyboardArrowRight, "Next day", tint = LocalVibePalette.current.textPrimary)
                 }
             }
         }
