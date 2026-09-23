@@ -160,11 +160,15 @@ The exact `ca70b76` APK has SHA-256 `5c052cf9f065fad606af57fa1333c2b4a3de4e260a4
 
 ### UX-07 — Drag feedback and motion
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Highlight and animate the active six-dot handle so touch drag state is immediately visible.
-- [ ] Make programme exercise rows follow the drag and animate displaced-row placement.
-- [ ] Preserve persisted ordering, reduced-motion behavior and accessibility actions; validate and inspect the installed interaction.
+- [x] Highlight and animate the active six-dot handle so touch drag state is immediately visible.
+- [x] Make programme exercise rows follow the drag and animate displaced-row placement.
+- [x] Preserve persisted ordering, reduced-motion behavior and accessibility actions; validate and inspect the installed interaction.
+
+Evidence: commits `cd5065d`, `d2cbf5b`, `0d63c8f` and `02608b9` add active-handle state, finger-following row translation and eased displaced-row placement. The final active treatment is a subtle 36dp dark-grey circle inside the unchanged 48dp touch target, so it remains visible without clipping or becoming a bright primary control. The dragged row receives an opaque surface while moving. Reduced motion retains direct manipulation but removes decorative scale/colour/placement transitions; accessibility reorder actions remain.
+
+Focused `ProgrammeUiTest` and final full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 33 unit tests and 41 API 35 instrumentation tests. The exact `02608b9` APK has SHA-256 `eca60be25baa16211a2677d64a0003cbc6892cfb50e9d637e424ac587980413c`. `files/ux-07-final/active-drag-02608b9.png` captures the highlighted handle during motion and `settled-drag-02608b9.png` captures the result. The on-device database confirms Back squat at position 0 and Handstand at position 1; MainActivity remains resumed with PID 24088 and no crash.
 
 ### QA-01 — Real-phone timers
 

@@ -2,7 +2,9 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-07 drag feedback and motion is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. The active handle will receive animated high-contrast feedback, and programme exercise rows will follow the thumb and animate displaced placement while preserving reduced-motion and persistence behavior.
+Current implementation task: **UX-07 drag feedback and motion is complete through `02608b9`** on `pmathie-cicpilot-persist-workout-drafts`. During a drag, the exercise row follows the thumb, displaced rows ease into place and the active handle shows a subtle 36dp dark-grey circle inside its unchanged 48dp touch target. The treatment is visible without clipping or becoming an oversized primary-green control. Reduced motion keeps direct manipulation while suppressing decorative transitions; accessibility reorder actions remain.
+
+Focused `ProgrammeUiTest` and the final full validation gate passed with 33 unit tests and 41 API 35 instrumentation tests. The exact APK SHA-256 is `eca60be25baa16211a2677d64a0003cbc6892cfb50e9d637e424ac587980413c`. Installed interaction evidence is in `files/ux-07-final/active-drag-02608b9.png` and `settled-drag-02608b9.png`; the on-device database confirms the reordered positions. MainActivity remains resumed with PID 24088 and no AndroidRuntime crash.
 
 UX-06 direct handle dragging is complete through `ca70b76`. The shared six-dot handle no longer requires a long press or sits behind an empty click target. A dedicated vertical `draggable` modifier claims normal thumb movement and commits once its stop callback runs; accessibility Move earlier/Move later actions remain.
 
