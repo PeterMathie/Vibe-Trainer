@@ -53,7 +53,7 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
         if (selected == null) {
             item { Button(onClick = { rename = ProgrammeEntity(newId(), "", mode.name, false) }) { Text("Create programme") } }
             items(programmeOrder.ordered(programmeRows) { it.id }, key = { it.id }) { p ->
-                Card(Modifier.fillMaxWidth().animateContentSize()) {
+                Card(Modifier.fillMaxWidth().animateItem()) {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(p.name, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
                         IconButton(onClick = { selected = p.id }) {
@@ -88,7 +88,7 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                     vm.moveEntry(key as String, to - from)
                 }
                 val isEditing = editingDayId == d.id
-                Card(Modifier.fillMaxWidth().animateContentSize()) {
+                Card(Modifier.fillMaxWidth().animateItem()) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(d.name, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)

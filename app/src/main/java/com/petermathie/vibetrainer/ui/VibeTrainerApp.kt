@@ -41,6 +41,9 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -125,6 +128,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
 
         Scaffold(
             containerColor = palette.background,
+            topBar = { ModeSelector(state.mode, viewModel::setMode) },
             bottomBar = {
                 PrimaryNavigationBar(destination) { destination = it }
             },
@@ -153,6 +157,23 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                     Destination.STYLE -> StyleScreen(paletteId, { paletteId = it; prefs.edit().putString("palette",it).apply() }, viewModel::removeDemoData)
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModeSelector(mode: TrainingMode, onModeChange: (TrainingMode) -> Unit) {
+    SingleChoiceSegmentedButtonRow(
+        Modifier.fillMaxWidth().padding(horizontal = VibeSpacing.medium, vertical = VibeSpacing.small),
+    ) {
+        TrainingMode.entries.forEachIndexed { index, item ->
+            SegmentedButton(
+                selected = mode == item,
+                onClick = { onModeChange(item) },
+                shape = SegmentedButtonDefaults.itemShape(index, TrainingMode.entries.size),
+                label = { Text(if (item == TrainingMode.STRENGTH) "Strength" else "Stretch") },
+            )
         }
     }
 }
