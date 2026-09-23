@@ -110,6 +110,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
             db.withTransaction { rows.forEachIndexed { i,v -> dao.variation(v.copy(progressionRank=start+i)) } }
         }
     }
+    fun removeProgramme(id: String) = write { dao.deleteProgramme(id) }
     fun removeDay(id: String) = write { dao.deleteDay(id) }
     fun removeEntry(id: String) = write { dao.deleteEntry(id) }
     fun removeSet(id: String) = write { dao.deleteSet(id) }

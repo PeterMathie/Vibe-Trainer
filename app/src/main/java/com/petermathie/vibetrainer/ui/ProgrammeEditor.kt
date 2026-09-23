@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -23,7 +25,12 @@ import com.petermathie.vibetrainer.domain.model.TrainingMode
 import com.petermathie.vibetrainer.domain.programme.ProgrammeEntryForm
 
 @Composable
-fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -> Unit) {
+fun ProgrammeEditor(
+    vm: EditorViewModel,
+    mode: TrainingMode,
+    onModeChange: (TrainingMode) -> Unit,
+    onStart: (String) -> Unit,
+) {
     val programmes by vm.programmes.collectAsStateWithLifecycle()
     val days by vm.days.collectAsStateWithLifecycle()
     val entries by vm.entries.collectAsStateWithLifecycle()
@@ -35,6 +42,10 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
     var editEntry by remember { mutableStateOf<ProgrammeExerciseEntity?>(null) }
     var addExerciseDayId by rememberSaveable { mutableStateOf<String?>(null) }
     val programmeRows = programmes.filter { it.mode == mode.name }.sortedBy { it.position }
+    val selectedProgramme = programmes.find { it.id == selected }
+    var programmeName by rememberSaveable(selectedProgramme?.id, selectedProgramme?.name) {
+        mutableStateOf(selectedProgramme?.name.orEmpty())
+    }
     val dayRows = days.filter { it.programmeId == selected }.sortedBy { it.position }
     val programmeOrder = rememberReorderState(programmeRows.map { it.id }) { key, from, to ->
         vm.moveProgramme(key as String, to - from)
@@ -45,9 +56,18 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
     BackHandler(selected != null) { selected = null }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
                 if (selected != null) VibeActionButton("Back", { selected = null }, importance = ActionImportance.COMPACT)
-                Text(programmes.find { it.id == selected }?.name ?: "Programmes", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    if (selected == null) "Programmes" else "Edit programme",
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                if (selected == null) ModeSelector(mode, onModeChange, Modifier.weight(1.45f))
             }
         }
         if (selected == null) {
@@ -55,6 +75,7 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
             items(programmeOrder.ordered(programmeRows) { it.id }, key = { it.id }) { p ->
                 Card(Modifier.fillMaxWidth().animateItem()) {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        if (programmeRows.size > 1) ReorderHandle(programmeOrder, p.id, p.name)
                         Text(p.name, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
                         IconButton(onClick = { selected = p.id }) {
                             Icon(Icons.Outlined.Edit, contentDescription = "Edit programme ${p.name}")
@@ -62,29 +83,25 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                         IconButton(onClick = { selected = p.id }) {
                             Icon(Icons.Outlined.PlayArrow, contentDescription = "Choose workout in ${p.name}")
                         }
-                        ReorderHandle(programmeOrder, p.id, p.name)
                     }
                 }
             }
         } else {
-            val programme = programmes.find { it.id == selected }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    VibeActionButton(
-                        "Rename programme",
-                        { programme?.let { rename = it } },
+                    OutlinedTextField(
+                        value = programmeName,
+                        onValueChange = { programmeName = it },
                         modifier = Modifier.fillMaxWidth(),
-                        importance = ActionImportance.SECONDARY,
+                        label = { Text("Programme name") },
+                        singleLine = true,
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { selectedProgramme?.let { vm.save(it.copy(name = programmeName.trim())) } },
+                                enabled = programmeName.isNotBlank() && programmeName.trim() != selectedProgramme?.name,
+                            ) { Icon(Icons.Outlined.Check, "Save programme name") }
+                        },
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        VibeActionButton("Duplicate", { programme?.let(vm::duplicate) }, modifier = Modifier.weight(1f), importance = ActionImportance.COMPACT)
-                        VibeActionButton(
-                            "Archive",
-                            { programme?.let { vm.save(it.copy(isArchived = true)); selected = null } },
-                            modifier = Modifier.weight(1f),
-                            importance = ActionImportance.COMPACT,
-                        )
-                    }
                     VibeActionButton(
                         "Add workout",
                         { editDay = ProgrammeDayEntity(newId(), selected!!, "", dayRows.size) },
@@ -101,11 +118,11 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                 Card(Modifier.fillMaxWidth().animateItem()) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            if (dayRows.size > 1) ReorderHandle(dayOrder, d.id, d.name)
                             Text(d.name, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
                             IconButton(onClick = { editingDayId = if (isEditing) null else d.id }) {
                                 Icon(Icons.Outlined.Edit, contentDescription = "Edit workout ${d.name}")
                             }
-                            ReorderHandle(dayOrder, d.id, d.name)
                         }
                         VibeActionButton(
                             "Start workout",
@@ -121,6 +138,9 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                             val exerciseName = exercises.find { it.id == entry.exerciseId }?.canonicalName.orEmpty()
                             Column(Modifier.fillMaxWidth().animateContentSize()) {
                                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    if (isEditing && dayEntries.size > 1) {
+                                        ReorderHandle(entryOrder, entry.id, exerciseName)
+                                    }
                                     Column(Modifier.weight(1f)) {
                                         Text(exerciseName, style = MaterialTheme.typography.titleMedium)
                                         Text(targetSummary(entry), style = MaterialTheme.typography.bodySmall)
@@ -130,7 +150,6 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                                         IconButton(onClick = { editEntry = entry }) {
                                             Icon(Icons.Outlined.Edit, contentDescription = "Edit targets for $exerciseName")
                                         }
-                                        ReorderHandle(entryOrder, entry.id, exerciseName)
                                         IconButton(onClick = { vm.removeEntry(entry.id) }) {
                                             Icon(Icons.Outlined.Delete, contentDescription = "Remove $exerciseName")
                                         }
@@ -139,10 +158,11 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                             }
                         }
                         if (isEditing) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                VibeActionButton("Rename workout", { editDay = d }, importance = ActionImportance.SECONDARY)
-                                VibeActionButton("Add exercise", { addExerciseDayId = d.id }, importance = ActionImportance.COMPACT)
-                            }
+                            VibeActionButton("Rename workout", { editDay = d }, importance = ActionImportance.SECONDARY)
+                            Button(
+                                onClick = { addExerciseDayId = d.id },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Icon(Icons.Outlined.Add, contentDescription = "Add exercise") }
                             VibeActionButton(
                                 "Delete workout",
                                 { vm.removeDay(d.id); editingDayId = null },
@@ -153,8 +173,28 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
                     }
                 }
             }
+                item {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        VibeActionButton("Duplicate", { selectedProgramme?.let(vm::duplicate) }, modifier = Modifier.weight(1f), importance = ActionImportance.COMPACT)
+                        VibeActionButton(
+                            "Delete",
+                            { selectedProgramme?.let { vm.removeProgramme(it.id); selected = null } },
+                            modifier = Modifier.weight(1f),
+                            importance = ActionImportance.COMPACT,
+                        )
+                        VibeActionButton(
+                            "Archive",
+                            { selectedProgramme?.let { vm.save(it.copy(isArchived = true)); selected = null } },
+                            modifier = Modifier.weight(1f),
+                            importance = ActionImportance.COMPACT,
+                        )
+                    }
+                }
+            }
         }
-    }
     rename?.let { p -> NameDialog("Programme name", p.name, { rename = null }) { vm.save(p.copy(name = it)); rename = null } }
     editDay?.let { d -> NameDialog("Workout name", d.name, { editDay = null }) { vm.save(d.copy(name = it)); editDay = null } }
     editEntry?.let { e -> EntryDialog(e, { editEntry = null }) { vm.save(it); editEntry = null } }

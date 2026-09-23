@@ -9,6 +9,7 @@ import com.petermathie.vibetrainer.ui.HomeScreen
 import com.petermathie.vibetrainer.ui.MainUiState
 import com.petermathie.vibetrainer.ui.ReorderHandle
 import com.petermathie.vibetrainer.ui.rememberReorderState
+import com.petermathie.vibetrainer.domain.model.TrainingMode
 import com.petermathie.vibetrainer.ui.theme.VibeTrainerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -23,9 +24,10 @@ class EndUserControlsTest {
     @Test
     fun homeKeepsDateControlsTogetherWithoutRemovedHeadings() {
         var previewDay: Long? = null
+        var selectedMode: TrainingMode? = null
         compose.setContent {
             VibeTrainerTheme {
-                HomeScreen(MainUiState(), {}, {}, { previewDay = it })
+                HomeScreen(MainUiState(), {}, {}, { previewDay = it }, { selectedMode = it })
             }
         }
 
@@ -35,6 +37,9 @@ class EndUserControlsTest {
         compose.onNodeWithContentDescription("Activity date navigation").assertExists()
         compose.onNodeWithText("Earlier").assertExists()
         compose.onNodeWithText("Later").assertExists()
+        compose.onNodeWithText("Strength").assertIsDisplayed()
+        compose.onNodeWithText("Stretch").assertIsDisplayed().performClick()
+        assertEquals(TrainingMode.STRETCHING, selectedMode)
         compose.onNodeWithContentDescription("Home recency date").performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) {
             it((LocalDate.now().toEpochDay() - 10).toFloat())
         }

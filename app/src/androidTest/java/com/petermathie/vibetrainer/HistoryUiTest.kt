@@ -59,7 +59,6 @@ class HistoryUiTest {
                         state = state,
                         onBack = { viewModel.selectHistoryDay(null) },
                         onDayChange = viewModel::selectHistoryDay,
-                        onModeChange = viewModel::setMode,
                     )
                 }
 
@@ -68,9 +67,9 @@ class HistoryUiTest {
 
         compose.onNodeWithText(firstDay.format(DATE_FORMAT), useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Reconstructed from records up to the end of this day").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Historical day and mode controls").assertExists()
+        compose.onNodeWithContentDescription("Historical day controls").assertExists()
         compose.onNodeWithContentDescription("Home recency date").assertDoesNotExist()
-        compose.onNodeWithText("Strength").assertIsSelected()
+        compose.onNodeWithText("Strength").assertDoesNotExist()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Monday — Planche + Push").fetchSemanticsNodes().isNotEmpty()
         }
@@ -82,14 +81,8 @@ class HistoryUiTest {
                 useUnmergedTree = true,
             ).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Stretching").performClick()
-        compose.onNodeWithText("Stretching").assertIsSelected()
-        compose.waitUntil(15_000) {
-            compose.onAllNodesWithText("Front Splits").fetchSemanticsNodes().isNotEmpty()
-        }
-
         compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithText("Front Splits").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Historical day controls").assertDoesNotExist()
     }
 
     @Test

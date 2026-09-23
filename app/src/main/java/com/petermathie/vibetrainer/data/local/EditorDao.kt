@@ -24,6 +24,7 @@ interface EditorDao {
     @Upsert suspend fun entry(row: ProgrammeExerciseEntity)
     @Upsert suspend fun exercise(row: ExerciseEntity)
     @Upsert suspend fun variation(row: ExerciseVariationEntity)
+    @Query("DELETE FROM programmes WHERE id = :id") suspend fun deleteProgramme(id: String)
     @Query("DELETE FROM programme_days WHERE id = :id") suspend fun deleteDay(id: String)
     @Query("DELETE FROM programme_exercises WHERE id = :id") suspend fun deleteEntry(id: String)
     @Query("DELETE FROM exercise_aliases WHERE exerciseId = :id") suspend fun clearAliases(id: String)

@@ -35,14 +35,15 @@ fun ExerciseEditor(vm: EditorViewModel) {
                     VibeActionButton("Add variation", { variation=e.id }, importance = ActionImportance.COMPACT)
                 }
                 if(e.isCustom) VibeActionButton("Archive", { vm.saveExercise(e.copy(isArchived=true),aliases.filter { it.exerciseId==e.id }.map { it.alias },mappings.filter { it.exerciseId==e.id }.associate { it.muscleId to it.role }) }, importance = ActionImportance.COMPACT)
-                val exerciseVariations = variations.filter { it.exerciseId==e.id }.sortedBy { it.progressionRank }
-                val variationOrder = rememberReorderState(exerciseVariations.map { it.id }) { key, from, to ->
+                val seededVariations = variations.filter { it.exerciseId==e.id && it.isSeeded }.sortedBy { it.progressionRank }
+                val customVariations = variations.filter { it.exerciseId==e.id && !it.isSeeded }.sortedBy { it.progressionRank }
+                val variationOrder = rememberReorderState(customVariations.map { it.id }) { key, from, to ->
                     vm.moveVariation(key as String, to - from)
                 }
-                variationOrder.ordered(exerciseVariations) { it.id }.forEach { v ->
+                (seededVariations + variationOrder.ordered(customVariations) { it.id }).forEach { v ->
                     Row(Modifier.animateContentSize()) {
+                        if (!v.isSeeded && customVariations.size > 1) ReorderHandle(variationOrder, v.id, v.name)
                         Text(v.name,Modifier.weight(1f))
-                        ReorderHandle(variationOrder, v.id, v.name, enabled = !v.isSeeded)
                     }
                 }
             } }

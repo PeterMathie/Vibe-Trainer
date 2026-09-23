@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -125,14 +124,12 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                 state = state,
                 onBack = { viewModel.selectHistoryDay(null) },
                 onDayChange = viewModel::selectHistoryDay,
-                onModeChange = viewModel::setMode,
             )
             return@VibeTrainerTheme
         }
 
         Scaffold(
             containerColor = palette.background,
-            topBar = { ModeSelector(state.mode, viewModel::setMode) },
             bottomBar = {
                 PrimaryNavigationBar(destination) { destination = it }
             },
@@ -146,8 +143,9 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                         viewModel::selectHistoryDay,
                         { destination = Destination.ACTIVE_WORKOUT },
                         viewModel::selectHomeRecencyDay,
+                        viewModel::setMode,
                     )
-                    Destination.PROGRAMMES -> ProgrammeEditor(editor, state.mode) { dayId ->
+                    Destination.PROGRAMMES -> ProgrammeEditor(editor, state.mode, viewModel::setMode) { dayId ->
                         viewModel.startWorkout(dayId) { destination = Destination.ACTIVE_WORKOUT }
                     }
                     Destination.ACTIVE_WORKOUT -> WorkoutEditor(
@@ -172,10 +170,12 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ModeSelector(mode: TrainingMode, onModeChange: (TrainingMode) -> Unit) {
-    SingleChoiceSegmentedButtonRow(
-        Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = VibeSpacing.medium, vertical = VibeSpacing.small),
-    ) {
+internal fun ModeSelector(
+    mode: TrainingMode,
+    onModeChange: (TrainingMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SingleChoiceSegmentedButtonRow(modifier) {
         TrainingMode.entries.forEachIndexed { index, item ->
             SegmentedButton(
                 selected = mode == item,
@@ -261,6 +261,7 @@ internal fun HomeScreen(
     onDayClick: (Long) -> Unit,
     onContinue: () -> Unit,
     onRecencyDayChange: (Long) -> Unit,
+    onModeChange: (TrainingMode) -> Unit,
 ) {
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     var selectedMuscle by rememberSaveable { mutableStateOf<String?>(null) }
@@ -282,7 +283,15 @@ internal fun HomeScreen(
         }
         item {
             VibeCard {
-                Text(if (state.mode == TrainingMode.STRENGTH) "MUSCLE RECENCY" else "STRETCH RECENCY", color = LocalVibePalette.current.accent, style = MaterialTheme.typography.labelLarge)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (state.mode == TrainingMode.STRENGTH) "MUSCLE RECENCY" else "STRETCH RECENCY",
+                        modifier = Modifier.weight(1f),
+                        color = LocalVibePalette.current.accent,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MuscleMap(
                         sex = sex,

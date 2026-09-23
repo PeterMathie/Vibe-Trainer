@@ -58,8 +58,8 @@ fun TrackerScreen(vm: EditorViewModel) {
                             HabitDailyInput(vm, habitField, values.find { it.fieldId == habitField.id && it.epochDay == epoch }, epoch)
                             TargetSummary(habitField)
                             Row {
+                                if (activeFields.size > 1) ReorderHandle(fieldOrder, habitField.id, habitField.name)
                                 VibeActionButton("Edit", { field = habitField }, importance = ActionImportance.COMPACT)
-                                ReorderHandle(fieldOrder, habitField.id, habitField.name)
                                 VibeActionButton("Archive", { vm.save(habitField.copy(isArchived = true)) }, importance = ActionImportance.COMPACT)
                                 VibeActionButton("Clear", { epoch?.let { vm.clearValue(habitField.id, it) } }, importance = ActionImportance.COMPACT, enabled = epoch != null)
                             }

@@ -12,6 +12,7 @@ import com.petermathie.vibetrainer.data.local.ProgrammeDayEntity
 import com.petermathie.vibetrainer.data.local.ProgrammeEntity
 import com.petermathie.vibetrainer.data.local.ProgrammeExerciseEntity
 import com.petermathie.vibetrainer.data.local.VibeDatabase
+import com.petermathie.vibetrainer.data.local.WorkoutEntity
 import com.petermathie.vibetrainer.domain.model.TrainingMode
 import com.petermathie.vibetrainer.ui.EditorViewModel
 import com.petermathie.vibetrainer.ui.ProgrammeEditor
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,18 +39,26 @@ class ProgrammeUiTest {
     fun visibleEditOpensCoherentProgrammeEditorAndStartStillWorks() {
         seedProgramme()
         var startedDay: String? = null
-        setProgrammeContent { startedDay = it }
+        var selectedMode: TrainingMode? = null
+        setProgrammeContent(onModeChange = { selectedMode = it }) { startedDay = it }
 
         compose.onNodeWithText("Alpha").assertIsDisplayed()
+        val titleBounds = compose.onNodeWithText("Programmes").fetchSemanticsNode().boundsInRoot
+        val modeBounds = compose.onNodeWithText("Strength").fetchSemanticsNode().boundsInRoot
+        assertTrue(modeBounds.left > titleBounds.left)
+        assertTrue(kotlin.math.abs(modeBounds.center.y - titleBounds.center.y) < titleBounds.height)
+        compose.onNodeWithText("Stretch").performClick()
+        assertEquals(TrainingMode.STRETCHING, selectedMode)
         compose.onNodeWithText("Rename programme").assertDoesNotExist()
         compose.onNodeWithText("Duplicate").assertDoesNotExist()
         compose.onNodeWithText("Archive").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Reorder Alpha").assertDoesNotExist()
         compose.onNodeWithContentDescription("Edit programme Alpha").performClick()
 
-        compose.onNodeWithText("Rename programme").assertIsDisplayed()
-        compose.onNodeWithText("Duplicate").assertIsDisplayed()
-        compose.onNodeWithText("Archive").assertIsDisplayed()
+        compose.onNodeWithText("Strength").assertDoesNotExist()
+        compose.onNode(hasSetTextAction() and hasText("Alpha")).assertIsDisplayed()
         compose.onNodeWithText("Morning").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Reorder Morning").assertDoesNotExist()
         compose.onNodeWithText("Bench press").assertIsDisplayed()
         compose.onNodeWithText("3 sets · 5–8 reps · 120s rest").assertIsDisplayed()
         compose.onNodeWithText("Start workout").performClick()
@@ -56,8 +66,14 @@ class ProgrammeUiTest {
 
         compose.onNodeWithContentDescription("Edit workout Morning").performClick()
         compose.onNodeWithText("Rename workout").assertIsDisplayed()
-        compose.onNodeWithText("Add exercise").assertIsDisplayed()
+        compose.onNodeWithText("Add exercise").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Add exercise").assertIsDisplayed()
         compose.onNodeWithContentDescription("Edit targets for Bench press").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Reorder Bench press").assertDoesNotExist()
+
+        compose.onNodeWithText("Duplicate").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Delete").assertIsDisplayed()
+        compose.onNodeWithText("Archive").assertIsDisplayed()
     }
 
     @Test
@@ -65,6 +81,9 @@ class ProgrammeUiTest {
         seedProgramme(includeSecondRows = true)
         setProgrammeContent {}
 
+        val handleLeft = compose.onNodeWithContentDescription("Reorder Alpha").fetchSemanticsNode().boundsInRoot.left
+        val titleLeft = compose.onNodeWithText("Alpha").fetchSemanticsNode().boundsInRoot.left
+        assertTrue(handleLeft < titleLeft)
         dragDown("Reorder Alpha")
         compose.waitUntil(15_000) {
             runBlocking { database.editorDao().programmes().first().sortedBy { it.position }.map { it.id } } ==
@@ -72,6 +91,9 @@ class ProgrammeUiTest {
         }
 
         compose.onNodeWithContentDescription("Edit programme Alpha").performClick()
+        val dayHandleLeft = compose.onNodeWithContentDescription("Reorder Morning").fetchSemanticsNode().boundsInRoot.left
+        val dayTitleLeft = compose.onNodeWithText("Morning").fetchSemanticsNode().boundsInRoot.left
+        assertTrue(dayHandleLeft < dayTitleLeft)
         dragDown("Reorder Morning")
         compose.waitUntil(15_000) {
             runBlocking {
@@ -83,6 +105,9 @@ class ProgrammeUiTest {
         }
 
         compose.onNodeWithContentDescription("Edit workout Morning").performScrollTo().performClick()
+        val entryHandleLeft = compose.onNodeWithContentDescription("Reorder Bench press").fetchSemanticsNode().boundsInRoot.left
+        val entryTitleLeft = compose.onNodeWithText("Bench press").fetchSemanticsNode().boundsInRoot.left
+        assertTrue(entryHandleLeft < entryTitleLeft)
         dragDown("Reorder Bench press")
         compose.waitUntil(15_000) {
             runBlocking {
@@ -95,7 +120,7 @@ class ProgrammeUiTest {
     }
 
     @Test
-    fun createRenameDuplicateAndArchiveRemainInEditContext() {
+    fun createRenameDuplicateArchiveAndDeleteRemainInEditContext() {
         createDatabase()
         setProgrammeContent {}
 
@@ -106,20 +131,29 @@ class ProgrammeUiTest {
 
         compose.onNodeWithContentDescription("Edit programme My gym plan").performClick()
         compose.onNodeWithText("Add workout").performClick()
-        compose.onNode(hasSetTextAction()).performTextInput("Push")
+        compose.onAllNodes(hasSetTextAction())[1].performTextInput("Push")
         compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Push").fetchSemanticsNodes().isNotEmpty() }
+        val dayId = runBlocking { database.editorDao().days().first().single().id }
+        runBlocking {
+            database.editorDao().workout(
+                WorkoutEntity("historical", dayId, "Push", "STRENGTH", "FINISHED", 1, 2, "", null, false),
+            )
+        }
 
-        compose.onNodeWithText("Rename programme").performClick()
         compose.onNode(hasSetTextAction()).performTextClearance()
         compose.onNode(hasSetTextAction()).performTextInput("Renamed plan")
-        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithContentDescription("Save programme name").performClick()
         compose.waitUntil(15_000) { activeProgrammes().any { it.name == "Renamed plan" } }
 
-        compose.onNodeWithText("Duplicate").performClick()
+        compose.onNodeWithText("Duplicate").performScrollTo().performClick()
         compose.waitUntil(15_000) { activeProgrammes().any { it.name == "Renamed plan (copy)" } }
         compose.onNodeWithText("Archive").performClick()
         compose.waitUntil(15_000) { activeProgrammes().none { it.name == "Renamed plan" } }
+        compose.onNodeWithContentDescription("Edit programme Renamed plan (copy)").performClick()
+        compose.onNodeWithText("Delete").performScrollTo().performClick()
+        compose.waitUntil(15_000) { activeProgrammes().isEmpty() }
+        assertEquals(listOf("historical"), runBlocking { database.editorDao().workouts().first().map { it.id } })
     }
 
     private fun dragDown(description: String) {
@@ -158,11 +192,14 @@ class ProgrammeUiTest {
         }
     }
 
-    private fun setProgrammeContent(onStart: (String) -> Unit) {
+    private fun setProgrammeContent(
+        onModeChange: (TrainingMode) -> Unit = {},
+        onStart: (String) -> Unit,
+    ) {
         val viewModel = EditorViewModel(database)
         compose.setContent {
             VibeTrainerTheme {
-                ProgrammeEditor(viewModel, TrainingMode.STRENGTH, onStart)
+                ProgrammeEditor(viewModel, TrainingMode.STRENGTH, onModeChange, onStart)
             }
         }
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Alpha").fetchSemanticsNodes().isNotEmpty() || activeProgrammes().isEmpty() }

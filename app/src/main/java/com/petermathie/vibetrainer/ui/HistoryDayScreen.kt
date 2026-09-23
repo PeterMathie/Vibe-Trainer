@@ -13,9 +13,6 @@ import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,7 +27,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.petermathie.vibetrainer.domain.model.AnatomySex
-import com.petermathie.vibetrainer.domain.model.TrainingMode
 import com.petermathie.vibetrainer.ui.anatomy.AnatomyView
 import com.petermathie.vibetrainer.ui.anatomy.MuscleMap
 import com.petermathie.vibetrainer.ui.theme.LocalVibePalette
@@ -44,7 +40,6 @@ internal fun HistoryDayScreen(
     state: MainUiState,
     onBack: () -> Unit,
     onDayChange: (Long) -> Unit,
-    onModeChange: (TrainingMode) -> Unit,
 ) {
     val sex = if (LocalContext.current.getSharedPreferences("settings", 0).getBoolean("female", false)) {
         AnatomySex.FEMALE
@@ -67,22 +62,12 @@ internal fun HistoryDayScreen(
         }
         item {
             Row(
-                Modifier.fillMaxWidth().semantics { contentDescription = "Historical day and mode controls" },
+                Modifier.fillMaxWidth().semantics { contentDescription = "Historical day controls" },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 IconButton(onClick = { onDayChange(day - 1) }) {
                     Icon(Icons.Outlined.KeyboardArrowLeft, "Previous day", tint = LocalVibePalette.current.textPrimary)
-                }
-                SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
-                    TrainingMode.entries.forEachIndexed { index, mode ->
-                        SegmentedButton(
-                            selected = state.mode == mode,
-                            onClick = { onModeChange(mode) },
-                            shape = SegmentedButtonDefaults.itemShape(index, TrainingMode.entries.size),
-                            label = { Text(if (mode == TrainingMode.STRENGTH) "Strength" else "Stretching") },
-                        )
-                    }
                 }
                 IconButton(onClick = { onDayChange(day + 1) }, enabled = day < LocalDate.now().toEpochDay()) {
                     Icon(Icons.Outlined.KeyboardArrowRight, "Next day", tint = LocalVibePalette.current.textPrimary)
