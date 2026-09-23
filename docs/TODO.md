@@ -199,12 +199,18 @@ Evidence: commit `5b6c7ec` gives Progress a dedicated lazy picker. Eligibility r
 
 ### UX-10 — Compact Progress controls and annual demo
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Put the exercise selector and variation dropdown on one row; show the selected variation name in the dropdown control.
-- [ ] Remove the large inline methodology explanation while retaining concise on-demand explanation.
-- [ ] Expand debug demo progress history to approximately one year and upgrade existing debug seed data without restoring deliberately removed demos.
-- [ ] Update coverage, run one combined final gate, install and inspect the exact build.
+- [x] Put the exercise selector and variation dropdown on one row; show the selected variation name in the dropdown control.
+- [x] Remove the large inline methodology explanation while retaining concise on-demand explanation.
+- [x] Expand debug demo progress history to approximately one year and upgrade existing debug seed data without restoring deliberately removed demos.
+- [x] Update coverage, run one combined final gate, install and inspect the exact build.
+
+Evidence: commit `945117b` places equal-width exercise and variation controls on one row. The variation dropdown contains All variations plus the selected exercise’s configured choices; its closed label changes from Variations to the chosen name. The large raw-performance/skill paragraph is removed from the main page and remains available from the compact `How progress works` info action.
+
+Debug progress seed version 2 now creates 52 weekly Planche and Bench press sessions spanning approximately one year, with gradual performance changes and a mid-year band transition. Existing debug installs upgrade from the earlier eight-session seed by stable IDs; installs where demo records were deliberately removed remain untouched. `ProgressUiTest` verifies the Handstand → Wall handstand dropdown flow, compact on-demand explanation and 52 seeded progress workouts.
+
+Final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 34 unit tests and 43 API 35 instrumentation tests. The exact APK has SHA-256 `66ce2582f2ff6858a031c4119c9ed1391250ac038fd4cd815b31fe6e313ac14d`. Screenshots `files/ux-10-final/progress-controls-945117b.png`, `variation-selected-945117b.png` and `year-progress-945117b.png` show the compact row, selected label and chart from 24 September 2025 to 22 September 2026. MainActivity remains resumed with PID 27370 and no crash.
 
 ### QA-01 — Real-phone timers
 

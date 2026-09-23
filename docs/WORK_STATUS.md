@@ -2,7 +2,11 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-10 compact Progress controls and annual demo is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. This slice places exercise/variation selection on one row, moves methodology detail behind compact on-demand help, and extends upgrade-safe debug demo history to roughly one year.
+Current implementation task: **UX-10 compact Progress controls and annual demo is complete at `945117b`** on `pmathie-cicpilot-persist-workout-drafts`. Equal-width exercise and variation controls share one row; the variation control displays the selected variation name. The large inline methodology paragraph has moved behind a compact info action.
+
+Debug progress seed version 2 supplies 52 weekly Planche and Bench press sessions across roughly one year, upgrading prior debug seed data by stable IDs while respecting deliberate demo removal. Compose coverage verifies the Handstand → Wall handstand dropdown label, on-demand methodology and the 52-session seed. The final combined gate passed with 34 unit tests and 43 API 35 instrumentation tests.
+
+The exact APK SHA-256 is `66ce2582f2ff6858a031c4119c9ed1391250ac038fd4cd815b31fe6e313ac14d`. Installed screenshots under `files/ux-10-final/` show the compact selectors, selected variation and a year-scale chart from 24 September 2025 to 22 September 2026. MainActivity remains resumed with PID 27370 and no AndroidRuntime crash.
 
 UX-09 Progress exercise eligibility is complete at `5b6c7ec`. Progress now uses a dedicated lazy picker containing only exercises backed by a finished workout and either a valid completed working set or ROM measurement. Catalogue-only and archived exercises are excluded, while eligible name/alias/muscle search remains. The shared catalogue picker’s 100-result cap no longer applies.
 
