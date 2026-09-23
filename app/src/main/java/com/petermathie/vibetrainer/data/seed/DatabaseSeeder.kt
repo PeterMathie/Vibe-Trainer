@@ -497,14 +497,14 @@ class DatabaseSeeder @Inject constructor(
         private const val SCHEDULE_FREE_DEMO_KEY = "schedule_free_demo"
         private const val SCHEDULE_FREE_DEMO_VERSION = 1
         private const val PROGRESS_DEMO_KEY = "progress_demo"
-        private const val PROGRESS_DEMO_VERSION = 9
+        private const val PROGRESS_DEMO_VERSION = 10
         private val MOOD_CHOICES = listOf(
-            "Dejected",
-            "Flat",
-            "Displeased",
-            "Agitated",
+            "Sad",
+            "Tired",
+            "Irritated",
+            "Tense",
             "Neutral",
-            "Content",
+            "Calm",
             "Alert",
             "Happy",
             "Excited",
