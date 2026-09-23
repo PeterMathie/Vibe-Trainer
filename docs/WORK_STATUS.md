@@ -2,6 +2,12 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
+Current implementation task: **UX-15 single-line Handstand labels and representative annual history is complete** at `f17d605` on `pmathie-cicpilot-persist-workout-drafts`. Handstand uses single-line `Freestanding s` and `Total wall s` labels at 9sp; installed bounds show both fields and RPE share the exact `677–845` vertical range.
+
+Progress demo version 3 now supplies 156 deterministic workouts: Planche + Push, Legs + Mobility and Muscle-up + Pull every week for 52 weeks, with all programme exercises and three sets each. Exercise-aware trajectories intentionally include clear improvement, stable plateaus and decline. Existing debug installs delete only prior `demo-progress-*` rows before regenerating, and bulk inserts keep seeding efficient.
+
+Validation passed 33 unit tests, debug app/test assembly, `ProgressUiTest` (2), `WorkoutLoggingUiTest` (6) and `WorkoutWorkflowTest` (4). The exact installed APK SHA-256 is `9959b4c8607a954e1e994bbe0f49a3e959adb42df902bd2d3e828feda4882105`; `files/ux-15-final/handstand-labels.png` records the inspected layout.
+
 Current implementation task: **UX-14 compact autosaving workout rows and curated catalogue is complete** at `1753c9e` on `pmathie-cicpilot-persist-workout-drafts`. Active set rows no longer have a check button: every valid edit autosaves through the row's durable set ID, and later corrections update that set rather than creating duplicates. Clearing the final performance metric removes the saved set and retains recoverable draft state.
 
 Handstand's Freestanding sec, Total wall sec and compact 68dp RPE inputs now share one row. RPE accepts at most two integer characters and rejects values above 10. The redundant Start hold timer and generic Workout notes controls are removed; the header rest-timer icon and per-exercise notes remain. Exercise and picker lists no longer stop at 100 records.

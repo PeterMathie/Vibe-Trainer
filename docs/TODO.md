@@ -247,6 +247,21 @@ Fresh databases contain exactly the 17 exercises referenced by maintained progra
 
 Validation passed 33 unit tests, debug app/test assembly, `WorkoutLoggingUiTest` (6), `WorkoutEntryDraftTest` (4) and `WorkoutWorkflowTest` (4). The installed APK SHA-256 is `1e769f52c0318c710ac3a63e5ed609ca427bd6d961ef457a39356cde71a364c6`; `files/ux-14-final/compact-handstand.png` records the inspected exact build.
 
+### UX-15 — Single-line Handstand labels and representative annual history
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Shorten Handstand labels to `Freestanding s` and `Total wall s`, keep them on one line and preserve the compact three-field row.
+- [x] Seed 52 weeks of consistent sessions across Planche + Push, Legs + Mobility and Muscle-up + Pull.
+- [x] Include deterministic improving, plateaued and declining exercise trajectories.
+- [x] Replace the older two-exercise demo dataset cleanly on existing debug installs.
+
+Evidence: implementation commit `f17d605` uses single-line 9sp field labels. Installed semantic bounds for Freestanding, Total wall and RPE are identical vertically (`677–845`), confirming no wrap or second line.
+
+Progress demo version 3 creates 156 workouts (three per week), covering every exercise in the three strength programmes with three sets per exercise. Handstand, Planche, Bench press, Back squat and Pull-up improve; Overhead press, Jefferson curl and Leg raise decline; remaining exercises fluctuate within stable plateaus. Skill variation, assistance, weight, repetition and hold data follow each exercise type. Bulk Room inserts keep deterministic seeding practical, and the previous `demo-progress-*` rows are replaced before regeneration.
+
+Validation passed 33 unit tests, debug app/test assembly, `ProgressUiTest` (2), `WorkoutLoggingUiTest` (6) and `WorkoutWorkflowTest` (4). Tests assert 156 annual sessions and representative improving/plateau/declining trajectories. The installed APK SHA-256 is `9959b4c8607a954e1e994bbe0f49a3e959adb42df902bd2d3e828feda4882105`; `files/ux-15-final/handstand-labels.png` records the inspected row.
+
 ### UX-11 — Exercise-aware personal records
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
