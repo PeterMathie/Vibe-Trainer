@@ -495,6 +495,8 @@ Follow-up `3f764a8` removes measurement-level archive actions and redundant non-
 
 Follow-up `c96b8b0` labels measurements by type, removes explanatory choice-editor headings, keeps the compact icon catalogue visible independently of the colour palette and uses a full-width footer so Archive aligns to the content edge. Unit tests and API 35 `HabitUiTest` (2) passed. Installed APK SHA-256: `cc288f2bf8e1ce90feb77c0084646d7f49912ea98ba2dc3ecb05777c96dd1daa`; inspected evidence is under `files/ux-28-clean-habit-settings/`.
 
+Follow-up `6b872f9` replaces the inline icon strip with a compact button and a scrollable picker of 62 curated habit-relevant icons. It also shortens `Save settings` to `Save` and replaces the textual Add choice control with the standard plus icon. Unit tests and API 35 `HabitUiTest` (2) passed; the exact installed APK was assembled successfully with SHA-256 `515da56c8446d2c89c1fdd19169bc738e3abf64f71da26ca09a3857efb8bac5b`. Inspected evidence is under `files/ux-29-icon-picker/`.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.
