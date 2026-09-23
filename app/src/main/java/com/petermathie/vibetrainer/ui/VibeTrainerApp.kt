@@ -145,8 +145,8 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                         viewModel::selectHomeRecencyDay,
                         viewModel::setMode,
                     )
-                    Destination.PROGRAMMES -> ProgrammeEditor(editor, state.mode, viewModel::setMode) { dayId ->
-                        viewModel.startWorkout(dayId) { destination = Destination.ACTIVE_WORKOUT }
+                    Destination.PROGRAMMES -> ProgrammeEditor(editor, state.mode, viewModel::setMode) { dayId, replace ->
+                        viewModel.startWorkout(dayId, replace) { destination = Destination.ACTIVE_WORKOUT }
                     }
                     Destination.ACTIVE_WORKOUT -> WorkoutEditor(
                         vm = editor,

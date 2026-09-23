@@ -34,6 +34,23 @@ class WorkoutEntryDraftTest {
         DatabaseSeeder(context, database).seedIfNeeded()
     }
 
+    @Test(timeout = 120_000)
+    fun multipleProgrammedRowsRecoverAndSubmittingOneKeepsTheOthers() = runBlocking {
+        val (_, exerciseId) = startWorkout()
+        val dao = database.editorDao()
+        val first = pendingDraft(exerciseId).copy(setId = "first", ordinal = 1, performance = "50 x 5")
+        val second = pendingDraft(exerciseId).copy(setId = "second", ordinal = 2, performance = "52.5 x 5")
+        dao.entryDraft(first)
+        dao.entryDraft(second)
+
+        database.close()
+        openDatabase()
+        assertEquals(listOf(1, 2), database.editorDao().entryDrafts(exerciseId).map { it.ordinal })
+
+        database.editorDao().consumeEntryDraft(pendingSet(first, reps = 5).copy(weightKg = 50.0), emptyList())
+        assertEquals(listOf(2), database.editorDao().entryDrafts(exerciseId).map { it.ordinal })
+    }
+
     @After
     fun tearDown() {
         database.close()
@@ -80,7 +97,7 @@ class WorkoutEntryDraftTest {
         val (workoutId, exerciseId) = startWorkout()
         val dao = database.editorDao()
         dao.entryDraft(pendingDraft(exerciseId).copy(performance = "10"))
-        dao.deleteEntryDraft(exerciseId)
+        dao.deleteEntryDraft(exerciseId, 1)
         assertNull(dao.entryDraft(exerciseId))
 
         dao.entryDraft(pendingDraft(exerciseId).copy(performance = "11"))
@@ -150,7 +167,13 @@ class WorkoutEntryDraftTest {
 
     private fun openDatabase() {
         database = Room.databaseBuilder(context, VibeDatabase::class.java, databaseName)
-            .addMigrations(com.petermathie.vibetrainer.data.local.MIGRATION_1_2, com.petermathie.vibetrainer.data.local.MIGRATION_2_3)
+            .addMigrations(
+                com.petermathie.vibetrainer.data.local.MIGRATION_1_2,
+                com.petermathie.vibetrainer.data.local.MIGRATION_2_3,
+                com.petermathie.vibetrainer.data.local.MIGRATION_3_4,
+                com.petermathie.vibetrainer.data.local.MIGRATION_4_5,
+                com.petermathie.vibetrainer.data.local.MIGRATION_5_6,
+            )
             .build()
         repository = TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao())
     }

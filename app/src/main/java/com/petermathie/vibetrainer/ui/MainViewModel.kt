@@ -125,8 +125,8 @@ class MainViewModel @Inject constructor(
     }
     fun selectHistoryDay(epochDay: Long?) { selectedHistoryDay.value = epochDay }
 
-    fun startWorkout(dayId: String, onStarted: () -> Unit = {}) = viewModelScope.launch {
-        repository.startWorkout(dayId)
+    fun startWorkout(dayId: String, replaceExisting: Boolean = false, onStarted: () -> Unit = {}) = viewModelScope.launch {
+        repository.startWorkout(dayId, replaceExisting)
         onStarted()
     }
 

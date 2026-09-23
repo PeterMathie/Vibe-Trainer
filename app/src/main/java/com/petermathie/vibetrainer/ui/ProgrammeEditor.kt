@@ -39,7 +39,7 @@ fun ProgrammeEditor(
     vm: EditorViewModel,
     mode: TrainingMode,
     onModeChange: (TrainingMode) -> Unit,
-    onStart: (String) -> Unit,
+    onStart: (String, Boolean) -> Unit,
 ) {
     val programmes by vm.programmes.collectAsStateWithLifecycle()
     val days by vm.days.collectAsStateWithLifecycle()
@@ -50,6 +50,7 @@ fun ProgrammeEditor(
     var rename by remember { mutableStateOf<ProgrammeEntity?>(null) }
     var editEntry by remember { mutableStateOf<ProgrammeExerciseEntity?>(null) }
     var addExerciseDayId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingStartDayId by rememberSaveable { mutableStateOf<String?>(null) }
     val programmeRows = programmes.filter { it.mode == mode.name }.sortedBy { it.position }
     val selectedProgramme = programmes.find { it.id == selected }
     var programmeName by rememberSaveable(selectedProgramme?.id, selectedProgramme?.name) {
@@ -63,6 +64,11 @@ fun ProgrammeEditor(
         vm.moveDay(key as String, to - from)
     }
     val reducedMotion = LocalVibeReducedMotion.current
+    val activeWorkout = vm.workouts.collectAsStateWithLifecycle().value.find { it.status == "DRAFT" }
+    fun requestStart(dayId: String) {
+        if (activeWorkout != null && activeWorkout.programmeDayId != dayId) pendingStartDayId = dayId
+        else onStart(dayId, false)
+    }
     BackHandler(selected != null) { selected = null }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
@@ -107,8 +113,11 @@ fun ProgrammeEditor(
                         IconButton(onClick = { selected = p.id }) {
                             Icon(Icons.Outlined.Edit, contentDescription = "Edit programme ${p.name}")
                         }
-                        IconButton(onClick = { selected = p.id }) {
-                            Icon(Icons.Outlined.PlayArrow, contentDescription = "Choose workout in ${p.name}")
+                        IconButton(
+                            onClick = { previewDays.firstOrNull()?.let { requestStart(it.id) } },
+                            enabled = previewDays.isNotEmpty(),
+                        ) {
+                            Icon(Icons.Outlined.PlayArrow, contentDescription = "Start ${p.name}")
                         }
                     }
                     AnimatedVisibility(
@@ -180,13 +189,33 @@ fun ProgrammeEditor(
                         }
                         VibeActionButton(
                             "Start workout",
-                            { onStart(d.id) },
+                            { requestStart(d.id) },
                             modifier = Modifier.fillMaxWidth(),
                             importance = ActionImportance.PRIMARY,
                             icon = Icons.Outlined.PlayArrow,
                         )
                         if (dayEntries.isEmpty()) {
                             Text("No exercises yet", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        pendingStartDayId?.let { dayId ->
+                            val target = days.find { it.id == dayId }
+                            AlertDialog(
+                                onDismissRequest = { pendingStartDayId = null },
+                                title = { Text("Workout in progress") },
+                                text = { Text("${activeWorkout?.name.orEmpty()} is still in progress. Resume it, or discard it and start ${target?.name.orEmpty()}.") },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        pendingStartDayId = null
+                                        onStart(dayId, true)
+                                    }) { Text("Discard and start") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = {
+                                        pendingStartDayId = null
+                                        activeWorkout?.programmeDayId?.let { onStart(it, false) }
+                                    }) { Text("Resume workout") }
+                                },
+                            )
                         }
                         entryOrder.ordered(dayEntries) { it.id }.forEachIndexed { index, entry ->
                             key(entry.id) {

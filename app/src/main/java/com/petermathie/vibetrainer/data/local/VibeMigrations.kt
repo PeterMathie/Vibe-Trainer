@@ -96,3 +96,38 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
             )
     }
 }
+
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE workout_entry_drafts_new (
+                    workoutExerciseId TEXT NOT NULL,
+                    setId TEXT NOT NULL,
+                    ordinal INTEGER NOT NULL,
+                    performance TEXT NOT NULL,
+                    rpe TEXT NOT NULL,
+                    detailsOpen INTEGER NOT NULL,
+                    warmUp INTEGER NOT NULL,
+                    failed INTEGER NOT NULL,
+                    bandIds TEXT NOT NULL,
+                    variationId TEXT,
+                    leftValue TEXT NOT NULL,
+                    rightValue TEXT NOT NULL,
+                    addedWeight TEXT NOT NULL,
+                    assistance TEXT NOT NULL,
+                    romValue TEXT NOT NULL,
+                    romUnit TEXT NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    PRIMARY KEY(workoutExerciseId, ordinal),
+                    FOREIGN KEY(workoutExerciseId) REFERENCES workout_exercises(id)
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("INSERT INTO workout_entry_drafts_new SELECT * FROM workout_entry_drafts")
+            db.execSQL("DROP TABLE workout_entry_drafts")
+            db.execSQL("ALTER TABLE workout_entry_drafts_new RENAME TO workout_entry_drafts")
+            db.execSQL("CREATE INDEX index_workout_entry_drafts_workoutExerciseId ON workout_entry_drafts(workoutExerciseId)")
+    }
+}

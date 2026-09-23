@@ -51,6 +51,13 @@ class DatabaseSeeder @Inject constructor(
                 seedDemo()
                 database.metadataDao().put(SeedMetadataEntity(DEMO_KEY, DEMO_VERSION))
             }
+            if (BuildConfig.DEBUG && (database.metadataDao().version(SCHEDULE_FREE_DEMO_KEY) ?: 0) < SCHEDULE_FREE_DEMO_VERSION) {
+                val sql = database.openHelper.writableDatabase
+                sql.execSQL("UPDATE programme_days SET name='Planche + Push' WHERE id='demo-day-push' AND name='Monday — Planche + Push'")
+                sql.execSQL("UPDATE programme_days SET name='Legs + Mobility' WHERE id='demo-day-legs' AND name='Wednesday — Legs + Mobility'")
+                sql.execSQL("UPDATE programme_days SET name='Muscle-up + Pull' WHERE id='demo-day-pull' AND name='Saturday — Muscle-up + Pull'")
+                database.metadataDao().put(SeedMetadataEntity(SCHEDULE_FREE_DEMO_KEY, SCHEDULE_FREE_DEMO_VERSION))
+            }
             if (BuildConfig.DEBUG && (database.metadataDao().version(PROGRESS_DEMO_KEY) ?: 0) < PROGRESS_DEMO_VERSION) {
                 if(database.workoutDao().demoCount() > 0) seedProgressDemo()
                 database.metadataDao().put(SeedMetadataEntity(PROGRESS_DEMO_KEY,PROGRESS_DEMO_VERSION))
@@ -156,9 +163,9 @@ class DatabaseSeeder @Inject constructor(
         val now = System.currentTimeMillis()
         val dayMillis = 86_400_000L
         val workouts = listOf(
-            demoWorkout("demo-workout-push-1", "Monday — Planche + Push", "demo-day-push", now - dayMillis, TrainingMode.STRENGTH),
-            demoWorkout("demo-workout-legs-1", "Wednesday — Legs + Mobility", "demo-day-legs", now - 3 * dayMillis, TrainingMode.STRENGTH),
-            demoWorkout("demo-workout-pull-1", "Saturday — Muscle-up + Pull", "demo-day-pull", now - 8 * dayMillis, TrainingMode.STRENGTH),
+            demoWorkout("demo-workout-push-1", "Planche + Push", "demo-day-push", now - dayMillis, TrainingMode.STRENGTH),
+            demoWorkout("demo-workout-legs-1", "Legs + Mobility", "demo-day-legs", now - 3 * dayMillis, TrainingMode.STRENGTH),
+            demoWorkout("demo-workout-pull-1", "Muscle-up + Pull", "demo-day-pull", now - 8 * dayMillis, TrainingMode.STRENGTH),
             demoWorkout("demo-stretch-1", "Front Splits", "demo-day-front-splits", now - 2 * dayMillis, TrainingMode.STRETCHING),
         )
         workouts.forEach { database.workoutDao().insertWorkout(it) }
@@ -297,6 +304,8 @@ class DatabaseSeeder @Inject constructor(
         private const val CATALOGUE_VERSION = 1
         private const val DEMO_KEY = "debug-demo"
         private const val DEMO_VERSION = 1
+        private const val SCHEDULE_FREE_DEMO_KEY = "schedule_free_demo"
+        private const val SCHEDULE_FREE_DEMO_VERSION = 1
         private const val PROGRESS_DEMO_KEY = "progress_demo"
         private const val PROGRESS_DEMO_VERSION = 2
 
@@ -388,9 +397,9 @@ class DatabaseSeeder @Inject constructor(
             ProgrammeEntity("demo-programme-stretch", "Stretching", TrainingMode.STRETCHING.name, true),
         )
         private val DEMO_DAYS = listOf(
-            ProgrammeDayEntity("demo-day-push", "demo-programme-push", "Monday — Planche + Push", 0),
-            ProgrammeDayEntity("demo-day-legs", "demo-programme-legs", "Wednesday — Legs + Mobility", 0),
-            ProgrammeDayEntity("demo-day-pull", "demo-programme-pull", "Saturday — Muscle-up + Pull", 0),
+            ProgrammeDayEntity("demo-day-push", "demo-programme-push", "Planche + Push", 0),
+            ProgrammeDayEntity("demo-day-legs", "demo-programme-legs", "Legs + Mobility", 0),
+            ProgrammeDayEntity("demo-day-pull", "demo-programme-pull", "Muscle-up + Pull", 0),
             ProgrammeDayEntity("demo-day-front-splits", "demo-programme-stretch", "Front Splits", 0),
             ProgrammeDayEntity("demo-day-forward-fold", "demo-programme-stretch", "Forward Fold", 1),
             ProgrammeDayEntity("demo-day-side-splits", "demo-programme-stretch", "Side Splits", 2),

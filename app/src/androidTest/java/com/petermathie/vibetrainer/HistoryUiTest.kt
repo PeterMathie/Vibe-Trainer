@@ -71,7 +71,7 @@ class HistoryUiTest {
         compose.onNodeWithContentDescription("Home recency date").assertDoesNotExist()
         compose.onNodeWithText("Strength").assertDoesNotExist()
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithText("Monday — Planche + Push").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText("Planche + Push").fetchSemanticsNodes().isNotEmpty()
         }
 
         compose.onNodeWithContentDescription("Previous day").performClick()

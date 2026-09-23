@@ -96,11 +96,12 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun save(row: BodyMeasurementEntity) = write { dao.measurement(row) }
     fun save(row: ExerciseVariationEntity) = write { dao.variation(row) }
     suspend fun entryDraft(workoutExerciseId: String) = dao.entryDraft(workoutExerciseId)
+    suspend fun entryDrafts(workoutExerciseId: String) = dao.entryDrafts(workoutExerciseId)
     fun saveEntryDraft(row: WorkoutEntryDraftEntity) = write {
-        if (!row.detailsOpen && row.performance.isBlank() && row.rpe.isBlank()) dao.deleteEntryDraft(row.workoutExerciseId)
+        if (!row.detailsOpen && row.performance.isBlank() && row.rpe.isBlank()) dao.deleteEntryDraft(row.workoutExerciseId, row.ordinal)
         else dao.persistEntryDraft(row)
     }
-    fun discardEntryDraft(workoutExerciseId: String) = write { dao.deleteEntryDraft(workoutExerciseId) }
+    fun discardEntryDraft(workoutExerciseId: String, ordinal: Int) = write { dao.deleteEntryDraft(workoutExerciseId, ordinal) }
     fun moveVariation(id: String, delta: Int) = write {
         val all=dao.variations().first()
         val selected=all.find { it.id==id && !it.isSeeded } ?: return@write

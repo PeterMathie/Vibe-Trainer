@@ -6,6 +6,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.petermathie.vibetrainer.data.local.BandEntity
 import com.petermathie.vibetrainer.data.local.ExerciseVariationEntity
 import com.petermathie.vibetrainer.domain.workout.SetDetailsForm
@@ -46,6 +49,7 @@ internal fun SetDetailsFields(
                         if (checked) selectedBandIds + band.id else selectedBandIds - band.id,
                     )
                 },
+                modifier = Modifier.semantics { contentDescription = "Use ${band.name} band" },
             )
             Text("${band.name} (${band.widthCentimetres}cm)")
         }

@@ -41,8 +41,10 @@ interface EditorDao {
     @Upsert suspend fun setBands(rows: List<WorkoutSetBandEntity>)
     @Query("DELETE FROM workout_sets WHERE id = :id") suspend fun deleteSet(id: String)
     @Query("DELETE FROM workout_set_bands WHERE setId = :id") suspend fun clearBands(id: String)
-    @Query("SELECT * FROM workout_entry_drafts WHERE workoutExerciseId = :workoutExerciseId")
+    @Query("SELECT * FROM workout_entry_drafts WHERE workoutExerciseId = :workoutExerciseId ORDER BY ordinal LIMIT 1")
     suspend fun entryDraft(workoutExerciseId: String): WorkoutEntryDraftEntity?
+    @Query("SELECT * FROM workout_entry_drafts WHERE workoutExerciseId = :workoutExerciseId ORDER BY ordinal")
+    suspend fun entryDrafts(workoutExerciseId: String): List<WorkoutEntryDraftEntity>
     @Upsert suspend fun entryDraft(row: WorkoutEntryDraftEntity)
     @Query("SELECT EXISTS(SELECT 1 FROM workout_sets WHERE id = :setId)")
     suspend fun hasSet(setId: String): Boolean
@@ -52,8 +54,10 @@ interface EditorDao {
     suspend fun persistEntryDraft(row: WorkoutEntryDraftEntity) {
         if (!hasSet(row.setId) && belongsToDraftWorkout(row.workoutExerciseId)) entryDraft(row)
     }
+    @Query("DELETE FROM workout_entry_drafts WHERE workoutExerciseId = :workoutExerciseId AND ordinal = :ordinal")
+    suspend fun deleteEntryDraft(workoutExerciseId: String, ordinal: Int)
     @Query("DELETE FROM workout_entry_drafts WHERE workoutExerciseId = :workoutExerciseId")
-    suspend fun deleteEntryDraft(workoutExerciseId: String)
+    suspend fun deleteEntryDrafts(workoutExerciseId: String)
     @Query("DELETE FROM workout_entry_drafts WHERE workoutExerciseId IN (SELECT id FROM workout_exercises WHERE workoutId = :workoutId)")
     suspend fun deleteEntryDraftsForWorkout(workoutId: String)
     @Transaction
@@ -61,7 +65,7 @@ interface EditorDao {
         set(row)
         clearBands(row.id)
         setBands(bands)
-        deleteEntryDraft(row.workoutExerciseId)
+        deleteEntryDraft(row.workoutExerciseId, row.ordinal)
     }
     @Transaction
     suspend fun saveSetWithSnapshots(row: WorkoutSetEntity, bandIds: List<String>, consumeDraft: Boolean) {
@@ -71,7 +75,7 @@ interface EditorDao {
         setBands(bandIds.mapIndexedNotNull { index, id ->
             bandById(id)?.let { WorkoutSetBandEntity(saved.id, id, index, it.name, it.widthCentimetres) }
         })
-        if (consumeDraft) deleteEntryDraft(saved.workoutExerciseId)
+        if (consumeDraft) deleteEntryDraft(saved.workoutExerciseId, saved.ordinal)
     }
     @Query("DELETE FROM workouts WHERE id = :id") suspend fun deleteWorkout(id: String)
     @Query("SELECT * FROM trackers WHERE isArchived = 0 ORDER BY name") fun trackers(): Flow<List<TrackerEntity>>

@@ -283,15 +283,17 @@ data class WorkoutSetBandEntity(
 
 @Entity(
     tableName = "workout_entry_drafts",
+    primaryKeys = ["workoutExerciseId", "ordinal"],
     foreignKeys = [ForeignKey(
         entity = WorkoutExerciseEntity::class,
         parentColumns = ["id"],
         childColumns = ["workoutExerciseId"],
         onDelete = ForeignKey.CASCADE,
     )],
+    indices = [Index("workoutExerciseId")],
 )
 data class WorkoutEntryDraftEntity(
-    @androidx.room.PrimaryKey val workoutExerciseId: String,
+    val workoutExerciseId: String,
     val setId: String,
     val ordinal: Int,
     val performance: String,

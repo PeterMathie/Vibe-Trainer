@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.petermathie.vibetrainer.data.local.MIGRATION_2_3
 import com.petermathie.vibetrainer.data.local.MIGRATION_3_4
 import com.petermathie.vibetrainer.data.local.MIGRATION_4_5
+import com.petermathie.vibetrainer.data.local.MIGRATION_5_6
 import com.petermathie.vibetrainer.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -94,6 +95,31 @@ class VibeDatabaseMigrationTest {
                     migrated.query("SELECT variationRankSnapshot FROM workout_sets WHERE id='s'").use { assertTrue(it.moveToFirst()); assertEquals(3,it.getInt(0)) }
                     migrated.query("SELECT nameSnapshot,widthCentimetresSnapshot FROM workout_set_bands WHERE setId='s'").use { assertTrue(it.moveToFirst()); assertEquals("Band",it.getString(0)); assertEquals(1.2,it.getDouble(1),0.0) }
                     migrated.query("SELECT targetMet FROM tracker_day_outcomes WHERE trackerId='t' AND epochDay=1").use { assertTrue(it.moveToFirst()); assertEquals(1,it.getInt(0)) }
+        }
+    }
+
+    @Test
+    fun migrate5To6PreservesDraftAndAllowsMultipleSetRows() {
+        helper.createDatabase(databaseName, 5).apply {
+            execSQL("INSERT INTO exercises (id,canonicalName,tag,trackingType,equipment,instructions,source,isCustom,isArchived) VALUES ('e','Exercise','STRENGTH','WEIGHT_REPS',NULL,NULL,'USER',1,0)")
+            execSQL("INSERT INTO workouts (id,programmeDayId,name,mode,status,startedAt,finishedAt,notes,bodyweightKg,isDemo) VALUES ('w',NULL,'Workout','STRENGTH','DRAFT',1,NULL,'',NULL,0)")
+            execSQL("INSERT INTO workout_exercises (id,workoutId,plannedExerciseId,actualExerciseId,position,notes,restSeconds,supersetGroup,exerciseName,trackingType,targets) VALUES ('we','w','e','e',0,'',60,NULL,'Exercise','WEIGHT_REPS','3 sets')")
+            execSQL("INSERT INTO workout_entry_drafts VALUES ('we','set-1',1,'50 x 5','8',0,0,0,'[]',NULL,'','','','','','cm',1)")
+            close()
+        }
+
+        helper.runMigrationsAndValidate(databaseName, 6, true, MIGRATION_5_6).use { migrated ->
+            migrated.query("SELECT setId, ordinal, performance FROM workout_entry_drafts WHERE workoutExerciseId='we'").use {
+                assertTrue(it.moveToFirst())
+                assertEquals("set-1", it.getString(0))
+                assertEquals(1, it.getInt(1))
+                assertEquals("50 x 5", it.getString(2))
+            }
+            migrated.execSQL("INSERT INTO workout_entry_drafts VALUES ('we','set-2',2,'52.5 x 5','8',0,0,0,'[]',NULL,'','','','','','cm',2)")
+            migrated.query("SELECT COUNT(*) FROM workout_entry_drafts WHERE workoutExerciseId='we'").use {
+                assertTrue(it.moveToFirst())
+                assertEquals(2, it.getInt(0))
+            }
         }
     }
 }

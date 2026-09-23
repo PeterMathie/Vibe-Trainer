@@ -40,7 +40,7 @@ class ProgrammeUiTest {
         seedProgramme()
         var startedDay: String? = null
         var selectedMode: TrainingMode? = null
-        setProgrammeContent(onModeChange = { selectedMode = it }) { startedDay = it }
+        setProgrammeContent(onModeChange = { selectedMode = it }) { day, _ -> startedDay = day }
 
         compose.onNodeWithText("Alpha").assertIsDisplayed()
         val titleBounds = compose.onNodeWithText("Programmes").fetchSemanticsNode().boundsInRoot
@@ -53,6 +53,8 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Duplicate").assertDoesNotExist()
         compose.onNodeWithText("Archive").assertDoesNotExist()
         compose.onNodeWithContentDescription("Reorder Alpha").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Start Alpha").performClick()
+        assertEquals("day-a", startedDay)
         compose.onNodeWithText("Bench press").assertDoesNotExist()
         compose.onNodeWithText("Alpha").performClick()
         compose.onNodeWithContentDescription("Read-only exercises for Alpha").assertIsDisplayed()
@@ -89,7 +91,7 @@ class ProgrammeUiTest {
     @Test
     fun draggingProgrammesDaysAndExercisesPersistsTheirOrder() {
         seedProgramme(includeSecondRows = true)
-        setProgrammeContent {}
+        setProgrammeContent { _, _ -> }
 
         val handleLeft = compose.onNodeWithContentDescription("Reorder Alpha").fetchSemanticsNode().boundsInRoot.left
         val titleLeft = compose.onNodeWithText("Alpha").fetchSemanticsNode().boundsInRoot.left
@@ -131,7 +133,7 @@ class ProgrammeUiTest {
     @Test
     fun stretchingUsesTheSamePreviewAndDayReordering() {
         seedStretchProgramme()
-        setProgrammeContent(mode = TrainingMode.STRETCHING) {}
+        setProgrammeContent(mode = TrainingMode.STRETCHING) { _, _ -> }
 
         compose.onNodeWithText("Stretching").performClick()
         compose.onNodeWithContentDescription("Read-only exercises for Stretching").assertIsDisplayed()
@@ -154,7 +156,7 @@ class ProgrammeUiTest {
     @Test
     fun createRenameDuplicateArchiveAndDeleteRemainInEditContext() {
         createDatabase()
-        setProgrammeContent {}
+        setProgrammeContent { _, _ -> }
 
         compose.onNodeWithText("Create programme").performClick()
         compose.onNode(hasSetTextAction()).performTextInput("My gym plan")
@@ -239,7 +241,7 @@ class ProgrammeUiTest {
     private fun setProgrammeContent(
         mode: TrainingMode = TrainingMode.STRENGTH,
         onModeChange: (TrainingMode) -> Unit = {},
-        onStart: (String) -> Unit,
+        onStart: (String, Boolean) -> Unit,
     ) {
         val viewModel = EditorViewModel(database)
         compose.setContent {
