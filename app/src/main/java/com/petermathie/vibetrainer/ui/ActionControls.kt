@@ -1,5 +1,12 @@
 package com.petermathie.vibetrainer.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -11,9 +18,11 @@ import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -24,13 +33,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.shape.CircleShape
+import com.petermathie.vibetrainer.ui.theme.LocalVibeReducedMotion
 
 enum class ActionImportance {
     PRIMARY,
@@ -136,6 +151,10 @@ class ReorderState internal constructor(
         val index = orderedKeys.indexOf(key)
         return index >= 0 && (index + delta) in orderedKeys.indices
     }
+
+    fun isDragging(key: Any): Boolean = draggingKey == key
+
+    fun dragOffset(key: Any): Float = if (draggingKey == key) dragDistance else 0f
 }
 
 @Composable
@@ -157,13 +176,32 @@ fun ReorderHandle(
     enabled: Boolean = true,
 ) {
     val threshold = with(LocalDensity.current) { 48.dp.toPx() }
+    val reducedMotion = LocalVibeReducedMotion.current
+    val dragging = state.isDragging(itemKey)
+    val highlight by animateColorAsState(
+        if (dragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+        if (reducedMotion) snap() else tween(120),
+        label = "reorder handle highlight",
+    )
+    val scale by animateFloatAsState(
+        if (dragging) 1.12f else 1f,
+        if (reducedMotion) snap() else tween(120),
+        label = "reorder handle scale",
+    )
     val dragState = rememberDraggableState { delta -> state.dragBy(delta, threshold) }
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .defaultMinSize(48.dp, 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(CircleShape)
+            .background(highlight)
             .semantics {
                 contentDescription = "Reorder $itemLabel"
+                stateDescription = if (dragging) "Dragging" else "Ready to drag"
                 customActions = buildList {
                     if (state.canMove(itemKey, -1)) {
                         add(CustomAccessibilityAction("Move earlier") { state.accessibilityMove(itemKey, -1) })
@@ -181,6 +219,40 @@ fun ReorderHandle(
                 onDragStopped = { state.end() },
             ),
     ) {
-        Icon(Icons.Outlined.DragIndicator, contentDescription = null)
+        Icon(
+            Icons.Outlined.DragIndicator,
+            contentDescription = null,
+            tint = if (dragging) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
+}
+
+@Composable
+fun Modifier.reorderItemFeedback(
+    state: ReorderState,
+    itemKey: Any,
+    index: Int,
+): Modifier {
+    val reducedMotion = LocalVibeReducedMotion.current
+    val rowHeight = with(LocalDensity.current) { 48.dp.toPx() }
+    val placementOffset = remember(itemKey) { Animatable(0f) }
+    var previousIndex by remember(itemKey) { mutableIntStateOf(index) }
+    LaunchedEffect(index, reducedMotion) {
+        val movedRows = previousIndex - index
+        previousIndex = index
+        if (movedRows != 0 && !state.isDragging(itemKey) && !reducedMotion) {
+            placementOffset.snapTo(movedRows * rowHeight)
+            placementOffset.animateTo(0f, tween(180, easing = FastOutSlowInEasing))
+        } else {
+            placementOffset.snapTo(0f)
+        }
+    }
+    val dragging = state.isDragging(itemKey)
+    return this
+        .zIndex(if (dragging) 1f else 0f)
+        .graphicsLayer {
+            translationY = state.dragOffset(itemKey) + placementOffset.value
+            scaleX = if (dragging && !reducedMotion) 1.01f else 1f
+            scaleY = if (dragging && !reducedMotion) 1.01f else 1f
+        }
 }

@@ -123,23 +123,30 @@ fun ProgrammeEditor(
                         if (dayEntries.isEmpty()) {
                             Text("No exercises yet", style = MaterialTheme.typography.bodyMedium)
                         }
-                        entryOrder.ordered(dayEntries) { it.id }.forEach { entry ->
-                            val exerciseName = exercises.find { it.id == entry.exerciseId }?.canonicalName.orEmpty()
-                            Column(Modifier.fillMaxWidth().animateContentSize()) {
-                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                    if (dayEntries.size > 1) {
-                                        ReorderHandle(entryOrder, entry.id, exerciseName)
-                                    }
-                                    Column(Modifier.weight(1f)) {
-                                        Text(exerciseName, style = MaterialTheme.typography.titleMedium)
-                                        Text(targetSummary(entry), style = MaterialTheme.typography.bodySmall)
-                                        entry.supersetGroup?.let { Text("Circuit: $it", style = MaterialTheme.typography.bodySmall) }
-                                    }
-                                    IconButton(onClick = { editEntry = entry }) {
-                                        Icon(Icons.Outlined.Edit, contentDescription = "Edit targets for $exerciseName")
-                                    }
-                                    IconButton(onClick = { vm.removeEntry(entry.id) }) {
-                                        Icon(Icons.Outlined.Delete, contentDescription = "Remove $exerciseName")
+                        entryOrder.ordered(dayEntries) { it.id }.forEachIndexed { index, entry ->
+                            key(entry.id) {
+                                val exerciseName = exercises.find { it.id == entry.exerciseId }?.canonicalName.orEmpty()
+                                Column(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .reorderItemFeedback(entryOrder, entry.id, index)
+                                        .animateContentSize(),
+                                ) {
+                                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                        if (dayEntries.size > 1) {
+                                            ReorderHandle(entryOrder, entry.id, exerciseName)
+                                        }
+                                        Column(Modifier.weight(1f)) {
+                                            Text(exerciseName, style = MaterialTheme.typography.titleMedium)
+                                            Text(targetSummary(entry), style = MaterialTheme.typography.bodySmall)
+                                            entry.supersetGroup?.let { Text("Circuit: $it", style = MaterialTheme.typography.bodySmall) }
+                                        }
+                                        IconButton(onClick = { editEntry = entry }) {
+                                            Icon(Icons.Outlined.Edit, contentDescription = "Edit targets for $exerciseName")
+                                        }
+                                        IconButton(onClick = { vm.removeEntry(entry.id) }) {
+                                            Icon(Icons.Outlined.Delete, contentDescription = "Remove $exerciseName")
+                                        }
                                     }
                                 }
                             }
