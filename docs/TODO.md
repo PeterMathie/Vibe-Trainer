@@ -306,6 +306,17 @@ Evidence: implementation commit `9b4e07f` adds persistent Progress layout orderi
 
 The exact build passed unit tests and debug app/test assembly. Focused API 35 instrumentation passed: `ProgressUiTest` (2), `HabitUiTest` (1), `VibeDatabaseMigrationTest` (8), `HistoryUiTest` (2) and `NavigationUiTest` (1). APK SHA-256: `e51a218809c807f0636cdfab20f5190116887abc2df1391c34d9c73294374814`. Installed screenshots are `files/ux-18-final/home-nav-final.png`, `habits-final.png` and `progress-final.png`.
 
+### UX-19 — Distinct Body navigation and dedicated bodyweight entry
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Keep the dumbbell icon for Plans and give Body a distinct raised-arms torso/person icon.
+- [x] Make Body a dedicated bodyweight entry page with no editable metric name.
+- [x] Save new Body entries with the hard-coded `Bodyweight` metric.
+- [x] Display bodyweight consistently to exactly two decimal places without changing stored precision.
+
+Evidence: implementation commit `18e2b48` uses Material `FitnessCenter` for Plans and `AccessibilityNew` for Body. `MeasurementsUiTest` proves the Metric control is absent, a `78.126` entry is stored unchanged as Bodyweight and displayed as `78.13 kg`. Unit tests, debug app/test assembly and focused API 35 Navigation (1), Measurements (1), Progress (2) and Workout logging (6) suites passed. Exact APK SHA-256: `25ec51213f51899922bc5b0e352082b57cd40ae97b6765f4328e06a12eda610c`. Installed evidence: `files/ux-19-final/body-final.png`.
+
 ### UX-11 — Exercise-aware personal records
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.

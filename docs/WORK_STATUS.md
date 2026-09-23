@@ -2,7 +2,11 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-18 reorderable Progress cards, configurable habit intensity and direct navigation is complete** at `9b4e07f` on `pmathie-cicpilot-persist-workout-drafts`.
+Current implementation task: **UX-19 distinct Body navigation and dedicated bodyweight entry is complete** at `18e2b48` on `pmathie-cicpilot-persist-workout-drafts`. Plans retains the dumbbell icon while Body uses the raised-arms torso/person icon. The Body page no longer exposes an editable metric: new entries are always stored as `Bodyweight`. Body, Progress selection details and active-workout bodyweight labels display exactly two decimal places while preserving full stored precision.
+
+Unit tests, debug app/test assembly and focused API 35 Navigation (1), Measurements (1), Progress (2) and Workout logging (6) suites passed. Exact APK SHA-256 is `25ec51213f51899922bc5b0e352082b57cd40ae97b6765f4328e06a12eda610c`; installed evidence is `files/ux-19-final/body-final.png`.
+
+Previous task: **UX-18 reorderable Progress cards, configurable habit intensity and direct navigation is complete** at `9b4e07f`.
 
 Every major Progress card—overall trend, bodyweight, each habit and training progress—has a top-right six-dot handle and a persisted custom order. Exercise and variation selectors now live inside Training progress. Habit heat maps classify the actual daily numeric total against per-habit boundaries, using light/medium/dark alpha shades of the selected habit color. Piano and Meditation default to 7/15 minutes; Protein defaults to 140/160 grams.
 
