@@ -493,6 +493,8 @@ Follow-up commits `4439ea3` and `0e9e3ce` move the full list editor into the mai
 
 Follow-up `3f764a8` removes measurement-level archive actions and redundant non-numeric heat-map copy, keeps permanent deletion in the archived-habits area, aligns Archive/Cancel/Save in the dialog action row and matches remove icons to the grey reorder handles. Unit tests and API 35 `HabitUiTest` (2) passed. Installed APK SHA-256: `2eaedfc29338211c238440dd974880e8612c6cccf87da201a3effc3cd995191f`; inspected evidence is under `files/ux-27-habit-settings/`.
 
+Follow-up `c96b8b0` labels measurements by type, removes explanatory choice-editor headings, keeps the compact icon catalogue visible independently of the colour palette and uses a full-width footer so Archive aligns to the content edge. Unit tests and API 35 `HabitUiTest` (2) passed. Installed APK SHA-256: `cc288f2bf8e1ce90feb77c0084646d7f49912ea98ba2dc3ecb05777c96dd1daa`; inspected evidence is under `files/ux-28-clean-habit-settings/`.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.
