@@ -2,6 +2,7 @@ package com.petermathie.vibetrainer
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.petermathie.vibetrainer.ui.HomeScreen
@@ -10,8 +11,10 @@ import com.petermathie.vibetrainer.ui.ReorderHandle
 import com.petermathie.vibetrainer.ui.rememberReorderState
 import com.petermathie.vibetrainer.ui.theme.VibeTrainerTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
+import java.time.LocalDate
 
 class EndUserControlsTest {
     @get:Rule
@@ -19,9 +22,10 @@ class EndUserControlsTest {
 
     @Test
     fun homeKeepsDateControlsTogetherWithoutRemovedHeadings() {
+        var previewDay: Long? = null
         compose.setContent {
             VibeTrainerTheme {
-                HomeScreen(MainUiState(), {}, {})
+                HomeScreen(MainUiState(), {}, {}, { previewDay = it })
             }
         }
 
@@ -31,6 +35,11 @@ class EndUserControlsTest {
         compose.onNodeWithContentDescription("Activity date navigation").assertExists()
         compose.onNodeWithText("Earlier").assertExists()
         compose.onNodeWithText("Later").assertExists()
+        compose.onNodeWithContentDescription("Home recency date").performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) {
+            it((LocalDate.now().toEpochDay() - 10).toFloat())
+        }
+        compose.waitUntil(15_000) { previewDay != null }
+        assertNotNull(previewDay)
     }
 
     @Test

@@ -42,6 +42,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -49,7 +50,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -138,7 +141,12 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
             Column(Modifier.fillMaxSize().padding(padding)) {
                 if(error != null) TextButton(onClick = { editor.error.value = null }) { Text(error.orEmpty(),color=MaterialTheme.colorScheme.error) }
                 when (destination) {
-                    Destination.HOME -> HomeScreen(state, viewModel::selectHistoryDay) { destination = Destination.ACTIVE_WORKOUT }
+                    Destination.HOME -> HomeScreen(
+                        state,
+                        viewModel::selectHistoryDay,
+                        { destination = Destination.ACTIVE_WORKOUT },
+                        viewModel::selectHomeRecencyDay,
+                    )
                     Destination.PROGRAMMES -> ProgrammeEditor(editor, state.mode) { dayId ->
                         viewModel.startWorkout(dayId) { destination = Destination.ACTIVE_WORKOUT }
                     }
@@ -248,10 +256,19 @@ internal fun rememberVibePalette(prefs: android.content.SharedPreferences): Vibe
 }
 
 @Composable
-internal fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinue: () -> Unit) {
+internal fun HomeScreen(
+    state: MainUiState,
+    onDayClick: (Long) -> Unit,
+    onContinue: () -> Unit,
+    onRecencyDayChange: (Long) -> Unit,
+) {
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     var selectedMuscle by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = state.recency.firstOrNull { it.muscleId == selectedMuscle }
+    val today = LocalDate.now().toEpochDay()
+    val selectedRecencyDay = state.homeRecencyDay ?: today
+    var recencySliderDay by rememberSaveable { mutableFloatStateOf(selectedRecencyDay.toFloat()) }
+    LaunchedEffect(selectedRecencyDay) { recencySliderDay = selectedRecencyDay.toFloat() }
     ScreenList {
         state.activeWorkout?.let { workout ->
             item {
@@ -284,6 +301,20 @@ internal fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContin
                         selectedMuscleId = selectedMuscle,
                     )
                 }
+                Text(
+                    "Recency through ${LocalDate.ofEpochDay(recencySliderDay.toLong()).format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
+                    color = LocalVibePalette.current.textSecondary,
+                )
+                Slider(
+                    value = recencySliderDay,
+                    onValueChange = {
+                        recencySliderDay = it
+                        onRecencyDayChange(it.toLong())
+                    },
+                    valueRange = (today - 365).toFloat()..today.toFloat(),
+                    steps = 364,
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Home recency date" },
+                )
                 selectedMuscle?.let { muscle ->
                     Text(muscle.replace('_', ' '), fontWeight = FontWeight.Bold)
                     Text(

@@ -8,13 +8,13 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.petermathie.vibetrainer.domain.model.AnatomySex
@@ -55,33 +57,32 @@ internal fun HistoryDayScreen(
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Back") }
-                Column {
-                    Text(date.format(DateTimeFormatter.ofPattern("d MMMM yyyy")), style = MaterialTheme.typography.headlineMedium)
-                    Text("Reconstructed from records up to the end of this day", color = LocalVibePalette.current.textSecondary)
-                }
+                Text(date.format(DateTimeFormatter.ofPattern("d MMMM yyyy")), style = MaterialTheme.typography.headlineMedium)
             }
         }
         item {
-            SingleChoiceSegmentedButtonRow {
-                TrainingMode.entries.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = state.mode == mode,
-                        onClick = { onModeChange(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index, TrainingMode.entries.size),
-                        label = { Text(if (mode == TrainingMode.STRENGTH) "Strength" else "Stretching") },
-                    )
+            Row(
+                Modifier.fillMaxWidth().semantics { contentDescription = "Historical day and mode controls" },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                IconButton(onClick = { onDayChange(day - 1) }) {
+                    Icon(Icons.Outlined.ArrowBack, "Previous day")
+                }
+                SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
+                    TrainingMode.entries.forEachIndexed { index, mode ->
+                        SegmentedButton(
+                            selected = state.mode == mode,
+                            onClick = { onModeChange(mode) },
+                            shape = SegmentedButtonDefaults.itemShape(index, TrainingMode.entries.size),
+                            label = { Text(if (mode == TrainingMode.STRENGTH) "Strength" else "Stretching") },
+                        )
+                    }
+                }
+                IconButton(onClick = { onDayChange(day + 1) }, enabled = day < LocalDate.now().toEpochDay()) {
+                    Icon(Icons.Outlined.ArrowForward, "Next day")
                 }
             }
-            Row {
-                VibeActionButton("Previous day", { onDayChange(day - 1) }, importance = ActionImportance.COMPACT)
-                VibeActionButton("Next day", { onDayChange(day + 1) }, importance = ActionImportance.COMPACT, enabled = day < LocalDate.now().toEpochDay())
-            }
-            Slider(
-                value = day.toFloat(),
-                onValueChange = { onDayChange(it.toLong()) },
-                valueRange = (LocalDate.now().toEpochDay() - 365).toFloat()..LocalDate.now().toEpochDay().toFloat(),
-                steps = 364,
-            )
         }
         item {
             VibeCard {

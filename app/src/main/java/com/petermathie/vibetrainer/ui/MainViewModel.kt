@@ -35,6 +35,7 @@ data class MainUiState(
     val activeWorkout: ActiveWorkout? = null,
     val recency: List<MuscleRecency> = emptyList(),
     val activityDays: List<ActivityDay> = emptyList(),
+    val homeRecencyDay: Long? = null,
     val selectedHistoryDay: Long? = null,
     val historyDay: HistoryDayDetail? = null,
 )
@@ -47,23 +48,33 @@ private data class CoreUiState(
     val activityDays: List<ActivityDay>,
 )
 
+private data class RecencyQuery(
+    val mode: TrainingMode,
+    val homeDay: Long?,
+    val historyDay: Long?,
+    val now: Long,
+)
+
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val repository: TrainingRepository,
     private val catalogueDao: CatalogueDao,
 ) : ViewModel() {
     private val mode = MutableStateFlow(TrainingMode.STRENGTH)
+    private val homeRecencyDay = MutableStateFlow<Long?>(null)
     private val selectedHistoryDay = MutableStateFlow<Long?>(null)
     private val searchQuery = MutableStateFlow("")
 
     private val clock = MutableStateFlow(System.currentTimeMillis())
     init { viewModelScope.launch { while (true) { delay(30_000); clock.value=System.currentTimeMillis() } } }
-    private val recency = combine(mode, selectedHistoryDay, clock) { currentMode, day, now -> Triple(currentMode, day, now) }
-        .flatMapLatest { (currentMode, day, now) ->
+    private val recency = combine(mode, homeRecencyDay, selectedHistoryDay, clock) { currentMode, homeDay, historyDay, now ->
+        RecencyQuery(currentMode, homeDay, historyDay, now)
+    }.flatMapLatest { query ->
+            val day = query.historyDay ?: query.homeDay
             val atMillis = day?.let { epochDay ->
                 LocalDate.ofEpochDay(epochDay).plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
-            } ?: now
-            repository.observeMuscleRecency(currentMode, atMillis)
+            } ?: query.now
+            repository.observeMuscleRecency(query.mode, atMillis)
         }
 
     private val history = selectedHistoryDay.flatMapLatest { day ->
@@ -81,13 +92,14 @@ class MainViewModel @Inject constructor(
         CoreUiState(currentMode, days, workout, currentRecency, activity)
     }
 
-    val uiState: StateFlow<MainUiState> = combine(coreState, selectedHistoryDay, history) { core, selectedDay, dayHistory ->
+    val uiState: StateFlow<MainUiState> = combine(coreState, homeRecencyDay, selectedHistoryDay, history) { core, homeDay, selectedDay, dayHistory ->
         MainUiState(
             mode = core.mode,
             programmeDays = core.programmeDays,
             activeWorkout = core.activeWorkout,
             recency = core.recency,
             activityDays = core.activityDays,
+            homeRecencyDay = homeDay,
             selectedHistoryDay = selectedDay,
             historyDay = dayHistory,
         )
@@ -108,6 +120,9 @@ class MainViewModel @Inject constructor(
 
     fun setMode(value: TrainingMode) { mode.value = value }
     fun setSearchQuery(value: String) { searchQuery.value = value }
+    fun selectHomeRecencyDay(epochDay: Long) {
+        homeRecencyDay.value = epochDay.takeUnless { it == LocalDate.now().toEpochDay() }
+    }
     fun selectHistoryDay(epochDay: Long?) { selectedHistoryDay.value = epochDay }
 
     fun startWorkout(dayId: String, onStarted: () -> Unit = {}) = viewModelScope.launch {

@@ -2,12 +2,8 @@ package com.petermathie.vibetrainer
 
 import android.content.Context
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -21,8 +17,12 @@ import com.petermathie.vibetrainer.ui.MainViewModel
 import com.petermathie.vibetrainer.ui.theme.VibeTrainerTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,16 +62,20 @@ class HistoryUiTest {
                         onModeChange = viewModel::setMode,
                     )
                 }
+
             }
         }
 
         compose.onNodeWithText(firstDay.format(DATE_FORMAT), useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Reconstructed from records up to the end of this day").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Historical day and mode controls").assertExists()
+        compose.onNodeWithContentDescription("Home recency date").assertDoesNotExist()
         compose.onNodeWithText("Strength").assertIsSelected()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Monday — Planche + Push").fetchSemanticsNodes().isNotEmpty()
         }
 
-        compose.onNodeWithText("Previous day").performClick()
+        compose.onNodeWithContentDescription("Previous day").performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText(
                 firstDay.minusDays(1).format(DATE_FORMAT),
@@ -86,6 +90,26 @@ class HistoryUiTest {
 
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText("Front Splits").assertDoesNotExist()
+    }
+
+    @Test
+    fun homeRecencyPreviewDoesNotOpenHistoricalDay() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
+        DatabaseSeeder(context, database).seedIfNeeded()
+        val viewModel = MainViewModel(
+            TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao()),
+            database.catalogueDao(),
+        )
+        val previewDay = LocalDate.now().minusDays(10).toEpochDay()
+
+        viewModel.selectHomeRecencyDay(previewDay)
+        val state = withTimeout(15_000) {
+            viewModel.uiState.first { it.homeRecencyDay == previewDay }
+        }
+
+        assertEquals(previewDay, state.homeRecencyDay)
+        assertNull(state.selectedHistoryDay)
     }
 
     private companion object {
