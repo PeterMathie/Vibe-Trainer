@@ -55,7 +55,11 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
             Text(workout.name, style = MaterialTheme.typography.headlineSmall)
             if(restRemaining>0) VibeActionButton("Rest: ${restRemaining/60}:${(restRemaining%60).toString().padStart(2,'0')} · cancel", { RestTimer.cancel(context) }, importance = ActionImportance.COMPACT)
             if (logged.isNotEmpty()) Text("Logged duration: ${((logged.maxOf { it.loggedAt } - logged.minOf { it.loggedAt }) / 60000)} min")
-            VibeActionButton("Bodyweight: ${workout.bodyweightKg ?: "—"} kg", { bodyweight = true }, importance = ActionImportance.COMPACT)
+            VibeActionButton(
+                "Bodyweight: ${workout.bodyweightKg?.let(::formatBodyweight) ?: "—"} kg",
+                { bodyweight = true },
+                importance = ActionImportance.COMPACT,
+            )
             if(workout.status=="FINISHED") VibeActionButton("Change workout date", { editDate=true }, importance = ActionImportance.COMPACT)
         }
         items(rows, key = { it.id }) { row ->

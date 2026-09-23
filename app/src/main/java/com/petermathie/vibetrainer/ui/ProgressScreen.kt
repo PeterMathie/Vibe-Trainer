@@ -149,7 +149,7 @@ fun ProgressScreen(vm:EditorViewModel) {
                                     }?.second
                                 }
                                 selectedWeight?.let { bodyweights.getOrNull(it) }?.let {
-                                    Text("${Instant.ofEpochMilli(it.recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()} · ${formatAxis(it.value)} ${it.unit}")
+                                    Text("${Instant.ofEpochMilli(it.recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()} · ${formatBodyweight(it.value)} ${it.unit}")
                                 }
                             }
                             cardKey.startsWith("habit:") -> {

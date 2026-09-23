@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccessibilityNew
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.FitnessCenter
@@ -93,7 +94,7 @@ internal enum class Destination(val label: String, val icon: ImageVector) {
     EXERCISES("Exercises", Icons.Outlined.LibraryBooks),
     HABITS("Habits", Icons.Outlined.Check),
     HISTORY("History", Icons.Outlined.LibraryBooks),
-    MEASUREMENTS("Body", Icons.Outlined.FitnessCenter),
+    MEASUREMENTS("Body", Icons.Outlined.AccessibilityNew),
     SETTINGS("Settings", Icons.Outlined.Palette),
     STYLE("Style", Icons.Outlined.Palette),
 }

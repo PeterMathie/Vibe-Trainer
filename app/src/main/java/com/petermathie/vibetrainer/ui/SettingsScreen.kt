@@ -76,7 +76,7 @@ private fun SettingToggle(label:String,value:Boolean,onChange:(Boolean)->Unit){R
 @Composable
 fun MeasurementsScreen(vm:EditorViewModel) {
     val rows by vm.measurements.collectAsStateWithLifecycle();val context=LocalContext.current;val scope=rememberCoroutineScope()
-    var metric by remember{mutableStateOf("Bodyweight")};var value by remember{mutableStateOf("")};var unit by remember{mutableStateOf("kg")};var note by remember{mutableStateOf("")};var refresh by remember{mutableStateOf(0)}
+    var value by remember{mutableStateOf("")};var unit by remember{mutableStateOf("kg")};var note by remember{mutableStateOf("")};var refresh by remember{mutableStateOf(0)}
     var editing by remember { mutableStateOf<BodyMeasurementEntity?>(null) }
     var message by remember { mutableStateOf("") }
     val directory=File(context.filesDir,"progress-photos")
@@ -102,9 +102,25 @@ fun MeasurementsScreen(vm:EditorViewModel) {
     val photos=remember(refresh){directory.listFiles().orEmpty().sortedByDescending{it.name}}
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp)) {
         item {
-            Text("Measurements and photos",style=MaterialTheme.typography.headlineSmall)
-            EditField("Metric",metric){metric=it};EditField("Value",value){value=it};EditField("Unit",unit){unit=it};EditField("Notes",note){note=it}
-            Button(enabled=value.toDoubleOrNull()?.isFinite()==true&&metric.isNotBlank(),onClick={vm.save(BodyMeasurementEntity(newId(),System.currentTimeMillis(),metric,value.toDouble(),unit,note,false));value=""}){Text("Save measurement")}
+            Text("Bodyweight and photos",style=MaterialTheme.typography.headlineSmall)
+            EditField("Bodyweight",value){value=it};EditField("Unit",unit){unit=it};EditField("Notes",note){note=it}
+            Button(
+                enabled = value.toDoubleOrNull()?.isFinite() == true,
+                onClick = {
+                    vm.save(
+                        BodyMeasurementEntity(
+                            newId(),
+                            System.currentTimeMillis(),
+                            "Bodyweight",
+                            value.toDouble(),
+                            unit,
+                            note,
+                            false,
+                        ),
+                    )
+                    value = ""
+                },
+            ) { Text("Save bodyweight") }
             TextButton(onClick={picker.launch(arrayOf("image/*"))}){Text("Add progress photo")};TextButton(onClick={exporter.launch("progress-photos.zip")}){Text("Export photos separately")}
             Text(message)
         }
@@ -115,11 +131,17 @@ fun MeasurementsScreen(vm:EditorViewModel) {
         }
         items(rows,key={it.id}) { row ->
             Row {
-                Text("${row.metric}: ${row.value} ${row.unit}",Modifier.weight(1f))
+                val displayValue = if (row.metric.equals("Bodyweight", true)) {
+                    formatBodyweight(row.value)
+                } else {
+                    row.value.toString()
+                }
+                Text("${row.metric}: $displayValue ${row.unit}",Modifier.weight(1f))
                 TextButton(onClick={editing=row}) { Text("Edit") }
                 TextButton(onClick={vm.removeMeasurement(row.id)}) { Text("Delete") }
             }
         }
+
     }
     editing?.let { row ->
         var amount by remember(row.id){mutableStateOf(row.value.toString())}
@@ -127,3 +149,6 @@ fun MeasurementsScreen(vm:EditorViewModel) {
         AlertDialog(onDismissRequest={editing=null},title={Text("${row.metric} (${row.unit})")},text={Column{EditField("Value",amount){amount=it};EditField("Notes",notes){notes=it}}},confirmButton={TextButton(enabled=amount.toDoubleOrNull()?.isFinite()==true,onClick={vm.save(row.copy(value=amount.toDouble(),notes=notes));editing=null}){Text("Save")}},dismissButton={TextButton(onClick={editing=null}){Text("Cancel")}})
     }
 }
+
+internal fun formatBodyweight(value: Double): String =
+    String.format(java.util.Locale.US, "%.2f", value)
