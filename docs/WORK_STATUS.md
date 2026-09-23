@@ -2,9 +2,13 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-19 distinct Body navigation and dedicated bodyweight entry is complete** at `18e2b48` on `pmathie-cicpilot-persist-workout-drafts`. Plans retains the dumbbell icon while Body uses the raised-arms torso/person icon. The Body page no longer exposes an editable metric: new entries are always stored as `Bodyweight`. Body, Progress selection details and active-workout bodyweight labels display exactly two decimal places while preserving full stored precision.
+Current implementation task: **UX-21 fitted Home dashboard is complete** at `3d29f5a` on `pmathie-cicpilot-persist-workout-drafts`. The Home screen no longer uses a vertical lazy list: its recency and five-week activity cards share the available viewport, with Home-only compact heat-map cells and the fixed navigation always visible. Muscle-region separator strokes are visually removed while the body silhouette and selected-region accent remain. The recency slider uses a neutral grey track with only the current-position thumb in the accent colour.
 
-Unit tests, debug app/test assembly and focused API 35 Navigation (1), Measurements (1), Progress (2) and Workout logging (6) suites passed. Exact APK SHA-256 is `25ec51213f51899922bc5b0e352082b57cd40ae97b6765f4328e06a12eda610c`; installed evidence is `files/ux-19-final/body-final.png`.
+Unit tests, debug app/test assembly and focused API 35 `NavigationUiTest` passed. Exact APK SHA-256 is `744c9add1678181ee464e4c3bace91d222e6b3a1d810c9f808e39802bab6fd43`; installed evidence is `files/ux-21-home-fit.png`.
+
+Previous task: **UX-20 compact habit cards and progressive settings is complete** at `3062c46`. Default habit cards now show only the habit title, reorder handle, daily inputs and `Edit settings`. Colour, threshold, measurement, rename and archive controls live in a settings dialog; the colour palette appears only after `Change colour`. Thresholds read `Light below` and `Dark from` with a derived medium-range sentence. Debug seed version 5 gives Piano, Meditation and Protein representative light, medium and dark annual values. Unit tests and debug app/test assembly passed; focused API 35 Habits (1) and Progress (2) suites passed.
+
+Previous task: **UX-19 distinct Body navigation and dedicated bodyweight entry is complete** at `18e2b48`. Plans retains the dumbbell icon while Body uses the raised-arms torso/person icon. The Body page no longer exposes an editable metric: new entries are always stored as `Bodyweight`. Body, Progress selection details and active-workout bodyweight labels display exactly two decimal places while preserving full stored precision.
 
 Previous task: **UX-18 reorderable Progress cards, configurable habit intensity and direct navigation is complete** at `9b4e07f`.
 

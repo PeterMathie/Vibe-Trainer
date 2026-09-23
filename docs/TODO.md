@@ -414,6 +414,28 @@ Final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndro
 
   RELEASE-01b (dependency notices): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `f6174cd` inventories the Gradle-resolved release runtime families and core-library desugaring dependency, declared licence families and authoritative sources in the repository and bundled notice. Existing MuscleMap and Free Exercise DB notices remain intact. Both notice copies are byte-identical; `assembleRelease` passed and APK inspection found both notice assets. Exact upstream NOTICE/licence-text packaging and legal/store approval remain external release gates and are not represented as repository-complete.
 
+### UX-20 — Compact habit cards and progressive settings
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Keep default habit cards focused on daily entry, with spacing consistent with Progress cards and one visible `Edit settings` action.
+- [x] Move colour, thresholds, measurement management, rename and archive controls into settings.
+- [x] Hide the horizontal colour palette until requested and explain light/medium/dark boundaries in plain language.
+- [x] Seed representative annual light, medium and dark values for Piano, Meditation and Protein.
+
+Evidence: commit `3062c46` implements the compact cards, progressive settings dialog and upgraded debug seed. Unit tests and debug app/test assembly passed; focused API 35 `HabitUiTest` (1) and `ProgressUiTest` (2) passed.
+
+### UX-21 — Fitted Home dashboard
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Remove visible separator strokes between adjacent muscle regions while retaining selection highlighting and the body silhouette.
+- [x] Render the recency slider as a neutral grey track with only the current-position thumb in the accent colour.
+- [x] Fit the Home recency card and five-week heat map within the available viewport without vertical scrolling.
+- [x] Preserve full-size heat maps outside Home and keep the fixed bottom navigation visible.
+
+Evidence: commit `3d29f5a` uses a viewport-fitted Home column, flexible map region and Home-only compact heat-map cells. Unit tests, debug app/test assembly and focused API 35 `NavigationUiTest` passed. The exact installed APK has SHA-256 `744c9add1678181ee464e4c3bace91d222e6b3a1d810c9f808e39802bab6fd43`; `files/ux-21-home-fit.png` shows both cards, the neutral slider and fixed navigation in one screen with no scrolling.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.
