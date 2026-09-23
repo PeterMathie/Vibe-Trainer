@@ -2,7 +2,7 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **paused at a pushed UX-03 completion boundary** on `pmathie-cicpilot-persist-workout-drafts`.
+Current implementation task: **UX-04 programme editor hierarchy polish is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. It moves all visible drag handles to the far left and hides them for singleton lists, makes the programme name directly editable, moves Duplicate/Delete/Archive to a bottom management row, and replaces the workout’s Add exercise label with a full-width accessible plus control. Programme deletion is scoped to the definition and cascading templates; historical workouts remain.
 
 UX-03 is complete at source commit `98a38ea`. The date slider now sits directly beneath the Home muscle-recency maps, displays its effective date and previews earlier recency without opening the detailed historical screen. Heat-map selection still opens that screen. Its reconstruction copy and slider are removed; Previous day and Next day are distinct far-left/far-right chevrons around the unchanged Strength/Stretch selector in one semantic row. The date, activity cards and back behavior remain intact.
 

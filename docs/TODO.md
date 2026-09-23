@@ -115,6 +115,16 @@ Evidence: commit `d9c2801` separates Home preview date from detailed history sel
 
 The debug APK at source `98a38ea` has SHA-256 `d743948ee1d9f515709d05b60c3ea63f2c29be5bf5b38e06249dd735b631b3bd`. It installed and launched on `vibe-log01-api35`; MainActivity remained focused with PID 13082. Exact-build screenshots `files/ux-03-final/home-98a38ea.png` and `history-day-98a38ea.png` show the slider directly beneath the Home maps and the historical-day chevron/Strength–Stretch/chevron row with no old slider or reconstruction copy.
 
+### UX-04 — Programme editor hierarchy polish
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+- [ ] Put every visible six-dot handle at the far left of its item and hide it when the list has only one reorderable item; dragging the handle continues to move the whole item and persist order.
+- [ ] Replace the programme editor’s heading/rename action with an inline editable programme-name field and explicit save affordance.
+- [ ] Move Duplicate, Delete and Archive to one secondary three-button row at the bottom of the programme editor. Delete removes only the programme definition and its cascading templates; historical workouts remain.
+- [ ] Put a full-width plus-only Add exercise control at the bottom of each expanded workout exercise list, with an accessible label.
+- [ ] Update end-user Compose/persistence coverage, run focused and full validation, push evidence and inspect the exact installed UI.
+
 ### QA-01 — Real-phone timers
 
 - [ ] Record phone model, Android version and notification/alarm permissions.
