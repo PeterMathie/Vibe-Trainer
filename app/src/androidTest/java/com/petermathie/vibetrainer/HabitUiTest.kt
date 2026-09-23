@@ -74,5 +74,33 @@ class HabitUiTest {
         assertEquals("Sad\nHappy", field.choiceOptions)
         compose.onNodeWithText("Edit settings").performClick()
         compose.onNodeWithText("Choices map from light to dark in the order configured.").assertExists()
+        compose.onNodeWithText("Delete habit permanently").assertDoesNotExist()
+        compose.onNodeWithText("Archive habit").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Archived habits").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Restore").performClick()
+        compose.onNodeWithText("Wellbeing").assertIsDisplayed()
+    }
+
+    @Test
+    fun permanentlyDeletesEmptyHabit() {
+        database = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext<Context>(),
+            VibeDatabase::class.java,
+        ).build()
+        runBlocking {
+            database.trackerDao().insertTrackers(
+                listOf(TrackerEntity("disposable", "Disposable", false)),
+            )
+        }
+        val viewModel = EditorViewModel(database)
+        compose.setContent { VibeTrainerTheme { TrackerScreen(viewModel) } }
+
+        compose.onNodeWithText("Edit settings").performClick()
+        compose.onNodeWithText("Delete habit permanently").performScrollTo().performClick()
+        compose.onNodeWithText("Delete permanently").performClick()
+        compose.waitUntil(15_000) {
+            runBlocking { database.editorDao().trackers().first().isEmpty() }
+        }
+        compose.onNodeWithText("Disposable").assertDoesNotExist()
     }
 }

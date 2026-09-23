@@ -52,5 +52,14 @@ class MeasurementsUiTest {
         assertEquals(78.126, saved.value, 0.0)
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Bodyweight: 78.13 kg"))
         compose.onNodeWithText("Bodyweight: 78.13 kg").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Progress chart", substring = true).assertExists()
+        compose.onNodeWithContentDescription("Bodyweight").performTextClearance()
+        compose.onNodeWithContentDescription("Bodyweight").performTextInput("80")
+        compose.onNodeWithText("Update bodyweight").performClick()
+        compose.waitUntil(15_000) {
+            runBlocking { database.editorDao().measurements().first().single().value == 80.0 }
+        }
+        compose.onNodeWithText("80.00").assertExists()
+        compose.onNodeWithContentDescription("80.0 to 80.0 kg", substring = true).assertExists()
     }
 }

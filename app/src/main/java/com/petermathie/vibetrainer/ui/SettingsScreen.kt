@@ -9,16 +9,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.BodyMeasurementEntity
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import java.io.File
@@ -89,12 +96,40 @@ private fun SettingToggle(
 
 @Composable
 fun MeasurementsScreen(vm:EditorViewModel) {
-    val rows by vm.measurements.collectAsStateWithLifecycle();val context=LocalContext.current;val scope=rememberCoroutineScope()
-    var value by remember{mutableStateOf("")};var unit by remember{mutableStateOf("kg")};var note by remember{mutableStateOf("")};var refresh by remember{mutableStateOf(0)}
+    val rows by vm.measurements.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var selectedDay by rememberSaveable { mutableStateOf(LocalDate.now().toEpochDay()) }
+    var displayedMonth by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
+    var value by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("kg") }
+    var note by remember { mutableStateOf("") }
+    var refresh by remember { mutableStateOf(0) }
     var editing by remember { mutableStateOf<BodyMeasurementEntity?>(null) }
     var message by remember { mutableStateOf("") }
-    val directory=File(context.filesDir,"progress-photos")
-    val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch{try{withContext(Dispatchers.IO){directory.mkdirs();requireNotNull(context.contentResolver.openInputStream(uri)).use{input->File(directory,"${System.currentTimeMillis()}.jpg").outputStream().use{input.copyTo(it)}}};refresh++;message="Photo added"}catch(e:Exception){message="Could not add photo: ${e.message}"}}}
+    val directory = File(context.filesDir, "progress-photos")
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    directory.mkdirs()
+                    val start = LocalDate.ofEpochDay(selectedDay)
+                        .atTime(8, 0)
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
+                    val timestamp = start + System.currentTimeMillis() % (12 * 60 * 60 * 1000)
+                    requireNotNull(context.contentResolver.openInputStream(uri)).use { input ->
+                        File(directory, "$timestamp.jpg").outputStream().use { input.copyTo(it) }
+                    }
+                }
+                refresh++
+                message = "Photo added"
+            } catch (e: Exception) {
+                message = "Could not add photo: ${e.message}"
+            }
+        }
+    }
     val exporter=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if(uri!=null) scope.launch {
             try {
@@ -113,49 +148,205 @@ fun MeasurementsScreen(vm:EditorViewModel) {
             } catch(e:Exception) { message="Could not export photos: ${e.message}" }
         }
     }
-    val photos=directory.listFiles().orEmpty().sortedByDescending{it.name}
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp)) {
+    val bodyweights = rows.filter { it.metric.equals("Bodyweight", true) }.sortedBy { it.recordedAt }
+    val weightsByDay = bodyweights.groupBy {
+        Instant.ofEpochMilli(it.recordedAt).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
+    }.mapValues { (_, values) -> values.maxBy { it.recordedAt } }
+    val selectedMeasurement = weightsByDay[selectedDay]
+    LaunchedEffect(selectedDay, selectedMeasurement?.id, selectedMeasurement?.value, selectedMeasurement?.notes) {
+        value = selectedMeasurement?.value?.toString().orEmpty()
+        unit = selectedMeasurement?.unit ?: unit
+        note = selectedMeasurement?.notes.orEmpty()
+    }
+    val photos = remember(refresh, rows.size) { directory.listFiles().orEmpty().sortedByDescending { it.name } }
+    val selectedPhotos = photos.filter { file ->
+        file.nameWithoutExtension.toLongOrNull()?.let {
+            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() == selectedDay
+        } == true
+    }
+    val selectedDate = LocalDate.ofEpochDay(selectedDay)
+    val month = YearMonth.parse(displayedMonth)
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         item {
-            Text("Bodyweight and photos",style=MaterialTheme.typography.headlineSmall)
-            EditField("Bodyweight",value){value=it};EditField("Unit",unit){unit=it};EditField("Notes",note){note=it}
-            Button(
-                enabled = value.toDoubleOrNull()?.isFinite() == true,
-                onClick = {
-                    vm.save(
-                        BodyMeasurementEntity(
-                            newId(),
-                            System.currentTimeMillis(),
-                            "Bodyweight",
-                            value.toDouble(),
-                            unit,
-                            note,
-                            false,
-                        ),
-                    )
-                    value = ""
-                },
-            ) { Text("Save bodyweight") }
-            TextButton(onClick={picker.launch(arrayOf("image/*"))}){Text("Add progress photo")};TextButton(onClick={exporter.launch("progress-photos.zip")}){Text("Export photos separately")}
-            Text(message)
+            Text("Bodyweight and photos", style = MaterialTheme.typography.headlineSmall)
         }
-        items(photos,key={it.name}){file->
-            val bitmap=remember(file){android.graphics.BitmapFactory.decodeFile(file.path,android.graphics.BitmapFactory.Options().apply{inSampleSize=4})}
-            bitmap?.let { androidx.compose.foundation.Image(it.asImageBitmap(),contentDescription="Progress photo ${file.name}",modifier=Modifier.fillMaxWidth().height(240.dp)) }
-            TextButton(onClick={if(file.delete()){refresh++;message="Photo removed"}else message="Could not remove photo"}){Text("Delete photo")}
-        }
-        items(rows,key={it.id}) { row ->
-            Row {
-                val displayValue = if (row.metric.equals("Bodyweight", true)) {
-                    formatBodyweight(row.value)
-                } else {
-                    row.value.toString()
+        if (bodyweights.isNotEmpty()) {
+            item {
+                VibeCard {
+                    Text("Bodyweight trend", style = MaterialTheme.typography.titleLarge)
+                    MiniChart(
+                        values = bodyweights.map {
+                            if (it.unit.equals("lb", true)) it.value / 2.2046226218 else it.value
+                        },
+                        dates = bodyweights.map { it.recordedAt },
+                        unit = "kg",
+                    ) { index ->
+                        val day = Instant.ofEpochMilli(bodyweights[index].recordedAt)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                        selectedDay = day.toEpochDay()
+                        displayedMonth = YearMonth.from(day).toString()
+                    }
                 }
-                Text("${row.metric}: $displayValue ${row.unit}",Modifier.weight(1f))
-                TextButton(onClick={editing=row}) { Text("Edit") }
-                TextButton(onClick={vm.removeMeasurement(row.id)}) { Text("Delete") }
             }
         }
-
+        item {
+            VibeCard {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    VibeActionButton(
+                        "‹",
+                        { displayedMonth = month.minusMonths(1).toString() },
+                        modifier = Modifier.semantics { contentDescription = "Previous month" },
+                        importance = ActionImportance.COMPACT,
+                    )
+                    Text(
+                        month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    VibeActionButton(
+                        "›",
+                        { displayedMonth = month.plusMonths(1).toString() },
+                        modifier = Modifier.semantics { contentDescription = "Next month" },
+                        importance = ActionImportance.COMPACT,
+                    )
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    listOf("M", "T", "W", "T", "F", "S", "S").forEach {
+                        Text(
+                            it,
+                            Modifier.weight(1f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+                val leading = month.atDay(1).dayOfWeek.value - 1
+                val cellCount = ((leading + month.lengthOfMonth() + 6) / 7) * 7
+                repeat(cellCount / 7) { week ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        repeat(7) { weekday ->
+                            val dayNumber = week * 7 + weekday - leading + 1
+                            if (dayNumber !in 1..month.lengthOfMonth()) {
+                                Spacer(Modifier.weight(1f).height(64.dp))
+                            } else {
+                                val date = month.atDay(dayNumber)
+                                val epochDay = date.toEpochDay()
+                                val measurement = weightsByDay[epochDay]
+                                Surface(
+                                    onClick = {
+                                        selectedDay = epochDay
+                                        value = measurement?.value?.toString().orEmpty()
+                                        unit = measurement?.unit ?: unit
+                                        note = measurement?.notes.orEmpty()
+                                    },
+                                    color = if (epochDay == selectedDay) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                    shape = MaterialTheme.shapes.small,
+                                    modifier = Modifier.weight(1f).height(64.dp),
+                                ) {
+                                    Column(
+                                        Modifier.padding(5.dp),
+                                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                    ) {
+                                        Text(dayNumber.toString(), style = MaterialTheme.typography.labelSmall)
+                                        measurement?.let {
+                                            Text(
+                                                formatBodyweight(it.value),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                maxLines = 1,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            VibeCard {
+                Text(
+                    selectedDate.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                EditField("Bodyweight", value) { value = it }
+                EditField("Unit", unit) { unit = it }
+                EditField("Notes", note) { note = it }
+                Button(
+                    enabled = value.toDoubleOrNull()?.isFinite() == true,
+                    onClick = {
+                        val timestamp = selectedDate.atTime(12, 0)
+                            .atZone(ZoneId.systemDefault())
+                            .toInstant()
+                            .toEpochMilli()
+                        vm.save(
+                            selectedMeasurement?.copy(
+                                value = value.toDouble(),
+                                unit = unit,
+                                notes = note,
+                            ) ?: BodyMeasurementEntity(
+                                newId(),
+                                timestamp,
+                                "Bodyweight",
+                                value.toDouble(),
+                                unit,
+                                note,
+                                false,
+                            ),
+                        )
+                        value = ""
+                    },
+                ) { Text(if (selectedMeasurement == null) "Save bodyweight" else "Update bodyweight") }
+                selectedMeasurement?.let { row ->
+                    Row {
+                        Text("Bodyweight: ${formatBodyweight(row.value)} ${row.unit}", Modifier.weight(1f))
+                        TextButton(onClick = { editing = row }) { Text("Edit") }
+                        TextButton(onClick = { vm.removeMeasurement(row.id) }) { Text("Delete") }
+                    }
+                }
+                TextButton(onClick = { picker.launch(arrayOf("image/*")) }) { Text("Add progress photo") }
+                TextButton(onClick = { exporter.launch("progress-photos.zip") }) { Text("Export photos separately") }
+                if (selectedPhotos.isEmpty()) {
+                    Text("No photo for this day", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                selectedPhotos.forEach { file ->
+                    val bitmap = remember(file, refresh) {
+                        android.graphics.BitmapFactory.decodeFile(
+                            file.path,
+                            android.graphics.BitmapFactory.Options().apply { inSampleSize = 4 },
+                        )
+                    }
+                    bitmap?.let {
+                        androidx.compose.foundation.Image(
+                            it.asImageBitmap(),
+                            contentDescription = "Progress photo ${file.name}",
+                            modifier = Modifier.fillMaxWidth().height(240.dp),
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            if (file.delete()) {
+                                refresh++
+                                message = "Photo removed"
+                            } else {
+                                message = "Could not remove photo"
+                            }
+                        },
+                    ) { Text("Delete photo") }
+                }
+                Text(message)
+            }
+        }
     }
     editing?.let { row ->
         var amount by remember(row.id){mutableStateOf(row.value.toString())}

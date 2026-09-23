@@ -28,7 +28,13 @@ fun TrackerScreen(vm: EditorViewModel) {
     var newHabit by remember { mutableStateOf<TrackerEntity?>(null) }
     var settings by remember { mutableStateOf<TrackerEntity?>(null) }
     var field by remember { mutableStateOf<TrackerFieldEntity?>(null) }
-    val activeTrackers = trackers.sortedBy { it.position }
+    var deleteCandidate by remember { mutableStateOf<TrackerEntity?>(null) }
+    val activeTrackers = trackers.filterNot { it.isArchived }.sortedBy { it.position }
+    val archivedTrackers = trackers.filter { it.isArchived }.sortedBy { it.name }
+    fun hasData(tracker: TrackerEntity): Boolean {
+        val fieldIds = fields.filter { it.trackerId == tracker.id }.map { it.id }.toSet()
+        return values.any { it.fieldId in fieldIds }
+    }
     val trackerOrder = rememberReorderState(activeTrackers.map { it.id }) { key, from, to ->
         vm.moveTracker(key as String, to - from)
     }
@@ -75,6 +81,30 @@ fun TrackerScreen(vm: EditorViewModel) {
                 )
             }
         }
+        if (archivedTrackers.isNotEmpty()) {
+            item {
+                VibeCard {
+                    Text("Archived habits", style = MaterialTheme.typography.titleLarge)
+                    archivedTrackers.forEach { tracker ->
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .size(16.dp)
+                                    .background(Color(tracker.colourArgb.toInt()), CircleShape),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(tracker.name, Modifier.weight(1f))
+                            TextButton(onClick = { vm.save(tracker.copy(isArchived = false)) }) {
+                                Text("Restore")
+                            }
+                            if (!hasData(tracker)) {
+                                TextButton(onClick = { deleteCandidate = tracker }) { Text("Delete") }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     newHabit?.let { tracker ->
         NameDialog("Habit name", tracker.name, { newHabit = null }) {
@@ -113,6 +143,11 @@ fun TrackerScreen(vm: EditorViewModel) {
                 vm.save(restored.copy(isArchived = false, position = position))
             },
             onMoveMeasurement = vm::moveTrackerField,
+            canDelete = !hasData(tracker),
+            onDeleteHabit = {
+                settings = null
+                deleteCandidate = tracker
+            },
             onArchiveHabit = {
                 vm.save(tracker.copy(isArchived = true))
                 settings = null
@@ -120,6 +155,22 @@ fun TrackerScreen(vm: EditorViewModel) {
         )
     }
     field?.let { HabitFieldDialog(vm, it) { field = null } }
+    deleteCandidate?.let { tracker ->
+        AlertDialog(
+            onDismissRequest = { deleteCandidate = null },
+            title = { Text("Delete ${tracker.name}?") },
+            text = { Text("This empty habit and its settings will be permanently deleted.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vm.deleteTrackerIfEmpty(tracker.id)
+                        deleteCandidate = null
+                    },
+                ) { Text("Delete permanently") }
+            },
+            dismissButton = { TextButton(onClick = { deleteCandidate = null }) { Text("Cancel") } },
+        )
+    }
 }
 
 @Composable
@@ -133,6 +184,8 @@ private fun HabitSettingsDialog(
     onArchiveMeasurement: (TrackerFieldEntity) -> Unit,
     onRestoreMeasurement: (TrackerFieldEntity, Int) -> Unit,
     onMoveMeasurement: (String, Int) -> Unit,
+    canDelete: Boolean,
+    onDeleteHabit: () -> Unit,
     onArchiveHabit: () -> Unit,
 ) {
     var name by remember(tracker.id) { mutableStateOf(tracker.name) }
@@ -257,6 +310,9 @@ private fun HabitSettingsDialog(
                             }
                         }
                         TextButton(onClick = onArchiveHabit) { Text("Archive habit") }
+                        if (canDelete) {
+                            TextButton(onClick = onDeleteHabit) { Text("Delete habit permanently") }
+                        }
                     }
                 }
             }

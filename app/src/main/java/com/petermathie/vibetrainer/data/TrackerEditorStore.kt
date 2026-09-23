@@ -17,6 +17,12 @@ class TrackerEditorStore(
 
     suspend fun saveTracker(row: TrackerEntity) = dao.tracker(row)
 
+    suspend fun deleteTrackerIfEmpty(id: String) {
+        db.withTransaction {
+            if (dao.trackerValueCount(id) == 0) dao.deleteTracker(id)
+        }
+    }
+
     suspend fun createTracker(row: TrackerEntity) {
         db.withTransaction {
             val position = dao.trackers().first().maxOfOrNull { it.position }?.plus(1) ?: 0
@@ -39,7 +45,7 @@ class TrackerEditorStore(
     suspend fun saveField(row: TrackerFieldEntity) = dao.field(row)
 
     suspend fun moveTracker(id: String, delta: Int) {
-        val siblings = dao.trackers().first().sortedBy { it.position }
+        val siblings = dao.trackers().first().filterNot { it.isArchived }.sortedBy { it.position }
         moveItem(siblings, id, delta) { it.id }?.let { rows ->
             db.withTransaction {
                 rows.forEachIndexed { index, row -> dao.tracker(row.copy(position = index)) }

@@ -96,6 +96,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
         }
     }
     fun save(row: TrackerEntity) = write { trackerStore.saveTracker(row) }
+    fun deleteTrackerIfEmpty(id: String) = write { trackerStore.deleteTrackerIfEmpty(id) }
     fun createTracker(row: TrackerEntity) = write { trackerStore.createTracker(row) }
     fun moveTracker(id: String, delta: Int) = write { trackerStore.moveTracker(id, delta) }
     fun save(row: TrackerFieldEntity) = write { trackerStore.saveField(row) }
