@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
 import com.petermathie.vibetrainer.domain.programme.ExerciseInputConfig
@@ -206,7 +207,12 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                             updateDraft(draft.copy(timeHeld = it, performance = "", updatedAt = System.currentTimeMillis()))
                         },
                         label = {
-                            Text(if (exercise?.canonicalName?.contains("Handstand", true) == true) "Freestanding sec" else "Held sec")
+                            Text(
+                                if (exercise?.canonicalName?.contains("Handstand", true) == true) "Freestanding s" else "Held s",
+                                maxLines = 1,
+                                softWrap = false,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            )
                         },
                         singleLine = true,
                         modifier = Modifier.weight(1f).semantics {
@@ -219,7 +225,12 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                             updateDraft(draft.copy(timeUnderTension = it, updatedAt = System.currentTimeMillis()))
                         },
                         label = {
-                            Text(if (exercise?.canonicalName?.contains("Handstand", true) == true) "Total wall sec" else "Tension sec")
+                            Text(
+                                if (exercise?.canonicalName?.contains("Handstand", true) == true) "Total wall s" else "Tension s",
+                                maxLines = 1,
+                                softWrap = false,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            )
                         },
                         singleLine = true,
                         modifier = Modifier.weight(1f).semantics {

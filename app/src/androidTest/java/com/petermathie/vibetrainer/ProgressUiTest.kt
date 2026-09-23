@@ -19,6 +19,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,7 +42,19 @@ class ProgressUiTest {
             database.editorDao().exercise(
                 ExerciseEntity("no-history", "No history exercise", "STRENGTH", "WEIGHT_REPS", null, null, "custom", true),
             )
-            assertEquals(52, database.editorDao().workouts().first().count { it.id.startsWith("demo-progress-") })
+            assertEquals(156, database.editorDao().workouts().first().count { it.id.startsWith("demo-progress-") })
+            val rows = database.editorDao().workoutExercises().first()
+            val sets = database.editorDao().sets().first()
+            fun weeklyWeights(exerciseId: String) = rows
+                .filter { it.actualExerciseId == exerciseId && it.workoutId.startsWith("demo-progress-") }
+                .sortedBy { row -> sets.filter { it.workoutExerciseId == row.id }.minOf { it.loggedAt } }
+                .map { row -> sets.filter { it.workoutExerciseId == row.id }.maxOf { it.weightKg ?: 0.0 } }
+            val bench = weeklyWeights("core:bench-press")
+            val lunge = weeklyWeights("core:lunge")
+            val overhead = weeklyWeights("core:overhead-press")
+            assertTrue(bench.last() > bench.first() + 15.0)
+            assertTrue((lunge.maxOrNull() ?: 0.0) - (lunge.minOrNull() ?: 0.0) < 2.0)
+            assertTrue(overhead.last() < overhead.first() - 5.0)
         }
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { ProgressScreen(viewModel) } }

@@ -160,10 +160,16 @@ interface WorkoutDao {
     suspend fun insertWorkout(row: WorkoutEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWorkouts(rows: List<WorkoutEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkoutExercises(rows: List<WorkoutExerciseEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSet(row: WorkoutSetEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSets(rows: List<WorkoutSetEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSetBands(rows: List<WorkoutSetBandEntity>)

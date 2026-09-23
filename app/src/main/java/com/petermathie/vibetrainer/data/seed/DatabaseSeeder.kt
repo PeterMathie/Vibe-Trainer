@@ -167,21 +167,166 @@ class DatabaseSeeder @Inject constructor(
     }
 
     private suspend fun seedProgressDemo() {
-        val now=System.currentTimeMillis()
-        repeat(52) { index ->
-            val finished=now-(52-index)*7*86_400_000L
-            val id="demo-progress-$index"
-            database.workoutDao().insertWorkout(demoWorkout(id,"Demo — Push progression","demo-day-push",finished,TrainingMode.STRENGTH))
-            listOf("core:bench-press","core:planche").forEachIndexed { position, exercise ->
-                val row=WorkoutExerciseEntity("$id:$exercise",id,exercise,exercise,position,"Demo session ${index+1}: ${if(index%3==0)"Harder than usual" else "Controlled technique"}",180,null)
-                database.workoutDao().insertWorkoutExercises(listOf(row))
-                repeat(3) { ordinal ->
-                    val set=WorkoutSetEntity("${row.id}:$ordinal",row.id,ordinal+1,"WORKING","COMPLETED",if(position==1)"planche-tuck" else null,if(position==0)50.0+index*.75+(index%4)*.5 else null,if(position==0)6-ordinal else null,if(position==1)(6000L+index*350-ordinal*500) else null,null,null,null,null,null,null,7.0+ordinal*.5,null,null,"",finished-600000+position*180000+ordinal*60000,finished)
-                    database.workoutDao().insertSet(set)
-                    if(position==1)database.workoutDao().insertSetBands(listOf(com.petermathie.vibetrainer.data.local.WorkoutSetBandEntity(set.id,BANDS[if(index<26)2 else 1].id,0)))
-                }
+        database.openHelper.writableDatabase.execSQL("DELETE FROM workouts WHERE id LIKE 'demo-progress-%'")
+        val now = System.currentTimeMillis()
+        val programmes = listOf(
+            Triple("push", "demo-day-push", "Planche + Push"),
+            Triple("legs", "demo-day-legs", "Legs + Mobility"),
+            Triple("pull", "demo-day-pull", "Muscle-up + Pull"),
+        )
+        val workouts = mutableListOf<WorkoutEntity>()
+        val rows = mutableListOf<WorkoutExerciseEntity>()
+        val sets = mutableListOf<WorkoutSetEntity>()
+        val bandLinks = mutableListOf<com.petermathie.vibetrainer.data.local.WorkoutSetBandEntity>()
+        repeat(52) { week ->
+            programmes.forEachIndexed { sessionIndex, (key, dayId, name) ->
+                val finished = now - (52 - week) * 7 * 86_400_000L + sessionIndex * 2 * 86_400_000L
+                val workoutId = "demo-progress-$week-$key"
+                workouts += demoWorkout(workoutId, name, dayId, finished, TrainingMode.STRENGTH)
+                DEMO_PROGRAMME_EXERCISES
+                    .filter { it.programmeDayId == dayId }
+                    .sortedBy { it.position }
+                    .forEach { planned ->
+                        val definition = CURATED_EXERCISES.first { it.id == planned.exerciseId }
+                        val direction = progressDirection(definition.id)
+                        val row = WorkoutExerciseEntity(
+                            id = "$workoutId:${definition.id}",
+                            workoutId = workoutId,
+                            plannedExerciseId = definition.id,
+                            actualExerciseId = definition.id,
+                            position = planned.position,
+                            notes = when (direction) {
+                                1 -> "Gradually improving"
+                                0 -> "Holding a steady plateau"
+                                else -> "Recent performance has declined"
+                            },
+                            restSeconds = definition.restSeconds,
+                            supersetGroup = null,
+                            exerciseName = definition.canonicalName,
+                            trackingType = definition.trackingType,
+                            inputConfig = definition.inputConfig,
+                        )
+                        rows += row
+                        repeat(3) { ordinal ->
+                            val set = demoProgressSet(row, definition, week, ordinal, direction, finished)
+                            sets += set
+                            if (definition.id == "core:planche") {
+                                val band = BANDS[if (week < 18) 2 else if (week < 36) 1 else 0]
+                                bandLinks += com.petermathie.vibetrainer.data.local.WorkoutSetBandEntity(
+                                    set.id,
+                                    band.id,
+                                    0,
+                                    band.name,
+                                    band.widthCentimetres,
+                                )
+                            }
+                        }
+                    }
             }
         }
+        database.workoutDao().insertWorkouts(workouts)
+        database.workoutDao().insertWorkoutExercises(rows)
+        database.workoutDao().insertSets(sets)
+        database.workoutDao().insertSetBands(bandLinks)
+    }
+
+    private fun progressDirection(exerciseId: String): Int = when (exerciseId) {
+        "core:handstand", "core:planche", "core:bench-press", "core:squat", "core:pull-up" -> 1
+        "core:overhead-press", "core:jefferson-curl", "core:leg-raise" -> -1
+        else -> 0
+    }
+
+    private fun demoProgressSet(
+        row: WorkoutExerciseEntity,
+        exercise: ExerciseEntity,
+        week: Int,
+        ordinal: Int,
+        direction: Int,
+        finished: Long,
+    ): WorkoutSetEntity {
+        val cycle = (week % 6 - 3) * 0.2
+        val weightedBase = when (exercise.id) {
+            "core:bench-press" -> 62.5
+            "core:squat" -> 85.0
+            "core:lunge" -> 22.5
+            "core:cossack-squat" -> 15.0
+            "core:jefferson-curl" -> 35.0
+            "core:overhead-press" -> 47.5
+            "core:back-extension" -> 30.0
+            else -> 40.0
+        }
+        val weight = when (exercise.trackingType) {
+            TrackingType.WEIGHT_REPS.name -> when (direction) {
+                1 -> weightedBase + week * 0.45
+                -1 -> (weightedBase - week * 0.18).coerceAtLeast(weightedBase * 0.7)
+                else -> weightedBase + cycle
+            } - ordinal * 0.5
+            else -> null
+        }
+        val reps = when (exercise.trackingType) {
+            TrackingType.SKILL_HOLD.name, TrackingType.HOLD.name -> null
+            TrackingType.ASSISTED_REPS.name -> 5 - ordinal.coerceAtMost(2)
+            else -> when (direction) {
+                1 -> 5 + week / 13
+                -1 -> (10 - week / 10).coerceAtLeast(4)
+                else -> 7 + (week % 4) / 3
+            } - ordinal.coerceAtMost(1)
+        }
+        val hold = when (exercise.trackingType) {
+            TrackingType.SKILL_HOLD.name, TrackingType.HOLD.name -> when (direction) {
+                1 -> 6_000L + week * 300L - ordinal * 300L
+                -1 -> (18_000L - week * 180L - ordinal * 250L).coerceAtLeast(6_000L)
+                else -> 11_000L + (week % 5 - 2) * 250L - ordinal * 200L
+            }
+            else -> null
+        }
+        val assistance = if (exercise.trackingType == TrackingType.ASSISTED_REPS.name) {
+            when (direction) {
+                1 -> (24.0 - week * 0.3).coerceAtLeast(5.0)
+                -1 -> 6.0 + week * 0.25
+                else -> 14.0 + cycle
+            }
+        } else {
+            null
+        }
+        val variation = if (exercise.id == "core:planche") {
+            if (week < 30) "planche-tuck" else "planche-advanced-tuck"
+        } else {
+            null
+        }
+        return WorkoutSetEntity(
+            id = "${row.id}:$ordinal",
+            workoutExerciseId = row.id,
+            ordinal = ordinal + 1,
+            setType = SetType.WORKING.name,
+            result = SetResult.COMPLETED.name,
+            variationId = variation,
+            weightKg = weight,
+            reps = reps,
+            holdMillis = hold,
+            leftReps = null,
+            rightReps = null,
+            leftHoldMillis = null,
+            rightHoldMillis = null,
+            addedWeightKg = null,
+            assistanceKg = assistance,
+            rpe = (7.0 + ordinal * 0.5 + if (direction < 0) week / 52.0 else 0.0).coerceAtMost(10.0),
+            romValue = null,
+            romUnit = null,
+            notes = "",
+            loggedAt = finished - 600_000L + row.position * 60_000L + ordinal * 10_000L,
+            updatedAt = finished,
+            variationRankSnapshot = when (variation) {
+                "planche-tuck" -> 10
+                "planche-advanced-tuck" -> 20
+                else -> null
+            },
+            timeUnderTensionMillis = if (exercise.id == "core:handstand") {
+                (hold ?: 0L) + 12_000L
+            } else {
+                null
+            },
+        )
     }
 
     private fun demoWorkout(id: String, name: String, dayId: String, finishedAt: Long, mode: TrainingMode) = WorkoutEntity(
@@ -209,7 +354,7 @@ class DatabaseSeeder @Inject constructor(
         private const val SCHEDULE_FREE_DEMO_KEY = "schedule_free_demo"
         private const val SCHEDULE_FREE_DEMO_VERSION = 1
         private const val PROGRESS_DEMO_KEY = "progress_demo"
-        private const val PROGRESS_DEMO_VERSION = 2
+        private const val PROGRESS_DEMO_VERSION = 3
 
         private val MUSCLES = listOf(
             "ABDUCTORS" to "Abductors", "ADDUCTORS" to "Adductors", "BACK_LOWER" to "Lower back",

@@ -110,6 +110,10 @@ class WorkoutLoggingUiTest {
 
         compose.onNodeWithContentDescription("Time held for Handstand set 1").performTextInput("12")
         compose.onNodeWithContentDescription("Time under tension for Handstand set 1").performTextInput("30")
+        compose.onNodeWithContentDescription("Time held for Handstand set 1").assertTextContains("Freestanding s")
+        compose.onNodeWithContentDescription("Time under tension for Handstand set 1").assertTextContains("Total wall s")
+        compose.onNodeWithText("Freestanding sec").assertDoesNotExist()
+        compose.onNodeWithText("Total wall sec").assertDoesNotExist()
         compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("99")
         compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("8")
         val heldBounds = compose.onNodeWithContentDescription("Time held for Handstand set 1").fetchSemanticsNode().boundsInRoot
