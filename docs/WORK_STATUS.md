@@ -2,7 +2,7 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-02 end-user controls, navigation and programme flow is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. The earlier docs-only scope at `160e9cc` is superseded by the user-approved three-checkpoint plan recorded in TODO.md.
+Current implementation task: **paused at a pushed UX-02 completion boundary** on `pmathie-cicpilot-persist-workout-drafts`. The earlier docs-only scope at `160e9cc` was superseded by the user-approved three-checkpoint plan recorded in TODO.md, which is now complete.
 
 Checkpoint 1 removes the repeated header and specified Home copy, establishes reusable visible action controls, and replaces every textual ordered-list control with a stable-key six-dot drag interaction plus accessibility reorder actions and completion-only persistence. Checkpoint 2 removes Workout from top-level navigation and introduces a fixed Home/Programmes/Progress/More bar whose More screen visibly exposes Exercises, Habits, History, Body, Settings and Style. Checkpoint 3 replaces the fragmented programme/day flow with compact list affordances and a coherent editor where workout exercise summaries are visible by default. Each checkpoint requires focused end-user evidence and a pushed status boundary; final acceptance additionally requires the full test/build suite and installed-emulator screenshot inspection.
 
@@ -10,7 +10,17 @@ UX-02 checkpoint 1 is complete locally. The repeated app header and specified Ho
 
 UX-02 checkpoint 2 is complete locally. The fixed bottom `NavigationBar` shows Home, Programmes, Progress and More at 320dp with no horizontal scrolling or Workout destination. Home continuation and programme starts retain contextual access to the active workout editor. More visibly lists Exercises, Habits, History, Body, Settings and Style; back from those secondary screens returns to More. `NavigationUiTest` passed on API 35 and opens the actual Habits screen through More. Checkpoint 3 programme flow is the next executable step.
 
-UX-02 checkpoint 3 is complete locally. Programme list cards now contain only the name, edit pencil, play/choose affordance and six-dot handle. The edit pencil opens one programme surface with rename/duplicate/archive, Add workout, every workout and its exercise/target summary visible by default, prominent Start workout, and an inline workout-edit mode for rename/delete/add exercise/edit targets/remove/reorder. The focused `ProgrammeUiTest`, `NavigationUiTest`, `EndUserControlsTest` and `WorkoutLoggingUiTest` suites passed on API 35; tests exercise the visible edit/start flow and physical touch-drag persistence for programmes, workouts and exercises. Full validation and exact-APK screenshot inspection remain before UX-02 can close.
+UX-02 checkpoint 3 is complete. Programme list cards now contain only the name, edit pencil, play/choose affordance and six-dot handle. The edit pencil opens one programme surface with rename/duplicate/archive, Add workout, every workout and its exercise/target summary visible by default, prominent Start workout, and an inline workout-edit mode for rename/delete/add exercise/edit targets/remove/reorder. The focused `ProgrammeUiTest`, `NavigationUiTest`, `EndUserControlsTest` and `WorkoutLoggingUiTest` suites passed on API 35; tests exercise the visible edit/start flow and physical touch-drag persistence for programmes, workouts and exercises.
+
+UX-02 final verification at source commit `0a61560`: `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 33 unit tests and 40 API 35 instrumentation tests. The exact debug APK SHA-256 is `2d6997316bacd4f52b0113448c842de77a8265e4c17f09a23057b2035ccf08e9`; it installed and cold-launched on the visible `vibe-log01-api35` Android 15/API 35 emulator. MainActivity remained focused with PID 9389 and the post-launch AndroidRuntime log was empty. Exact-build screenshots are under the session artifact directory `files/ux-02-final/`: `home-0a61560.png`, `more-0a61560.png`, `programmes-0a61560.png` and `programme-editor-0a61560.png`. Inspection confirmed:
+
+- Home has no repeated product header or removed explanatory headings; the mode selector clears the status bar, maps and heat map remain central, and Earlier/range/Later share one row.
+- The fixed four-item navigation fits without scrolling; More visibly exposes Exercises, Habits, History, Body, Settings and Style.
+- Programme cards show only name, pencil, play and six-dot drag handle.
+- The programme editor shows readable secondary management controls, a prominent Start workout action and every workout exercise/target summary by default.
+- An initial device screenshot exposed an Archive label wrapping mid-word; commit `9e9d570` corrected the action layout, and the final screenshot has no observed clipping or overlap.
+
+UX-02 is complete. The emulator remains visible with the final app running. No merge, PR, auto-merge, signing or publication occurred.
 
 ARCH-01 remains complete at its safe behavior-preserving boundary, and repository-controlled RELEASE-01 readiness remains complete. UX-02 does not reopen either effort. Generated `.gradle/` and `app/build/` content must remain ignored and untracked; QA-01 still requires a real Android phone.
 

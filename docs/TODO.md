@@ -67,7 +67,7 @@ UI-01f (emulator screenshot review): **COMPLETED**. Owner: GitHub Copilot sessio
 
 ### UX-02 — End-user controls, navigation and programme flow
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
 The initial docs-only claim at `160e9cc` is superseded by the user-approved three-checkpoint scope below. Preserve data/domain behavior and the established visual language; do not redesign Strength/Stretch behavior.
 
@@ -95,9 +95,11 @@ Checkpoint 3 — programme user flow:
 - [x] Workout/day exercise summaries are visible by default, with prominent Start and a small edit pencil.
 - [x] Programme/day/exercise drag interactions persist order; creation, targets/rest/groups/notes and start/finish behavior remain available.
 - [x] End-user Compose tests cover edit/start/default exercise visibility/secondary-action placement plus drag persistence.
-- [ ] Run focused validation after every checkpoint, full unit/instrumentation/debug validation at the end, then install and inspect the exact APK on the visible emulator with Home, navigation/More, programme-list and programme-editor screenshots.
+- [x] Run focused validation after every checkpoint, full unit/instrumentation/debug validation at the end, then install and inspect the exact APK on the visible emulator with Home, navigation/More, programme-list and programme-editor screenshots.
 
 Checkpoint 3 focused evidence: `ProgrammeUiTest` now approaches the feature only through visible end-user controls. It proves secondary actions are absent from the programme list; the edit pencil opens one programme editor; workout exercise names and target/rest summaries are visible without another navigation step; Start invokes the selected day; the workout pencil reveals same-card rename/add-exercise/target controls; create/rename/duplicate/archive remain functional; and touch drags persist programme, workout and exercise order. The focused programme, navigation, global-control and workout-logging suites passed on API 35.
+
+Final evidence: source commit `0a61560` passed `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` with 33 unit tests and 40 API 35 instrumentation tests. The exact APK (`SHA-256 2d6997316bacd4f52b0113448c842de77a8265e4c17f09a23057b2035ccf08e9`) installed and cold-launched on `vibe-log01-api35`; MainActivity remained focused with PID 9389 and no AndroidRuntime errors. Screenshots in the session artifact directory `files/ux-02-final/` cover Home, More, programme list and programme editor. Inspection confirmed the mode selector clears the status bar, Home centers the maps/heat map and one-row date controls, all More destinations are visible, list cards contain only pencil/play/drag affordances, and workout exercises/targets are visible by default. An initial screenshot exposed a wrapped Archive label; commit `9e9d570` corrected the layout and the final screenshot has no clipping or overlap.
 
 ### QA-01 — Real-phone timers
 
