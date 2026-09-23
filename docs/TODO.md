@@ -172,12 +172,18 @@ Focused `ProgrammeUiTest` and final full `gradle :app:testDebugUnitTest :app:ass
 
 ### UX-08 — Stable drag and programme preview
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Add drag-boundary hysteresis so a handle held near an item boundary does not oscillate between positions.
-- [ ] Make programme-list cards expand/collapse with smooth motion to show every workout exercise and target summary read-only.
-- [ ] Replace the programme editor’s textual Back control with a left-facing chevron.
-- [ ] Add end-user coverage, run validation once after the complete slice, install and inspect the exact build.
+- [x] Add drag-boundary hysteresis so a handle held near an item boundary does not oscillate between positions.
+- [x] Make programme-list cards expand/collapse with smooth motion to show every workout exercise and target summary read-only.
+- [x] Replace the programme editor’s textual Back control with a left-facing chevron.
+- [x] Add end-user coverage, run validation once after the complete slice, install and inspect the exact build.
+
+Evidence: commit `bbe3818` adds 1.5-row-direction-change hysteresis to the shared reorder state, so small reverse movement near a crossed boundary does not immediately swap back. A focused unit regression pins this behavior. Programme names now expand/collapse an animated read-only list of every workout/day exercise and target summary; reduced motion shows the same content without decorative transitions. The programme editor uses a chevron-only Back control with its accessible label retained.
+
+Strength and Stretch use the same `ProgrammeEditor`, reorder state and persistence methods; only the mode-filtered data differs. The seeded Stretch mode has one programme containing four reorderable workout/day rows, each currently containing one exercise, so singleton suppression intentionally hides only the unnecessary programme-level and per-exercise handles. `ProgrammeUiTest` now proves Stretch preview content and persisted day reordering explicitly.
+
+The final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` rerun passed with 34 unit tests and 42 API 35 instrumentation tests. The first combined run exposed and prompted correction of a mode-specific test wait, alongside one known asynchronous History assertion flake; both passed in the clean rerun. The exact `bbe3818` APK has SHA-256 `1c19e3338287da2698d4840c75426def10c889239f63b1159a2c476c002a1f12`. Screenshots under `files/ux-08-final/` show the expanded Strength and Stretch cards, chevron-only editor and Stretch reorder handles. MainActivity remains resumed with PID 25277 and no crash.
 
 ### QA-01 — Real-phone timers
 
