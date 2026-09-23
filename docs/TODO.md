@@ -181,7 +181,7 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 
 Evidence: commit `bbe3818` adds 1.5-row-direction-change hysteresis to the shared reorder state, so small reverse movement near a crossed boundary does not immediately swap back. A focused unit regression pins this behavior. Programme names now expand/collapse an animated read-only list of every workout/day exercise and target summary; reduced motion shows the same content without decorative transitions. The programme editor uses a chevron-only Back control with its accessible label retained.
 
-Strength and Stretch use the same `ProgrammeEditor`, reorder state and persistence methods; only the mode-filtered data differs. The seeded Stretch mode has one programme containing four reorderable workout/day rows, each currently containing one exercise, so singleton suppression intentionally hides only the unnecessary programme-level and per-exercise handles. `ProgrammeUiTest` now proves Stretch preview content and persisted day reordering explicitly.
+Strength and Stretch use the same `ProgrammeEditor`, reorder state and persistence methods; only the mode-filtered data differs. UX-13 subsequently corrected the seeded Stretching data shape to one workout containing four reorderable exercises. `ProgrammeUiTest` now proves Stretch preview content and persisted exercise reordering explicitly.
 
 The final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` rerun passed with 34 unit tests and 42 API 35 instrumentation tests. The first combined run exposed and prompted correction of a mode-specific test wait, alongside one known asynchronous History assertion flake; both passed in the clean rerun. The exact `bbe3818` APK has SHA-256 `1c19e3338287da2698d4840c75426def10c889239f63b1159a2c476c002a1f12`. Screenshots under `files/ux-08-final/` show the expanded Strength and Stretch cards, chevron-only editor and Stretch reorder handles. MainActivity remains resumed with PID 25277 and no crash.
 
@@ -212,6 +212,23 @@ Evidence: implementation commit `4826194` routes main-list Play through the sele
 Focused programme, logging, recovery, migration and workflow classes passed. The final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` gate passed 35 unit and 47 API 35 instrumentation tests. The installed APK from `4826194f6b85271ae1d0cfda1ffb5825a7b5863a` has SHA-256 `842a97fc0a745a463929285744b3bbd1145a74aa557f7847c4d455ea546ce3ab`. Screenshots under `files/ux-12-final/` show the programme-list Play affordance, direct schedule-free `Legs + Mobility` workout, its Handstand warm-up followed by Back squat/Lunge exercises, three structured rows, header timer, notes and plus-only action. MainActivity is resumed on `vibe-log01-api35` with PID 9090 and no crash-buffer entry.
 
 Residual limitation: programmes with multiple workouts currently launch their first ordered workout from the programme-level Play affordance; this correction intentionally did not introduce a workout chooser. Existing historical names containing weekdays are preserved by design.
+
+### UX-13 — Canonical exercise settings and flat Stretching programme
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Make the exercise database the canonical owner of resistance inputs, repetition targets, target RPE and rest duration.
+- [x] Remove conflicting logging-input and target configuration from programme exercise editing.
+- [x] Snapshot canonical settings when a workout starts so later exercise edits do not rewrite historical or active workout behavior.
+- [x] Migrate existing programme settings deterministically without losing historical workout snapshots.
+- [x] Model Stretching as one workout containing Front split, Forward fold, Side split and Bridge, rather than four nested workout/category rows.
+- [x] Preserve Handstand's independent freestanding and total-wall time inputs.
+
+Evidence: implementation commit `d442e52` adds Room schema 8, exercise-level settings editing for both seeded and custom exercises, canonical snapshot wiring and a validated 7→8 migration. Existing programme settings are copied to their exercise definitions where present; programme rows remain for ordering and contextual notes, while historical workout snapshots remain unchanged. Fresh and migrated demo data now retain `demo-day-front-splits` as the single `Stretching` workout and move all four stretch exercises into it in a stable order.
+
+The final gate passed 33 unit tests and focused API 35 instrumentation suites: `ExerciseEditorUiTest` (1), `ProgrammeUiTest` (4), `WorkoutWorkflowTest` (3), `VibeDatabaseMigrationTest` (6), `WorkoutLoggingUiTest` (6) and `WorkoutEntryDraftTest` (4). Debug app and test APK assembly passed. The installed APK SHA-256 is `f2b3f5cfd4230030e5227edcdf377604706838ad0f12c32911423f352b543b43`; installed UI inspection expanded one Stretching card containing Front split, Forward fold, Side split and Bridge. Evidence is `files/ux-13-final/stretching-expanded-d442e52.png`.
+
+Residual scope: the exercise catalogue remains intentionally unchanged. Curating it down to a smaller personal set is a separate future task.
 
 ### UX-11 — Exercise-aware personal records
 

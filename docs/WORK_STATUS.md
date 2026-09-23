@@ -2,6 +2,14 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
+Current implementation task: **UX-13 canonical exercise settings and flat Stretching programme is complete** at `d442e52` on `pmathie-cicpilot-persist-workout-drafts`. Exercise definitions now own resistance inputs, repetition targets, target RPE and rest duration. Programme editing no longer exposes conflicting copies; starting any programme snapshots the canonical exercise settings into the workout, preserving historical behavior if definitions later change. Room schema 8 deterministically migrates existing programme settings and leaves historical workout snapshots untouched.
+
+Stretching is now one programme with one `Stretching` workout containing Front split, Forward fold, Side split and Bridge as ordered exercises. Fresh seed data uses this shape, and migration 7→8 consolidates the prior four seeded workout/category rows without changing historical logged workouts. Handstand keeps independent freestanding and total-wall time inputs.
+
+The final gate passed 33 unit tests, debug app/test assembly, and focused API 35 instrumentation: `ExerciseEditorUiTest` (1), `ProgrammeUiTest` (4), `WorkoutWorkflowTest` (3), `VibeDatabaseMigrationTest` (6), `WorkoutLoggingUiTest` (6) and `WorkoutEntryDraftTest` (4). The exact installed APK SHA-256 is `f2b3f5cfd4230030e5227edcdf377604706838ad0f12c32911423f352b543b43`. Installed UI inspection expanded one Stretching card containing all four exercises; `files/ux-13-final/stretching-expanded-d442e52.png` records the result.
+
+UX-13 residual scope is explicit: exercise catalogue reduction/curation was intentionally not attempted. The existing catalogue remains intact for a later dedicated task.
+
 Current implementation task: **UX-12 correct programme start and structured set logging is complete** at `4826194` on `pmathie-cicpilot-persist-workout-drafts`. Programme-level Play starts the first ordered workout for that exact programme rather than opening edit context. An unrelated active draft produces an explicit Resume versus Discard and start decision; replacement transactionally discards the prior workout and clears its entry drafts only after confirmation. Maintained demo day names no longer imply weekday scheduling, while historical workout names remain untouched.
 
 Active logging now renders the programmed set count as separate type-aware rows: weighted exercises expose Resistance, Reps and RPE; hold exercises expose Seconds and RPE; irrelevant resistance is absent. The rest timer is in the exercise header, notes sit below rows, and a full-width plus-only action adds recoverable extra rows. Room schema 6 changes unfinished entry drafts to a `(workoutExerciseId, ordinal)` key. Migration 5→6 preserves the prior draft, and per-ordinal submission consumes only that row while saved set IDs prevent duplicates.
