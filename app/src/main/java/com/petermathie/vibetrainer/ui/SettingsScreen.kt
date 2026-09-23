@@ -1,12 +1,19 @@
 package com.petermathie.vibetrainer.ui
 
 import android.Manifest
+import android.app.AlarmManager
+import android.app.NotificationManager
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
@@ -16,6 +23,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -43,11 +55,22 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
     var preciseTimerInfo by remember { mutableStateOf(false) }
     var lb by remember { mutableStateOf(prefs.getBoolean("lb",false)) };var female by remember { mutableStateOf(prefs.getBoolean("female",false)) }
     var auto by remember { mutableStateOf(prefs.getBoolean("autoRest",false)) };var haptic by remember { mutableStateOf(prefs.getBoolean("haptic",true)) };var reduced by remember { mutableStateOf(prefs.getBoolean("reducedMotion",false)) }
+    var notificationsEnabled by remember { mutableStateOf(timerNotificationsEnabled(context)) }
+    var preciseTimersEnabled by remember { mutableStateOf(arePreciseTimersEnabled(context)) }
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> if(uri!=null)scope.launch { try { val text=BackupPreferences.attach(vm.exportJson(),prefs);withContext(Dispatchers.IO){requireNotNull(context.contentResolver.openOutputStream(uri)){"Cannot open backup destination"}.bufferedWriter().use{it.write(text)}};last=System.currentTimeMillis();prefs.edit().putLong("backup",last).apply();message="Backup saved" }catch(e:Exception){message=e.message.orEmpty()} } }
     var pendingImport by remember { mutableStateOf<String?>(null) }
     val restore=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri!=null)scope.launch { try { pendingImport=withContext(Dispatchers.IO){context.contentResolver.openInputStream(uri)?.bufferedReader()?.use{it.readText()}} }catch(e:Exception){message=e.message.orEmpty()} } }
     val csv=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri -> if(uri!=null)scope.launch { try {val text=vm.exportCsv();withContext(Dispatchers.IO){context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use{it.write(text)}};message="CSV saved"}catch(e:Exception){message=e.message.orEmpty()} } }
-    val notify=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){message=if(it)"Timer notifications enabled" else "Notifications disabled"}
+    val notify=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){
+        notificationsEnabled = timerNotificationsEnabled(context)
+        message=if(it)"Timer notifications enabled" else "Notifications disabled"
+    }
+    val notificationSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        notificationsEnabled = timerNotificationsEnabled(context)
+    }
+    val preciseTimerSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        preciseTimersEnabled = arePreciseTimersEnabled(context)
+    }
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item {
             Text("Settings and data",style=MaterialTheme.typography.headlineSmall)
@@ -61,27 +84,30 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
                 reduced,
                 onInfo = { reducedMotionInfo = true },
             ) { reduced=it;prefs.edit().putBoolean("reducedMotion",it).apply() }
-            VibeActionButton(
-                "Enable timer notifications",
-                { if(Build.VERSION.SDK_INT>=33)notify.launch(Manifest.permission.POST_NOTIFICATIONS) else message="Notifications are enabled in Android settings" },
-                Modifier.fillMaxWidth(),
-                ActionImportance.SECONDARY,
-            )
-            if(Build.VERSION.SDK_INT>=31) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+            SettingToggle("Timer notifications", notificationsEnabled) { enabled ->
+                if (enabled && Build.VERSION.SDK_INT >= 33 &&
+                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
                 ) {
-                    VibeActionButton(
-                        "Allow precise background timers",
-                        { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:${context.packageName}"))) },
-                        Modifier.weight(1f),
-                        ActionImportance.SECONDARY,
+                    notify.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    notificationSettings.launch(
+                        Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName),
                     )
-                    IconButton(onClick = { preciseTimerInfo = true }) {
-                        Icon(Icons.Outlined.Info, contentDescription = "About precise background timers")
-                    }
+                }
+            }
+            if(Build.VERSION.SDK_INT>=31) {
+                SettingToggle(
+                    "Precise background timers",
+                    preciseTimersEnabled,
+                    onInfo = { preciseTimerInfo = true },
+                ) {
+                    preciseTimerSettings.launch(
+                        Intent(
+                            android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                            Uri.parse("package:${context.packageName}"),
+                        ),
+                    )
                 }
             }
             VibeActionButton("Cancel rest timer", {RestTimer.cancel(context);message="Timer cancelled"}, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
@@ -94,7 +120,7 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
             Text(message)
         }
     }
-    notices?.let { text -> AlertDialog(onDismissRequest={notices=null},title={Text("Open-source assets")},text={LazyColumn { item { Text(text) } }},confirmButton={TextButton(onClick={notices=null}){Text("Close")}}) }
+    notices?.let { text -> OpenSourceNoticesDialog(text) { notices = null } }
     if (reducedMotionInfo) AlertDialog(
         onDismissRequest = { reducedMotionInfo = false },
         title = { Text("Reduced motion") },
@@ -108,6 +134,160 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
         confirmButton = { TextButton(onClick = { preciseTimerInfo = false }) { Text("Close") } },
     )
     if(pendingImport!=null)AlertDialog(onDismissRequest={pendingImport=null},title={Text("Import records?")},text={Text("Matching record IDs will be updated. Other records are retained. Make a backup first if you want to keep the previous values.")},confirmButton={TextButton(onClick={val text=pendingImport!!;pendingImport=null;scope.launch{try{val restored=BackupPreferences.validate(text);vm.importJson(text);BackupPreferences.restore(restored,prefs);lb=prefs.getBoolean("lb",false);female=prefs.getBoolean("female",false);auto=prefs.getBoolean("autoRest",false);haptic=prefs.getBoolean("haptic",true);reduced=prefs.getBoolean("reducedMotion",false);message="Import complete. Restored colours are active."}catch(e:Exception){message="Import failed: ${e.message}"}}}){Text("Import")}},dismissButton={TextButton(onClick={pendingImport=null}){Text("Cancel")}})
+}
+
+private fun timerNotificationsEnabled(context: android.content.Context): Boolean =
+    context.getSystemService(NotificationManager::class.java).areNotificationsEnabled() &&
+        (Build.VERSION.SDK_INT < 33 ||
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
+
+private fun arePreciseTimersEnabled(context: android.content.Context): Boolean =
+    Build.VERSION.SDK_INT < 31 ||
+        context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
+
+private sealed interface NoticeBlock {
+    data class Heading(val level: Int, val text: String) : NoticeBlock
+    data class Paragraph(val text: String) : NoticeBlock
+    data class Bullet(val text: String) : NoticeBlock
+    data class Code(val text: String) : NoticeBlock
+    data class Table(val headers: List<String>, val rows: List<List<String>>) : NoticeBlock
+    data object Divider : NoticeBlock
+}
+
+private fun parseNotices(markdown: String): List<NoticeBlock> {
+    val lines = markdown.lines()
+    val blocks = mutableListOf<NoticeBlock>()
+    var index = 0
+    while (index < lines.size) {
+        val line = lines[index].trim()
+        when {
+            line.isBlank() -> index++
+            line.startsWith("```") -> {
+                val code = mutableListOf<String>()
+                index++
+                while (index < lines.size && !lines[index].trim().startsWith("```")) code += lines[index++]
+                index++
+                blocks += NoticeBlock.Code(code.joinToString("\n"))
+            }
+            line == "---" -> {
+                blocks += NoticeBlock.Divider
+                index++
+            }
+            line.startsWith("#") -> {
+                val level = line.takeWhile { it == '#' }.length
+                blocks += NoticeBlock.Heading(level, line.drop(level).trim())
+                index++
+            }
+            line.startsWith("- ") -> {
+                blocks += NoticeBlock.Bullet(line.removePrefix("- ").trim())
+                index++
+            }
+            line.startsWith("|") && index + 1 < lines.size && lines[index + 1].contains("---") -> {
+                fun cells(value: String) = value.trim().trim('|').split('|').map(String::trim)
+                val headers = cells(line)
+                index += 2
+                val rows = mutableListOf<List<String>>()
+                while (index < lines.size && lines[index].trim().startsWith("|")) rows += cells(lines[index++])
+                blocks += NoticeBlock.Table(headers, rows)
+            }
+            else -> {
+                val paragraph = mutableListOf(line)
+                index++
+                while (index < lines.size) {
+                    val next = lines[index].trim()
+                    if (next.isBlank() || next.startsWith("#") || next.startsWith("- ") ||
+                        next.startsWith("```") || next.startsWith("|") || next == "---"
+                    ) break
+                    paragraph += next
+                    index++
+                }
+                blocks += NoticeBlock.Paragraph(paragraph.joinToString(" "))
+            }
+        }
+    }
+    return blocks
+}
+
+private fun renderedMarkdownText(markdown: String): AnnotatedString = buildAnnotatedString {
+    var index = 0
+    while (index < markdown.length) {
+        when {
+            markdown.startsWith("**", index) -> {
+                val end = markdown.indexOf("**", index + 2)
+                if (end >= 0) {
+                    pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                    append(markdown.substring(index + 2, end))
+                    pop()
+                    index = end + 2
+                } else append(markdown[index++])
+            }
+            markdown[index] == '`' -> {
+                val end = markdown.indexOf('`', index + 1)
+                if (end >= 0) {
+                    pushStyle(SpanStyle(fontFamily = FontFamily.Monospace))
+                    append(markdown.substring(index + 1, end))
+                    pop()
+                    index = end + 1
+                } else append(markdown[index++])
+            }
+            else -> append(markdown[index++])
+        }
+    }
+}
+
+@Composable
+private fun OpenSourceNoticesDialog(markdown: String, onDismiss: () -> Unit) {
+    val blocks = remember(markdown) { parseNotices(markdown) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Open-source assets") },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(blocks) { block ->
+                    when (block) {
+                        is NoticeBlock.Heading -> Text(
+                            renderedMarkdownText(block.text),
+                            style = if (block.level == 1) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                        )
+                        is NoticeBlock.Paragraph -> Text(renderedMarkdownText(block.text))
+                        is NoticeBlock.Bullet -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("•")
+                            Text(renderedMarkdownText(block.text))
+                        }
+                        is NoticeBlock.Code -> Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Text(block.text, Modifier.padding(12.dp), fontFamily = FontFamily.Monospace)
+                        }
+                        is NoticeBlock.Table -> Column(
+                            Modifier.horizontalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            NoticeTableRow(block.headers, header = true)
+                            block.rows.forEach { NoticeTableRow(it, header = false) }
+                        }
+                        NoticeBlock.Divider -> HorizontalDivider()
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+@Composable
+private fun NoticeTableRow(cells: List<String>, header: Boolean) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        cells.forEach { cell ->
+            Text(
+                renderedMarkdownText(cell),
+                Modifier.width(180.dp),
+                fontWeight = if (header) FontWeight.Bold else FontWeight.Normal,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
 }
 
 @Composable
