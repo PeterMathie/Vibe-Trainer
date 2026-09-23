@@ -1,8 +1,6 @@
 package com.petermathie.vibetrainer.ui
 
 import android.os.SystemClock
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,7 +23,9 @@ internal fun HoldTimerButton(
             delay(tickMillis)
         }
     }
-    TextButton(
+    VibeActionButton(
+        label = if (timerStart == null) "Start hold timer" else "Stop · ${elapsed / 1000.0}s",
+        importance = ActionImportance.COMPACT,
         onClick = {
             val startedAt = timerStart
             if (startedAt == null) {
@@ -37,7 +37,5 @@ internal fun HoldTimerButton(
                 onStopped(seconds.toString())
             }
         },
-    ) {
-        Text(if (timerStart == null) "Start hold timer" else "Stop · ${elapsed / 1000.0}s")
-    }
+    )
 }

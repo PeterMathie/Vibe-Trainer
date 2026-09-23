@@ -16,7 +16,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,8 +73,8 @@ internal fun HistoryDayScreen(
                 }
             }
             Row {
-                TextButton(onClick = { onDayChange(day - 1) }) { Text("Previous day") }
-                TextButton(onClick = { onDayChange(day + 1) }, enabled = day < LocalDate.now().toEpochDay()) { Text("Next day") }
+                VibeActionButton("Previous day", { onDayChange(day - 1) }, importance = ActionImportance.COMPACT)
+                VibeActionButton("Next day", { onDayChange(day + 1) }, importance = ActionImportance.COMPACT, enabled = day < LocalDate.now().toEpochDay())
             }
             Slider(
                 value = day.toFloat(),

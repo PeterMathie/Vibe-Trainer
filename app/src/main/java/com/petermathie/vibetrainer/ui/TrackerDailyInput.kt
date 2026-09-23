@@ -12,7 +12,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -74,7 +73,9 @@ internal fun HabitDailyInput(
                     (field.valueType != "COUNT" || it >= 0 && it % 1.0 == 0.0) &&
                     (field.valueType != "DURATION" || it >= 0)
             } == true)
-            TextButton(
+            VibeActionButton(
+                label = "Save daily total",
+                importance = ActionImportance.COMPACT,
                 enabled = epoch != null && valid,
                 onClick = {
                     epoch?.let { day ->
@@ -91,7 +92,7 @@ internal fun HabitDailyInput(
                         )
                     }
                 },
-            ) { Text("Save daily total") }
+            )
         }
     }
 }

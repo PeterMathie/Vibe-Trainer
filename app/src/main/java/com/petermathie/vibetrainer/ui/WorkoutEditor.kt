@@ -48,13 +48,13 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             Text(workout.name, style = MaterialTheme.typography.headlineSmall)
-            if(restRemaining>0) TextButton(onClick={RestTimer.cancel(context)}) { Text("Rest: ${restRemaining/60}:${(restRemaining%60).toString().padStart(2,'0')} · cancel") }
+            if(restRemaining>0) VibeActionButton("Rest: ${restRemaining/60}:${(restRemaining%60).toString().padStart(2,'0')} · cancel", { RestTimer.cancel(context) }, importance = ActionImportance.COMPACT)
             if (logged.isNotEmpty()) Text("Logged duration: ${((logged.maxOf { it.loggedAt } - logged.minOf { it.loggedAt }) / 60000)} min")
             Row {
-                TextButton(onClick = { editNotes = true }) { Text("Workout notes") }
-                TextButton(onClick = { bodyweight = true }) { Text("Bodyweight: ${workout.bodyweightKg ?: "—"} kg") }
+                VibeActionButton("Workout notes", { editNotes = true }, importance = ActionImportance.COMPACT)
+                VibeActionButton("Bodyweight: ${workout.bodyweightKg ?: "—"} kg", { bodyweight = true }, importance = ActionImportance.COMPACT)
             }
-            if(workout.status=="FINISHED")TextButton(onClick={editDate=true}){Text("Change workout date")}
+            if(workout.status=="FINISHED") VibeActionButton("Change workout date", { editDate=true }, importance = ActionImportance.COMPACT)
         }
         items(rows, key = { it.id }) { row ->
             val exercise = definitions.find { it.id == row.actualExerciseId }?.let { if(row.exerciseName.isNotBlank())it.copy(canonicalName=row.exerciseName,trackingType=row.trackingType) else it }
@@ -73,7 +73,7 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
             }
         }
         item {
-            TextButton(onClick = { add = true }) { Text("Add exercise to workout") }
+            VibeActionButton("Add exercise to workout", { add = true }, importance = ActionImportance.SECONDARY)
             Button(onClick = { onFinish(workout.id) }, modifier = Modifier.fillMaxWidth()) { Text(if (workout.status == "FINISHED") "Done editing" else "Finish workout") }
         }
     }
@@ -129,15 +129,15 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
         row.supersetGroup?.let { Text("Circuit: $it · rest after round", style = MaterialTheme.typography.labelSmall) }
         sets.sortedBy { it.ordinal }.forEach { set ->
             Row(Modifier.fillMaxWidth()) {
-                TextButton(onClick = { edit = set }, modifier = Modifier.weight(1f)) { Text("${set.ordinal}. ${setDescription(set)}${set.rpe?.let { " · RPE $it" }.orEmpty()}") }
-                TextButton(onClick = { vm.removeSet(set.id) }) { Text("×") }
+                VibeActionButton("${set.ordinal}. ${setDescription(set)}${set.rpe?.let { " · RPE $it" }.orEmpty()}", { edit = set }, modifier = Modifier.weight(1f), importance = ActionImportance.COMPACT)
+                VibeActionButton("Remove", { vm.removeSet(set.id) }, importance = ActionImportance.COMPACT)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             OutlinedTextField(compactEntry.performance, { updateCompact(compactEntry.copy(performance = it)) }, enabled = draftLoaded && !submitting, label = { Text(if (hold) "Seconds" else if (exercise?.trackingType == "WEIGHT_REPS") "${if (lb) "lb" else "kg"} × reps" else "Reps") }, singleLine = true, modifier = Modifier.weight(1f))
             OutlinedTextField(compactEntry.rpe, { updateCompact(compactEntry.copy(rpe = it)) }, enabled = draftLoaded && !submitting, label = { Text("RPE") }, singleLine = true, modifier = Modifier.width(70.dp))
-            TextButton(enabled = draftLoaded && !submitting, onClick = {
-                val pending = entryDraft ?: return@TextButton
+            VibeActionButton("Add set", enabled = draftLoaded && !submitting, importance = ActionImportance.COMPACT, onClick = {
+                val pending = entryDraft ?: return@VibeActionButton
                 val parsed = compactEntry.buildSet(
                     emptySet(row.id, pending.ordinal).copy(id = pending.setId),
                     hold,
@@ -155,7 +155,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                         if(android.os.Build.VERSION.SDK_INT>=26)vibrator.vibrate(android.os.VibrationEffect.createOneShot(30,android.os.VibrationEffect.DEFAULT_AMPLITUDE)) else vibrator.vibrate(30)
                     }
                 }
-            }) { Text("+") }
+            })
         }
         if (hold) {
             HoldTimerButton { seconds ->
@@ -163,7 +163,8 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
             }
         }
         Row {
-            TextButton(
+            VibeActionButton(
+                label = "Bands / details",
                 enabled = draftLoaded && !submitting,
                 modifier = Modifier.semantics { contentDescription = "Set details for ${exercise?.canonicalName.orEmpty()}" },
                 onClick = {
@@ -172,15 +173,17 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
                     detailsDraft = it
                     vm.saveEntryDraft(it)
                 }
-            }) { Text("Bands / details") }
-            TextButton(onClick = { RestTimer.start(context, restSeconds) }) { Text("Rest ${restSeconds}s") }
-            TextButton(
+            }, importance = ActionImportance.COMPACT)
+            VibeActionButton("Rest ${restSeconds}s", { RestTimer.start(context, restSeconds) }, importance = ActionImportance.COMPACT)
+            VibeActionButton(
+                label = "More",
                 onClick = { expanded = !expanded },
                 modifier = Modifier.semantics { contentDescription = "More actions for ${exercise?.canonicalName.orEmpty()}" },
-            ) { Text("More") }
+                importance = ActionImportance.COMPACT,
+            )
         }
         if (expanded) {
-            TextButton(onClick = { substitute = true }) { Text("Substitute exercise") }
+            VibeActionButton("Substitute exercise", { substitute = true }, importance = ActionImportance.SECONDARY)
             OutlinedTextField(notes, { notes = it; vm.save(row.copy(notes = it)) }, label = { Text("Exercise notes") }, modifier = Modifier.fillMaxWidth())
         }
     } }
