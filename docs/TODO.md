@@ -133,11 +133,15 @@ The exact `7d96f8b` debug APK has SHA-256 `626cf6d3ce834fbeaaf823822eb0578c7f0d8
 
 ### UX-05 — Remove duplicated workout-card controls
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Remove the duplicated workout title, Rename workout action and Delete workout action from the expanded programme workout card.
-- [ ] Preserve Start workout, exercise editing/reordering/removal and the full-width Add exercise control.
-- [ ] Update focused end-user coverage, validate, install and inspect the exact build.
+- [x] Remove the duplicated workout title, Rename workout action and Delete workout action from the expanded single-workout programme card.
+- [x] Preserve Start workout, exercise editing/reordering/removal and the full-width Add exercise control.
+- [x] Update focused end-user coverage, validate, install and inspect the exact build.
+
+Evidence: commit `a63b898` removes the repeated heading and both duplicated actions from the single-workout card. Exercise edit/remove/reorder controls are available directly in the programme edit context; multi-workout programmes retain compact titled reorder rows so their workouts remain distinguishable. Focused `ProgrammeUiTest` passed and the final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` rerun passed with 33 unit tests and 41 API 35 instrumentation tests. The first full run encountered an unrelated `WorkoutLoggingUiTest` closed-connection teardown race; the unchanged test passed in the clean full rerun.
+
+The exact APK has SHA-256 `55ff7035fb4bf69a3eb7c6d4dc76343c510b8a73280672d528263df746533455`. It installed and launched on visible `vibe-log01-api35`; MainActivity remained resumed with PID 17232 and no AndroidRuntime crash. `files/ux-05-final/programme-editor-a63b898.png` confirms the card starts with Start workout, retains exercise controls and the plus action, and contains no duplicated title, Rename workout or Delete workout.
 
 ### QA-01 — Real-phone timers
 

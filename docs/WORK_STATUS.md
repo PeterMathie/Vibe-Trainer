@@ -2,7 +2,9 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-05 duplicated workout-card controls is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. The bounded correction removes the repeated workout title and the in-card Rename workout/Delete workout controls while retaining Start workout, exercise management and the full-width plus control.
+Current implementation task: **UX-05 duplicated workout-card controls is complete at `a63b898`** on `pmathie-cicpilot-persist-workout-drafts`. Single-workout cards now start directly with Start workout and contain no repeated workout heading, Rename workout or Delete workout. Exercise edit/remove/reorder controls and the full-width plus remain directly available; multi-workout programmes retain compact titled reorder rows to distinguish their workouts.
+
+Focused `ProgrammeUiTest` passed, followed by a clean full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` rerun with 33 unit tests and 41 API 35 instrumentation tests. An initial full run hit the existing `WorkoutLoggingUiTest` closed-connection teardown race; the unchanged test passed in the rerun. The exact APK SHA-256 is `55ff7035fb4bf69a3eb7c6d4dc76343c510b8a73280672d528263df746533455`. It is installed on visible `vibe-log01-api35`, where MainActivity remained resumed with PID 17232 and no AndroidRuntime crash. Screenshot `files/ux-05-final/programme-editor-a63b898.png` verifies the requested simplification without clipping or loss of the retained controls.
 
 UX-04 programme editor hierarchy polish is complete and remote-synced at `7d96f8b`. Visible drag handles lead their items and disappear for singleton lists; programme names are directly editable; Duplicate/Delete/Archive form a bottom management row; and each workout’s Add exercise action is a full-width accessible plus control. Programme deletion removes the definition and cascading templates while retaining historical workouts. Strength/Stretch appears only in the Home recency-card heading and Programmes title row.
 
