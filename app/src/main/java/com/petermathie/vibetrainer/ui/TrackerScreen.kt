@@ -90,6 +90,7 @@ fun TrackerScreen(vm: EditorViewModel) {
                         habitField,
                         values.find { it.fieldId == habitField.id && it.epochDay == epoch },
                         epoch,
+                        Color(tracker.colourArgb.toInt()),
                     )
                 }
             }

@@ -85,6 +85,9 @@ class HabitUiTest {
         compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Choose…").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Choose…").performClick()
+        compose.onNodeWithContentDescription("Sad, light shade").assertExists()
+        compose.onNodeWithContentDescription("Okay, medium shade").assertExists()
+        compose.onNodeWithContentDescription("Happy, dark shade").assertExists()
         compose.onNodeWithText("Happy").performClick()
         compose.onNodeWithText("Save daily total").assertDoesNotExist()
 
