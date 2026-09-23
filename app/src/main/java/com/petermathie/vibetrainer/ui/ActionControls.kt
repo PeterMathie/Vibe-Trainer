@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -45,6 +46,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.petermathie.vibetrainer.ui.theme.LocalVibeReducedMotion
 
 enum class ActionImportance {
@@ -179,7 +181,7 @@ fun ReorderHandle(
     val reducedMotion = LocalVibeReducedMotion.current
     val dragging = state.isDragging(itemKey)
     val highlight by animateColorAsState(
-        if (dragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+        if (dragging) MaterialTheme.colorScheme.primary else Color.Transparent,
         if (reducedMotion) snap() else tween(120),
         label = "reorder handle highlight",
     )
@@ -248,6 +250,11 @@ fun Modifier.reorderItemFeedback(
         }
     }
     val dragging = state.isDragging(itemKey)
+    val background by animateColorAsState(
+        if (dragging) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent,
+        if (reducedMotion) snap() else tween(120),
+        label = "dragged item background",
+    )
     return this
         .zIndex(if (dragging) 1f else 0f)
         .graphicsLayer {
@@ -255,4 +262,6 @@ fun Modifier.reorderItemFeedback(
             scaleX = if (dragging && !reducedMotion) 1.01f else 1f
             scaleY = if (dragging && !reducedMotion) 1.01f else 1f
         }
+        .clip(RoundedCornerShape(12.dp))
+        .background(background)
 }
