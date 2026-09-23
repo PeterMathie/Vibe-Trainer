@@ -89,7 +89,7 @@ class ReorderState internal constructor(
 
     fun update(keys: List<Any>) {
         sourceKeys = keys
-        if (draggingKey == null && orderedKeys != keys) {
+        if (draggingKey == null && orderedKeys.toList() != keys) {
             orderedKeys.clear()
             orderedKeys.addAll(keys)
         }

@@ -17,7 +17,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,46 +44,7 @@ internal fun HabitFieldDialog(
     dismiss: () -> Unit,
 ) {
     var form by remember(field.id) {
-        val initial = HabitFieldForm.from(field)
-        val size = initial.choiceValues.size
-        val light = initial.choiceLightThrough
-            .takeIf { it in 0 until (size - 1) }
-            ?: ((size - 1) / 3).coerceAtLeast(0)
-        val dark = initial.choiceDarkFrom
-            .takeIf { it in 1 until size && it > light }
-            ?: ((size * 2 + 2) / 3).coerceIn(light + 1, (size - 1).coerceAtLeast(light + 1))
-        mutableStateOf(
-            if (initial.type == HabitFieldForm.CHOICE && size >= 2) {
-                initial.copy(choiceLightThrough = light, choiceDarkFrom = dark)
-            } else {
-                initial
-            },
-        )
-    }
-    val choices = remember(field.id) {
-        mutableStateListOf<ChoiceDraft>().apply {
-            addAll(form.choiceValues.map { ChoiceDraft(UUID.randomUUID().toString(), it) })
-        }
-    }
-    fun defaultLightThrough(size: Int) = ((size - 1) / 3).coerceAtLeast(0)
-    fun defaultDarkFrom(size: Int): Int {
-        val light = defaultLightThrough(size)
-        return ((size * 2 + 2) / 3).coerceIn(light + 1, (size - 1).coerceAtLeast(light + 1))
-    }
-    fun syncChoices(
-        lightThrough: Int = form.choiceLightThrough,
-        darkFrom: Int = form.choiceDarkFrom,
-    ) {
-        form = form.copy(
-            options = choices.joinToString("\n") { it.value },
-            choiceLightThrough = lightThrough,
-            choiceDarkFrom = darkFrom,
-        )
-    }
-    val choiceOrder = rememberReorderState(choices.map { it.id }) { key, from, to ->
-        val item = choices.removeAt(from)
-        choices.add(to, item)
-        syncChoices()
+        mutableStateOf(resolvedHabitFieldForm(field))
     }
     AlertDialog(
         onDismissRequest = dismiss,
@@ -97,12 +60,10 @@ internal fun HabitFieldDialog(
                     HabitFieldForm.TYPES.forEach { value ->
                         TextButton(
                             onClick = {
-                                form = form.copy(type = value)
-                                if (value == HabitFieldForm.CHOICE && choices.isEmpty()) {
-                                    repeat(3) {
-                                        choices += ChoiceDraft(UUID.randomUUID().toString(), "")
-                                    }
-                                    syncChoices(defaultLightThrough(choices.size), defaultDarkFrom(choices.size))
+                                form = if (value == HabitFieldForm.CHOICE && form.choiceValues.isEmpty()) {
+                                    form.copy(type = value, choiceLightThrough = 0, choiceDarkFrom = 2)
+                                } else {
+                                    form.copy(type = value)
                                 }
                             },
                         ) {
@@ -115,89 +76,7 @@ internal fun HabitFieldDialog(
                         }
                     }
                     if (form.type == HabitFieldForm.CHOICE) {
-                        Text("Choice shade scale", style = MaterialTheme.typography.titleMedium)
-                        Text("Drag choices from lightest at the top to darkest at the bottom.")
-                        choiceOrder.ordered(choices) { it.id }.forEachIndexed { index, choice ->
-                            val shade = when {
-                                index <= form.choiceLightThrough -> "Light"
-                                index >= form.choiceDarkFrom -> "Dark"
-                                else -> "Medium"
-                            }
-                            val alpha = when (shade) {
-                                "Light" -> 0.38f
-                                "Medium" -> 0.68f
-                                else -> 1f
-                            }
-                            Surface(
-                                color = habitColour.copy(alpha = alpha),
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Row(
-                                    Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    ReorderHandle(
-                                        choiceOrder,
-                                        choice.id,
-                                        choice.value.ifBlank { "unnamed choice" },
-                                        enabled = choices.size > 1,
-                                    )
-                                    OutlinedTextField(
-                                        value = choice.value,
-                                        onValueChange = { updated ->
-                                            val itemIndex = choices.indexOfFirst { it.id == choice.id }
-                                            choices[itemIndex] = choice.copy(value = updated)
-                                            syncChoices()
-                                        },
-                                        label = { Text(shade) },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    TextButton(
-                                        enabled = choices.size > 2,
-                                        onClick = {
-                                            choices.removeAll { it.id == choice.id }
-                                            val light = form.choiceLightThrough.coerceIn(0, choices.lastIndex - 1)
-                                            val dark = form.choiceDarkFrom.coerceIn(light + 1, choices.lastIndex)
-                                            syncChoices(light, dark)
-                                        },
-                                    ) { Text("×") }
-                                }
-                            }
-                        }
-                        VibeActionButton(
-                            "Add choice",
-                            {
-                                choices += ChoiceDraft(UUID.randomUUID().toString(), "")
-                                syncChoices()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            importance = ActionImportance.SECONDARY,
-                        )
-                        ChoiceBoundaryPicker(
-                            label = "Light shade through",
-                            choices = choiceOrder.ordered(choices) { it.id },
-                            selectedIndex = form.choiceLightThrough,
-                            allowedIndices = 0 until form.choiceDarkFrom,
-                        ) {
-                            syncChoices(lightThrough = it)
-                        }
-                        ChoiceBoundaryPicker(
-                            label = "Dark shade starts at",
-                            choices = choiceOrder.ordered(choices) { it.id },
-                            selectedIndex = form.choiceDarkFrom,
-                            allowedIndices = (form.choiceLightThrough + 1)..choices.lastIndex,
-                        ) {
-                            syncChoices(darkFrom = it)
-                        }
-                        if (!form.areChoicesValid || choices.any { it.value.isBlank() }) {
-                            Text(
-                                "Enter at least two unique, named choices.",
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
+                        ChoiceScaleEditor(field.id, form, habitColour) { form = it }
                     }
                     if (form.isNumeric) {
                         Text("Goal (optional)", style = MaterialTheme.typography.labelLarge)
@@ -224,7 +103,7 @@ internal fun HabitFieldDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = form.canSave && choices.none { it.value.isBlank() },
+                enabled = form.canSave,
                 onClick = {
                     vm.save(form.applyTo(field))
                     dismiss()
@@ -235,40 +114,169 @@ internal fun HabitFieldDialog(
     )
 }
 
+internal fun resolvedHabitFieldForm(field: TrackerFieldEntity): HabitFieldForm {
+    val initial = HabitFieldForm.from(field)
+    val size = initial.choiceValues.size
+    if (initial.type != HabitFieldForm.CHOICE || size < 2) return initial
+    val light = initial.choiceLightThrough
+        .takeIf { it in 0 until (size - 1) }
+        ?: ((size - 1) / 3).coerceAtLeast(0)
+    val dark = initial.choiceDarkFrom
+        .takeIf { it in 1 until size && it > light }
+        ?: ((size * 2 + 2) / 3).coerceIn(light + 1, size - 1)
+    return initial.copy(choiceLightThrough = light, choiceDarkFrom = dark)
+}
+
 @Composable
-private fun ChoiceBoundaryPicker(
-    label: String,
-    choices: List<ChoiceDraft>,
-    selectedIndex: Int,
-    allowedIndices: IntRange,
-    onSelect: (Int) -> Unit,
+internal fun ChoiceScaleEditor(
+    fieldKey: String,
+    form: HabitFieldForm,
+    habitColour: Color,
+    onFormChange: (HabitFieldForm) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, style = MaterialTheme.typography.labelLarge)
-        Box {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = label },
-            ) {
-                Text(choices.getOrNull(selectedIndex)?.value?.ifBlank { "Unnamed choice" } ?: "Choose boundary")
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                allowedIndices.filter { it in choices.indices }.forEach { index ->
-                    DropdownMenuItem(
-                        text = { Text(choices[index].value.ifBlank { "Unnamed choice ${index + 1}" }) },
-                        onClick = {
-                            onSelect(index)
-                            expanded = false
-                        },
-                        modifier = Modifier.semantics {
-                            contentDescription =
-                                "$label: ${choices[index].value.ifBlank { "Unnamed choice ${index + 1}" }}"
-                        },
-                    )
-                }
+    val baseForm = remember(fieldKey) { form }
+    var editorForm by remember(fieldKey) { mutableStateOf(form) }
+    var revision by remember(fieldKey) { mutableIntStateOf(0) }
+    var lightThrough by remember(fieldKey) { mutableIntStateOf(form.choiceLightThrough) }
+    var darkFrom by remember(fieldKey) { mutableIntStateOf(form.choiceDarkFrom) }
+    val choices = remember(fieldKey) {
+        mutableStateListOf<ChoiceDraft>().apply {
+            val values = form.choiceValues
+            if (values.isEmpty()) {
+                repeat(3) { add(ChoiceDraft(UUID.randomUUID().toString(), "")) }
+            } else {
+                addAll(values.map { ChoiceDraft(UUID.randomUUID().toString(), it) })
             }
         }
+    }
+    LaunchedEffect(revision) {
+        if (revision > 0) onFormChange(editorForm)
+    }
+    fun syncChoices(
+        updatedLightThrough: Int = lightThrough,
+        updatedDarkFrom: Int = darkFrom,
+    ) {
+        lightThrough = updatedLightThrough
+        darkFrom = updatedDarkFrom
+        editorForm = baseForm.copy(
+            options = choices.joinToString("\n") { it.value },
+            choiceLightThrough = updatedLightThrough,
+            choiceDarkFrom = updatedDarkFrom,
+        )
+        revision++
+    }
+    val choiceKeys = remember(choices.map { it.id }) { choices.map { it.id } }
+    val choiceOrder = rememberReorderState(choiceKeys) { _, from, to ->
+        val item = choices.removeAt(from)
+        choices.add(to, item)
+        syncChoices()
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Choice shade scale", style = MaterialTheme.typography.titleMedium)
+        Text("Drag a choice across either line to change its shade.")
+        choiceOrder.ordered(choices) { it.id }.forEachIndexed { index, choice ->
+            val shade = when {
+                index <= lightThrough -> "Light"
+                index >= darkFrom -> "Dark"
+                else -> "Medium"
+            }
+            val alpha = when (shade) {
+                "Light" -> 0.38f
+                "Medium" -> 0.68f
+                else -> 1f
+            }
+            Surface(
+                color = habitColour.copy(alpha = alpha),
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        ReorderHandle(
+                            choiceOrder,
+                            choice.id,
+                            choice.value.ifBlank { "unnamed choice" },
+                            enabled = choices.size > 1,
+                        )
+                        OutlinedTextField(
+                            value = choice.value,
+                            onValueChange = { updated ->
+                                val itemIndex = choices.indexOfFirst { it.id == choice.id }
+                                choices[itemIndex] = choice.copy(value = updated)
+                                syncChoices()
+                            },
+                            label = { Text("Choice") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics { contentDescription = "Choice ${index + 1}" },
+                        )
+                        TextButton(
+                            enabled = choices.size > 2,
+                            onClick = {
+                                choices.removeAll { it.id == choice.id }
+                                val light = lightThrough.coerceIn(0, choices.lastIndex - 1)
+                                val dark = darkFrom.coerceIn(light + 1, choices.lastIndex)
+                                syncChoices(light, dark)
+                            },
+                        ) { Text("×") }
+                    }
+                }
+            }
+            if (index == lightThrough) {
+                ShadeBoundary("LIGHT", "MEDIUM", "Light to medium boundary")
+            }
+            if (index == darkFrom - 1) {
+                ShadeBoundary("MEDIUM", "DARK", "Medium to dark boundary")
+            }
+        }
+        VibeActionButton(
+            "Add choice",
+            {
+                val ordered = choiceOrder.ordered(choices) { it.id }.toMutableList()
+                ordered.add(darkFrom, ChoiceDraft(UUID.randomUUID().toString(), ""))
+                choices.clear()
+                choices.addAll(ordered)
+                syncChoices(updatedDarkFrom = darkFrom + 1)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            importance = ActionImportance.SECONDARY,
+        )
+        if (
+            choices.size < 2 ||
+            choices.map { it.value.trim() }.distinct().size != choices.size ||
+            choices.any { it.value.isBlank() }
+        ) {
+            Text(
+                "Enter at least two unique, named choices.",
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShadeBoundary(
+    above: String,
+    below: String,
+    description: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(above, style = MaterialTheme.typography.labelSmall)
+        androidx.compose.material3.HorizontalDivider(Modifier.weight(1f))
+        Text(below, style = MaterialTheme.typography.labelSmall)
     }
 }
 

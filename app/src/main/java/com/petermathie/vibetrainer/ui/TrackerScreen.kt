@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
+import com.petermathie.vibetrainer.domain.tracker.HabitFieldForm
 import java.time.LocalDate
 
 @Composable
@@ -63,13 +64,14 @@ fun TrackerScreen(vm: EditorViewModel) {
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                    Box(
-                        Modifier
-                            .size(18.dp)
-                            .background(Color(tracker.colourArgb.toInt()), CircleShape)
-                            .semantics { contentDescription = "${tracker.name} colour" },
-                    )
-                    Spacer(Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { settings = tracker },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Edit ${tracker.name} settings"
+                        },
+                    ) {
+                        Icon(Icons.Outlined.Edit, contentDescription = null)
+                    }
                     if (activeTrackers.size > 1) {
                         ReorderHandle(trackerOrder, tracker.id, tracker.name)
                     }
@@ -81,16 +83,6 @@ fun TrackerScreen(vm: EditorViewModel) {
                         values.find { it.fieldId == habitField.id && it.epochDay == epoch },
                         epoch,
                     )
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    IconButton(
-                        onClick = { settings = tracker },
-                        modifier = Modifier.semantics {
-                            contentDescription = "Edit ${tracker.name} settings"
-                        },
-                    ) {
-                        Icon(Icons.Outlined.Edit, contentDescription = null)
-                    }
                 }
             }
         }
@@ -136,8 +128,9 @@ fun TrackerScreen(vm: EditorViewModel) {
             tracker = tracker,
             fields = fields.filter { it.trackerId == tracker.id },
             onDismiss = { settings = null },
-            onSave = {
-                vm.save(it)
+            onSave = { updatedTracker, updatedFields ->
+                vm.save(updatedTracker)
+                updatedFields.forEach(vm::save)
                 settings = null
             },
             onAddMeasurement = { activeCount ->
@@ -203,7 +196,7 @@ private fun HabitSettingsDialog(
     tracker: TrackerEntity,
     fields: List<TrackerFieldEntity>,
     onDismiss: () -> Unit,
-    onSave: (TrackerEntity) -> Unit,
+    onSave: (TrackerEntity, List<TrackerFieldEntity>) -> Unit,
     onAddMeasurement: (Int) -> Unit,
     onEditMeasurement: (TrackerFieldEntity) -> Unit,
     onArchiveMeasurement: (TrackerFieldEntity) -> Unit,
@@ -227,9 +220,17 @@ private fun HabitSettingsDialog(
     val medium = mediumBelow.toDoubleOrNull()
     val valid = light != null && medium != null && light >= 0.0 && medium > light
     val activeFields = fields.filterNot { it.isArchived }.sortedBy { it.position }
+    val choiceForms = remember(tracker.id) {
+        mutableStateMapOf<String, HabitFieldForm>().apply {
+            activeFields.filter { it.valueType == HabitFieldForm.CHOICE }.forEach {
+                put(it.id, resolvedHabitFieldForm(it))
+            }
+        }
+    }
     val hasNumericField = activeFields.any { it.valueType == "NUMBER" }
     val archivedFields = fields.filter { it.isArchived }
-    val fieldOrder = rememberReorderState(activeFields.map { it.id }) { key, from, to ->
+    val activeFieldKeys = remember(activeFields.map { it.id }) { activeFields.map { it.id } }
+    val fieldOrder = rememberReorderState(activeFieldKeys) { key, from, to ->
         onMoveMeasurement(key as String, to - from)
     }
     val unit = activeFields.firstOrNull { it.valueType == "NUMBER" }?.unit
@@ -336,13 +337,26 @@ private fun HabitSettingsDialog(
                         }
                         Text("Measurements", style = MaterialTheme.typography.titleMedium)
                         fieldOrder.ordered(activeFields) { it.id }.forEach { habitField ->
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                if (activeFields.size > 1) {
-                                    ReorderHandle(fieldOrder, habitField.id, habitField.name)
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    if (activeFields.size > 1) {
+                                        ReorderHandle(fieldOrder, habitField.id, habitField.name)
+                                    }
+                                    Text(habitField.name, modifier = Modifier.weight(1f))
+                                    if (habitField.valueType != HabitFieldForm.CHOICE) {
+                                        TextButton(onClick = { onEditMeasurement(habitField) }) { Text("Edit") }
+                                    }
+                                    TextButton(onClick = { onArchiveMeasurement(habitField) }) { Text("Archive") }
                                 }
-                                Text(habitField.name, modifier = Modifier.weight(1f))
-                                TextButton(onClick = { onEditMeasurement(habitField) }) { Text("Edit") }
-                                TextButton(onClick = { onArchiveMeasurement(habitField) }) { Text("Archive") }
+                                choiceForms[habitField.id]?.let { form ->
+                                    ChoiceScaleEditor(
+                                        fieldKey = habitField.id,
+                                        form = form,
+                                        habitColour = Color(colour.toInt()),
+                                    ) {
+                                        choiceForms[habitField.id] = it
+                                    }
+                                }
                             }
                         }
                         VibeActionButton(
@@ -372,7 +386,9 @@ private fun HabitSettingsDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = name.isNotBlank() && (!hasNumericField || valid),
+                enabled = name.isNotBlank() &&
+                    (!hasNumericField || valid) &&
+                    choiceForms.values.all { it.canSave },
                 onClick = {
                     onSave(
                         tracker.copy(
@@ -382,6 +398,9 @@ private fun HabitSettingsDialog(
                             heatmapLightBelow = light ?: tracker.heatmapLightBelow,
                             heatmapMediumBelow = medium ?: tracker.heatmapMediumBelow,
                         ),
+                        choiceForms.mapNotNull { (id, form) ->
+                            activeFields.find { it.id == id }?.let(form::applyTo)
+                        },
                     )
                 },
             ) { Text("Save settings") }
