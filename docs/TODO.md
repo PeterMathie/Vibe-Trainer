@@ -117,13 +117,19 @@ The debug APK at source `98a38ea` has SHA-256 `d743948ee1d9f515709d05b60c3ea63f2
 
 ### UX-04 — Programme editor hierarchy polish
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Put every visible six-dot handle at the far left of its item and hide it when the list has only one reorderable item; dragging the handle continues to move the whole item and persist order.
-- [ ] Replace the programme editor’s heading/rename action with an inline editable programme-name field and explicit save affordance.
-- [ ] Move Duplicate, Delete and Archive to one secondary three-button row at the bottom of the programme editor. Delete removes only the programme definition and its cascading templates; historical workouts remain.
-- [ ] Put a full-width plus-only Add exercise control at the bottom of each expanded workout exercise list, with an accessible label.
-- [ ] Update end-user Compose/persistence coverage, run focused and full validation, push evidence and inspect the exact installed UI.
+- [x] Put every visible six-dot handle at the far left of its item and hide it when the list has only one reorderable item; dragging the handle continues to move the whole item and persist order.
+- [x] Replace the programme editor’s heading/rename action with an inline editable programme-name field and explicit save affordance.
+- [x] Move Duplicate, Delete and Archive to one secondary three-button row at the bottom of the programme editor. Delete removes only the programme definition and its cascading templates; historical workouts remain.
+- [x] Put a full-width plus-only Add exercise control at the bottom of each expanded workout exercise list, with an accessible label.
+- [x] Update end-user Compose/persistence coverage, run focused and full validation, push evidence and inspect the exact installed UI.
+
+Evidence: implementation commit `7d96f8b` moves programme, day, exercise, tracker-field and custom-variation handles to the leading edge and suppresses singleton handles. Programme names save inline; the programme-level Duplicate/Delete/Archive controls form a bottom row; each expanded workout ends with a full-width plus control whose accessibility label remains `Add exercise`. Strength/Stretch now appears only at the top-right of the Home recency card and beside the Programmes title, not globally, in programme editing or in historical-day details.
+
+Focused `ProgrammeUiTest`, `HistoryUiTest`, `EndUserControlsTest` and `HabitUiTest` passed, followed by `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` with 33 unit tests and 41 API 35 instrumentation tests. Coverage includes persisted programme/day/exercise drag order, singleton suppression, leading handle placement, inline rename, bottom actions, historical-workout preservation after programme deletion, plus-only exercise addition and exact mode-selector placement.
+
+The exact `7d96f8b` debug APK has SHA-256 `626cf6d3ce834fbeaaf823822eb0578c7f0d894a218b4ea836d83069aff0259e`. It installed and cold-launched on visible `vibe-log01-api35` (Android 15/API 35); MainActivity remained resumed with PID 15321 and the crash log contained no AndroidRuntime failure. Screenshots under `files/ux-04-final/` show Home, the programme list, the programme editor’s top and bottom, and historical-day details. Inspection found no clipping, overlap or unresolved defect in this slice. Real-phone behavior remains governed by QA-01 and was not claimed.
 
 ### QA-01 — Real-phone timers
 
