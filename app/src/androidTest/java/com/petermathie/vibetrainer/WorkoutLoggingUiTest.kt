@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,7 +38,7 @@ class WorkoutLoggingUiTest {
     fun close() = database.close()
 
     @Test
-    fun detailedEntryPersistsStackedBandsUnilateralValuesAndNotes() {
+    fun workoutLoggerHidesSetConfigurationAndPersistsExerciseNotes() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         val workoutId = startPushWorkout(context)
@@ -46,58 +47,36 @@ class WorkoutLoggingUiTest {
             VibeTrainerTheme { WorkoutEditor(viewModel, workoutId, {}, {}) }
         }
 
-        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Set details for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Set 1 for Handstand").fetchSemanticsNodes().isNotEmpty() }
         compose.onAllNodes(hasText("Exercise notes") and hasSetTextAction())[0].performTextInput("Shoulders stable")
         compose.waitUntil(15_000) {
             runBlocking { database.editorDao().workoutExercises().first().any { it.notes == "Shoulders stable" } }
         }
 
-        compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasContentDescription("Set details for Bench press set 1"))
-        compose.onNodeWithContentDescription("Set details for Bench press set 1").performClick()
-        compose.onNodeWithText("Set details").assertExists()
-        compose.onAllNodes(hasSetTextAction())[0].performTextInput("50 x 5")
-        compose.onAllNodes(isRoot())[0].performTouchInput {
-            swipeUp(startY = centerY + 500f, endY = centerY - 500f)
-        }
-        compose.waitUntil(15_000) {
-            compose.onAllNodesWithContentDescription("Use Yellow band", useUnmergedTree = true)
-                .fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithContentDescription("Use Yellow band", useUnmergedTree = true).performClick()
-        compose.onNodeWithContentDescription("Use Red band", useUnmergedTree = true).performClick()
-        compose.onAllNodes(isRoot())[0].performTouchInput {
-            swipeUp(startY = centerY + 500f, endY = centerY - 500f)
-        }
-        compose.onNode(hasText("Left reps") and hasSetTextAction()).performTextInput("4")
-        compose.onNode(hasText("Right reps") and hasSetTextAction()).performTextInput("5")
-        compose.onNodeWithText("Save").performClick()
-
-        compose.waitUntil(15_000) { runBlocking { database.editorDao().sets().first().any { it.leftReps == 4 && it.rightReps == 5 } } }
-        val saved = runBlocking { database.editorDao().sets().first().first { it.leftReps == 4 && it.rightReps == 5 } }
-        assertEquals(4, saved.leftReps)
-        assertEquals(5, saved.rightReps)
-        assertEquals(2, runBlocking { database.editorDao().setBands().first().count { it.setId == saved.id } })
+        compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasContentDescription("Set 1 for Bench press"))
+        compose.onNodeWithContentDescription("Set details for Bench press set 1").assertDoesNotExist()
+        compose.onNodeWithText("Set details").assertDoesNotExist()
+        assertTrue(compose.onAllNodesWithText("kg").fetchSemanticsNodes().isNotEmpty())
+        compose.onNodeWithText("Resistance kg").assertDoesNotExist()
     }
 
     @Test
-    fun holdResultCanBeCorrectedThroughTheSameDetailedEditor() {
+    fun holdResultCanBeCorrectedThroughTheSameWorkoutRow() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         val workoutId = startPushWorkout(context)
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
-        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Set details for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithContentDescription("Set details for Handstand set 1").performClick()
-        compose.onNodeWithContentDescription("Seconds").performTextInput("8")
-        compose.onNodeWithText("Save").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Seconds for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("Seconds for Handstand set 1").performTextInput("8")
+        compose.onNodeWithContentDescription("Save set 1 for Handstand").performClick()
         val handstandId = runBlocking { database.editorDao().workoutExercises().first().first { it.workoutId == workoutId && it.actualExerciseId == "core:handstand" }.id }
         compose.waitUntil(15_000) { runBlocking { database.editorDao().sets().first().any { it.workoutExerciseId == handstandId && it.holdMillis == 8_000L } } }
 
-        compose.onNodeWithContentDescription("Set details for Handstand set 1").performClick()
-        compose.onNodeWithContentDescription("Seconds").performTextClearance()
-        compose.onNodeWithContentDescription("Seconds").performTextInput("10")
-        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithContentDescription("Seconds for Handstand set 1").performTextClearance()
+        compose.onNodeWithContentDescription("Seconds for Handstand set 1").performTextInput("10")
+        compose.onNodeWithContentDescription("Save set 1 for Handstand").performClick()
 
         compose.waitUntil(15_000) { runBlocking { database.editorDao().sets().first().any { it.workoutExerciseId == handstandId && it.holdMillis == 10_000L } } }
         assertEquals(0, runBlocking { database.editorDao().sets().first().count { it.workoutExerciseId == handstandId && it.holdMillis == 8_000L } })
@@ -146,7 +125,7 @@ class WorkoutLoggingUiTest {
             }
         }
 
-        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Set details for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Set 1 for Handstand").fetchSemanticsNodes().isNotEmpty() }
         compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasText("Finish workout"))
         compose.onNodeWithText("Finish workout").assertIsDisplayed()
     }
