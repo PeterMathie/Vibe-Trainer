@@ -146,6 +146,14 @@ The exact APK has SHA-256 `55ff7035fb4bf69a3eb7c6d4dc76343c510b8a73280672d528263
 
 Follow-up commit `372f22a` removes Add workout as requested. Focused `ProgrammeUiTest` and the full 33-unit/41-instrumentation gate passed. Exact-build APK SHA-256 is `bfef1e2dd568929a3eb7c6d4dc76343c510b8a73280672d528263df746533455`; `files/ux-05-final/programme-editor-372f22a.png` confirms the programme-name field now flows directly into Start workout, with the retained exercise and programme-management controls visible. MainActivity remained resumed on the API 35 emulator with PID 18170 and no crash.
 
+### UX-06 — Direct handle dragging
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+- [ ] Make six-dot handles begin reordering on a normal thumb drag without requiring a long press or being intercepted by a click target.
+- [ ] Preserve completion-only persistence and accessibility Move earlier/Move later actions.
+- [ ] Prove direct-drag programme exercise reordering persists, then run the full gate and inspect the installed build.
+
 ### QA-01 — Real-phone timers
 
 - [ ] Record phone model, Android version and notification/alarm permissions.
