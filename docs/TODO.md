@@ -90,12 +90,14 @@ Checkpoint 2 evidence: Home continuation and programme starts still route to the
 
 Checkpoint 3 — programme user flow:
 
-- [ ] Programme list cards show name, edit pencil, start/play affordance and drag handle only; secondary actions live in the editor.
-- [ ] A coherent programme editor exposes rename, duplicate, archive/delete, workout/day and exercise management.
-- [ ] Workout/day exercise summaries are visible by default, with prominent Start and a small edit pencil.
-- [ ] Programme/day/exercise drag interactions persist order; creation, targets/rest/groups/notes and start/finish behavior remain available.
-- [ ] End-user Compose tests cover edit/start/default exercise visibility/secondary-action placement plus drag persistence.
+- [x] Programme list cards show name, edit pencil, start/play affordance and drag handle only; secondary actions live in the editor.
+- [x] A coherent programme editor exposes rename, duplicate, archive/delete, workout/day and exercise management.
+- [x] Workout/day exercise summaries are visible by default, with prominent Start and a small edit pencil.
+- [x] Programme/day/exercise drag interactions persist order; creation, targets/rest/groups/notes and start/finish behavior remain available.
+- [x] End-user Compose tests cover edit/start/default exercise visibility/secondary-action placement plus drag persistence.
 - [ ] Run focused validation after every checkpoint, full unit/instrumentation/debug validation at the end, then install and inspect the exact APK on the visible emulator with Home, navigation/More, programme-list and programme-editor screenshots.
+
+Checkpoint 3 focused evidence: `ProgrammeUiTest` now approaches the feature only through visible end-user controls. It proves secondary actions are absent from the programme list; the edit pencil opens one programme editor; workout exercise names and target/rest summaries are visible without another navigation step; Start invokes the selected day; the workout pencil reveals same-card rename/add-exercise/target controls; create/rename/duplicate/archive remain functional; and touch drags persist programme, workout and exercise order. The focused programme, navigation, global-control and workout-logging suites passed on API 35.
 
 ### QA-01 — Real-phone timers
 

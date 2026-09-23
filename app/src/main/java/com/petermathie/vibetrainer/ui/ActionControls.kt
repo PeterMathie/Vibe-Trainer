@@ -1,6 +1,8 @@
 package com.petermathie.vibetrainer.ui
 
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material.icons.Icons
@@ -8,7 +10,6 @@ import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -156,11 +158,11 @@ fun ReorderHandle(
     enabled: Boolean = true,
 ) {
     val threshold = with(LocalDensity.current) { 48.dp.toPx() }
-    IconButton(
-        onClick = {},
-        enabled = enabled,
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
             .defaultMinSize(48.dp, 48.dp)
+            .clickable(enabled = enabled, onClick = {})
             .semantics {
                 contentDescription = "Reorder $itemLabel"
                 customActions = buildList {
