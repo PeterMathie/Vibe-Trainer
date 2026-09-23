@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -165,7 +166,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
 @Composable
 private fun ModeSelector(mode: TrainingMode, onModeChange: (TrainingMode) -> Unit) {
     SingleChoiceSegmentedButtonRow(
-        Modifier.fillMaxWidth().padding(horizontal = VibeSpacing.medium, vertical = VibeSpacing.small),
+        Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = VibeSpacing.medium, vertical = VibeSpacing.small),
     ) {
         TrainingMode.entries.forEachIndexed { index, item ->
             SegmentedButton(
