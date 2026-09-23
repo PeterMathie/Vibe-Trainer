@@ -474,6 +474,19 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 
 Evidence: commit `386a598` implements the shared chart/calendar/day selection and guarded habit lifecycle. Unit tests and debug app/test assembly passed; focused API 35 `HabitUiTest` (2), `MeasurementsUiTest` (1) and `ProgressUiTest` (2) passed. Coverage proves empty-habit deletion, history-preserving archive/restore, calendar weight updates and chart synchronization. Exact APK SHA-256 is `1e02d004f6686c715d7959a8d5c253027982265386299745e84df7293194ae25`; `files/ux-24-body-calendar.png` shows the linked annual chart and readable monthly calendar.
 
+### UX-25 — Visual habit choice scales and icons
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Replace comma-separated list configuration with draggable, named choice rows ordered from lightest to darkest.
+- [x] Preview every choice in the habit colour and expose explicit last-light and first-dark boundary selectors.
+- [x] Persist choice order and shade boundaries and use them for Progress heat-map intensity.
+- [x] Add a reusable habit icon catalogue, persist each habit’s icon and render it on the compact card.
+- [x] Replace the full-width card settings action with an accessible pencil action.
+- [x] Preserve existing databases through an explicit Room 10→11 migration and schema export.
+
+Evidence: commit `5ce5fb2` implements the visual editor, icon catalogue and preserving schema 11 migration. Unit tests and debug app/test assembly passed. Focused API 35 `HabitUiTest` (2), `ProgressUiTest` (2) and the 10→11 migration test passed; coverage proves icon persistence, accessible choice reordering, persisted boundaries, boundary-driven Mood intensity and preservation of existing tracker/field values. Exact APK SHA-256 is `38bff4fe233e4b7cddb9933e91ceeedeb11500dd08d764f033bc7e23c90d2b10`; installed evidence is under `files/ux-25-habit-choice/`.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.
