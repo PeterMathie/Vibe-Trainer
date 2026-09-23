@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -49,6 +50,7 @@ fun ProgressScreen(vm:EditorViewModel) {
     var exerciseId by remember { mutableStateOf<String?>(null) };var picker by remember { mutableStateOf(false) };var filter by remember { mutableStateOf<String?>(null) };var selected by remember { mutableStateOf<Int?>(null) }
     var variationMenu by remember { mutableStateOf(false) };var methodology by remember { mutableStateOf(false) }
     var selectedWeight by remember { mutableStateOf<Int?>(null) };var selectedPhoto by remember { mutableStateOf<File?>(null) }
+    var expandedCards by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val points=exerciseId?.let { SessionProgress.points(it,workouts,rows,sets,links,bands,filter,variations) }.orEmpty()
     val finishedIds=workouts.filter { it.status=="FINISHED" }.map { it.id }.toSet()
     val trackableSetRowIds = sets.filter { SessionProgress.valid(it) || it.romValue != null }.map { it.workoutExerciseId }.toSet()
@@ -122,22 +124,23 @@ fun ProgressScreen(vm:EditorViewModel) {
                 }
                 progressOrder.ordered(progressCardKeys) { it }.forEachIndexed { cardIndex, cardKey ->
                     key(cardKey) {
+                        val title = when {
+                            cardKey == "overall" -> "Overall training trend"
+                            cardKey == "bodyweight" -> "Bodyweight"
+                            cardKey == "training" -> "Training progress"
+                            cardKey.startsWith("habit:") -> activeTrackers.find { "habit:${it.id}" == cardKey }?.name.orEmpty()
+                            else -> cardKey
+                        }
+                        val expanded = expandedCards.contains(cardKey)
+                        val toggleExpanded = {
+                            expandedCards = if (expanded) expandedCards.filterNot { it == cardKey } else expandedCards + cardKey
+                        }
                         when {
-                            cardKey == "overall" -> VibeCard(
-                                modifier = Modifier.reorderItemFeedback(progressOrder, cardKey, cardIndex),
-                            ) {
-                                ProgressCardHeader(progressOrder, cardKey, "Overall training trend")
+                            cardKey == "overall" -> ProgressCardShell(progressOrder, cardKey, cardIndex, title, expanded, toggleExpanded) {
                                 Text("Average normalized score across ${aggregate.last().exerciseCount} exercises")
-                                MiniChart(
-                                    values = aggregate.map { it.averageIndex },
-                                    dates = aggregate.map { it.date },
-                                    unit = "index",
-                                ) {}
+                                MiniChart(values = aggregate.map { it.averageIndex }, dates = aggregate.map { it.date }, unit = "index") {}
                             }
-                            cardKey == "bodyweight" -> VibeCard(
-                                modifier = Modifier.reorderItemFeedback(progressOrder, cardKey, cardIndex),
-                            ) {
-                                ProgressCardHeader(progressOrder, cardKey, "Bodyweight")
+                            cardKey == "bodyweight" -> ProgressCardShell(progressOrder, cardKey, cardIndex, title, expanded, toggleExpanded) {
                                 MiniChart(
                                     values = bodyweights.map { if (it.unit.equals("lb", true)) it.value / 2.2046226218 else it.value },
                                     dates = bodyweights.map { it.recordedAt },
@@ -155,59 +158,51 @@ fun ProgressScreen(vm:EditorViewModel) {
                             }
                             cardKey.startsWith("habit:") -> {
                                 activeTrackers.find { "habit:${it.id}" == cardKey }?.let { tracker ->
-                                    HabitProgressCard(
-                                        tracker = tracker,
-                                        fields = fields,
-                                        values = values,
-                                        order = progressOrder,
-                                        cardKey = cardKey,
-                                        cardIndex = cardIndex,
-                                    )
+                                    VibeCard(modifier = Modifier.reorderItemFeedback(progressOrder, cardKey, cardIndex)) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable(onClickLabel = if (expanded) "Collapse ${tracker.name}" else "Expand ${tracker.name}") { toggleExpanded() },
+                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                        ) {
+                                            Icon(HabitIconCatalog.icon(tracker.iconName), contentDescription = "${tracker.name} icon", tint = Color(tracker.colourArgb.toInt()))
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                                            ReorderHandle(progressOrder, cardKey, tracker.name)
+                                        }
+                                        if (expanded) {
+                                            val trackerFields = fields.filter { it.trackerId == tracker.id && !it.isArchived }
+                                            val fieldIds = trackerFields.map { it.id }.toSet()
+                                            val habitDays = values.filter { it.fieldId in fieldIds }
+                                                .groupBy { it.epochDay }
+                                                .map { (epochDay, dailyValues) -> ActivityDay(epochDay, habitHeatmapLevel(tracker, trackerFields, dailyValues)) }
+                                            val numericField = trackerFields.firstOrNull { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") }
+                                            val unit = numericField?.unit
+                                            Text(habitIntensityDescription(tracker, trackerFields, unit), style = MaterialTheme.typography.bodySmall)
+                                            ActivityHeatmap(days = habitDays, onDayClick = {}, activityColor = Color(tracker.colourArgb.toInt()), itemLabel = "${tracker.name.lowercase()} intensity")
+                                        }
+                                    }
                                 }
                             }
-                            cardKey == "training" -> VibeCard(
-                                modifier = Modifier.reorderItemFeedback(progressOrder, cardKey, cardIndex),
-                            ) {
-                                ProgressCardHeader(progressOrder, cardKey, "Training progress")
-                                ExerciseProgressSelectors(
-                                    exercises = exercises,
-                                    exerciseId = exerciseId,
-                                    variations = variations,
-                                    filter = filter,
-                                    eligible = eligibleExerciseIds.isNotEmpty(),
-                                    variationMenu = variationMenu,
-                                    onChooseExercise = { picker = true },
-                                    onVariationMenu = { variationMenu = it },
-                                    onFilter = { filter = it; selected = null },
-                                )
+                            cardKey == "training" -> ProgressCardShell(progressOrder, cardKey, cardIndex, title, expanded, toggleExpanded) {
+                                ExerciseProgressSelectors(exercises = exercises, exerciseId = exerciseId, variations = variations, filter = filter, eligible = eligibleExerciseIds.isNotEmpty(), variationMenu = variationMenu, onChooseExercise = { picker = true }, onVariationMenu = { variationMenu = it }, onFilter = { filter = it; selected = null })
                                 if (eligibleExerciseIds.isEmpty()) {
                                     Text("Complete a working set before an exercise appears here.")
                                 } else if (points.isEmpty()) {
                                     Text("Choose an exercise to see its progress.")
                                 } else {
-                                    MiniChart(
-                                        points.map { it.index ?: it.score },
-                                        points.map { it.trend },
-                                        points.map { it.date },
-                                        if(points.any { it.index!=null }) "index" else "score",
-                                    ) { selected = it }
+                                    MiniChart(points.map { it.index ?: it.score }, points.map { it.trend }, points.map { it.date }, if(points.any { it.index!=null }) "index" else "score") { selected = it }
                                     PersonalRecordsContent(records, recordVisibility)
                                     val last=points.mapNotNull { it.trend }.takeLast(2)
                                     if(last.size==2) Text(if(last[1]>last[0]*1.01)"Rising" else if(last[1]<last[0]*0.99)"Falling" else "Flat")
                                     Text("RPE")
-                                    RpeBarChart(
-                                        values = points.map { it.performance.rpe ?: Double.NaN },
-                                        dates = points.map { it.date },
-                                    ) { selected = it }
+                                    RpeBarChart(values = points.map { it.performance.rpe ?: Double.NaN }, dates = points.map { it.date }) { selected = it }
                                     selected?.let { points.getOrNull(it) }?.let { p ->
                                         Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")
                                         Text("Bands: ${p.bands.joinToString().ifBlank { "None" }} · RPE ${p.performance.rpe ?: "not recorded"}")
                                         Text(p.notes.ifBlank { "No exercise notes" })
                                     }
-                                    ActivityHeatmap(
-                                        days = points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) },
-                                        onDayClick = { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } },
-                                    )
+                                    ActivityHeatmap(days = points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) }, onDayClick = { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } })
                                 }
                             }
                         }
@@ -263,54 +258,37 @@ private fun ProgressCardHeader(
     order: ReorderState,
     cardKey: String,
     title: String,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
 ) {
-    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = if (expanded) "Collapse $title" else "Expand $title") { onToggleExpanded() },
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
         Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
         ReorderHandle(order, cardKey, title)
     }
 }
 
 @Composable
-private fun HabitProgressCard(
-    tracker: TrackerEntity,
-    fields: List<TrackerFieldEntity>,
-    values: List<TrackerDailyValueEntity>,
+private fun ProgressCardShell(
     order: ReorderState,
     cardKey: String,
     cardIndex: Int,
+    title: String,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    val trackerFields = fields.filter { it.trackerId == tracker.id && !it.isArchived }
-    val fieldIds = trackerFields.map { it.id }.toSet()
-    val habitDays = values.filter { it.fieldId in fieldIds }
-        .groupBy { it.epochDay }
-        .map { (epochDay, dailyValues) ->
-            ActivityDay(
-                epochDay,
-                habitHeatmapLevel(tracker, trackerFields, dailyValues),
-            )
-        }
-    val numericField = trackerFields.firstOrNull { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") }
-    val unit = numericField?.unit
     VibeCard(
         modifier = Modifier.reorderItemFeedback(order, cardKey, cardIndex),
     ) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Icon(
-                HabitIconCatalog.icon(tracker.iconName),
-                contentDescription = "${tracker.name} icon",
-                tint = Color(tracker.colourArgb.toInt()),
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            ReorderHandle(order, cardKey, tracker.name)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            ProgressCardHeader(order, cardKey, title, expanded, onToggleExpanded)
+            if (expanded) content()
         }
-        Text(habitIntensityDescription(tracker, trackerFields, unit), style = MaterialTheme.typography.bodySmall)
-        ActivityHeatmap(
-            days = habitDays,
-            onDayClick = {},
-            activityColor = Color(tracker.colourArgb.toInt()),
-            itemLabel = "${tracker.name.lowercase()} intensity",
-        )
     }
 }
 
