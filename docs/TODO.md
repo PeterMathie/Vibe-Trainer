@@ -278,6 +278,16 @@ Validation passed 33 unit tests and debug app/test assembly. Focused API 35 inst
 
 Limitation: photo association intentionally reuses the existing timestamp-named photo files and matches by local calendar date. A photo captured on a different date from a historical bodyweight entry is not automatically linked.
 
+### UX-17 — Shared card spacing and sharper corners
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Give every top-level Progress section the shared 16dp vertical rhythm used by the rest of the app.
+- [x] Route the Progress list through the shared `ScreenList` layout.
+- [x] Reduce the shared card corner radius from 22dp to 16dp across the app.
+
+Evidence: commit `bdccd30` updates the shared `VibeShapes.card` token rather than overriding individual screens. Progress uses `ScreenList` and `VibeSpacing.medium`, so its charts and habit cards no longer touch while retaining the same spacing source as Home and Programmes. Unit tests, debug app/test assembly and `ProgressUiTest` (2) passed. Exact APK SHA-256: `d6ac4138be3a1ba84d103f8cbacdced856b7bb12f093efa006fc025d9fd153df`. Installed screenshot: `files/ux-17-final/progress-spacing-final.png`.
+
 ### UX-11 — Exercise-aware personal records
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
