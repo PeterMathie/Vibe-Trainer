@@ -197,6 +197,16 @@ Evidence: commit `5b6c7ec` gives Progress a dedicated lazy picker. Eligibility r
 
 `ProgressUiTest` proves an exercise without history is excluded, an eligible exercise opens its charts, and the lazy picker can scroll to item 105 rather than stopping at the former 100-item boundary. Final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 34 unit tests and 43 API 35 instrumentation tests. The exact APK has SHA-256 `76c8bb5c6250de2a1f69bec5925a7037079a079640ee4f48424de0840ea73782`; `files/ux-09-final/progress-picker-5b6c7ec.png` shows only the eight demo exercises with qualifying history. MainActivity remains resumed with PID 26663 and no crash.
 
+### UX-12 — Correct programme start and structured set logging
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+- [ ] Make each programme-list Play affordance start that programme's workout directly, never enter edit context or reuse another programme/day.
+- [ ] Remove weekday/scheduling language from maintained demo programme-day names without rewriting user-authored or historical workout names.
+- [ ] Present the programmed set count as editable Resistance/Reps/RPE rows, keep notes below the rows, expose rest timing from the exercise header, and use a plus-only control for extra sets.
+- [ ] Preserve hold/unilateral type behavior, durable unfinished-entry recovery and duplicate-submission protection.
+- [ ] Add end-user routing/logging regressions, run focused and full validation, install the exact APK and inspect the corrected flow.
+
 ### UX-11 — Exercise-aware personal records
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
