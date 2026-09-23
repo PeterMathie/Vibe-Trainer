@@ -228,7 +228,24 @@ Evidence: implementation commit `d442e52` adds Room schema 8, exercise-level set
 
 The final gate passed 33 unit tests and focused API 35 instrumentation suites: `ExerciseEditorUiTest` (1), `ProgrammeUiTest` (4), `WorkoutWorkflowTest` (3), `VibeDatabaseMigrationTest` (6), `WorkoutLoggingUiTest` (6) and `WorkoutEntryDraftTest` (4). Debug app and test APK assembly passed. The installed APK SHA-256 is `f2b3f5cfd4230030e5227edcdf377604706838ad0f12c32911423f352b543b43`; installed UI inspection expanded one Stretching card containing Front split, Forward fold, Side split and Bridge. Evidence is `files/ux-13-final/stretching-expanded-d442e52.png`.
 
-Residual scope: the exercise catalogue remains intentionally unchanged. Curating it down to a smaller personal set is a separate future task.
+UX-14 subsequently reduced the active seeded catalogue to the maintained exercises referenced by programmes while preserving historical references.
+
+### UX-14 — Compact autosaving workout rows and curated catalogue
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Remove the per-set check action and autosave valid row input without duplicate sets.
+- [x] Keep Handstand freestanding seconds, total wall seconds and compact RPE on one row.
+- [x] Restrict RPE to a compact two-character integer field with a maximum value of 10.
+- [x] Remove the redundant Start hold timer action and generic workout-notes editor while retaining exercise notes and the header rest timer.
+- [x] Remove fixed 100-item exercise-list/picker caps.
+- [x] Seed only the 17 maintained exercises used by programmes and hide unused legacy catalogue entries without breaking historical references.
+
+Evidence: implementation commit `1753c9e` replaces explicit set submission with ordered autosave through the existing durable set ID, so corrections update rather than duplicate a set. Clearing the final logged metric removes that saved set while preserving the recoverable draft. The Handstand row places Freestanding sec, Total wall sec and the 68dp RPE field on one visual line; installed semantics bounds confirm matching vertical centres. The old hold-timer component/test and workout-notes action are removed; exercise notes and header rest controls remain.
+
+Fresh databases contain exactly the 17 exercises referenced by maintained programmes. Existing `free-exercise-db` rows and the unused Lat pulldown seed are archived only when no programme references them, preserving historical foreign-key and snapshot integrity. Both Exercises and exercise-picker lazy lists no longer truncate at 100 items.
+
+Validation passed 33 unit tests, debug app/test assembly, `WorkoutLoggingUiTest` (6), `WorkoutEntryDraftTest` (4) and `WorkoutWorkflowTest` (4). The installed APK SHA-256 is `1e769f52c0318c710ac3a63e5ed609ca427bd6d961ef457a39356cde71a364c6`; `files/ux-14-final/compact-handstand.png` records the inspected exact build.
 
 ### UX-11 — Exercise-aware personal records
 

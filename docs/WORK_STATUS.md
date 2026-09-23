@@ -2,6 +2,12 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
+Current implementation task: **UX-14 compact autosaving workout rows and curated catalogue is complete** at `1753c9e` on `pmathie-cicpilot-persist-workout-drafts`. Active set rows no longer have a check button: every valid edit autosaves through the row's durable set ID, and later corrections update that set rather than creating duplicates. Clearing the final performance metric removes the saved set and retains recoverable draft state.
+
+Handstand's Freestanding sec, Total wall sec and compact 68dp RPE inputs now share one row. RPE accepts at most two integer characters and rejects values above 10. The redundant Start hold timer and generic Workout notes controls are removed; the header rest-timer icon and per-exercise notes remain. Exercise and picker lists no longer stop at 100 records.
+
+Fresh databases now seed only the 17 maintained exercises actually referenced by programmes. Existing unused free-catalogue rows and the unused Lat pulldown seed are archived only when no programme references them, keeping historical records valid. Validation passed 33 unit tests, debug app/test assembly and 14 focused API 35 instrumentation tests across logging, durable drafts and workflow/catalogue behavior. The exact installed APK SHA-256 is `1e769f52c0318c710ac3a63e5ed609ca427bd6d961ef457a39356cde71a364c6`; installed bounds and `files/ux-14-final/compact-handstand.png` confirm the three compact Handstand fields share one line without the removed controls.
+
 Current implementation task: **UX-13 canonical exercise settings and flat Stretching programme is complete** at `d442e52` on `pmathie-cicpilot-persist-workout-drafts`. Exercise definitions now own resistance inputs, repetition targets, target RPE and rest duration. Programme editing no longer exposes conflicting copies; starting any programme snapshots the canonical exercise settings into the workout, preserving historical behavior if definitions later change. Room schema 8 deterministically migrates existing programme settings and leaves historical workout snapshots untouched.
 
 Stretching is now one programme with one `Stretching` workout containing Front split, Forward fold, Side split and Bridge as ordered exercises. Fresh seed data uses this shape, and migration 7→8 consolidates the prior four seeded workout/category rows without changing historical logged workouts. Handstand keeps independent freestanding and total-wall time inputs.
