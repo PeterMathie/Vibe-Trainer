@@ -170,6 +170,15 @@ Evidence: commits `cd5065d`, `d2cbf5b`, `0d63c8f` and `02608b9` add active-handl
 
 Focused `ProgrammeUiTest` and final full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 33 unit tests and 41 API 35 instrumentation tests. The exact `02608b9` APK has SHA-256 `eca60be25baa16211a2677d64a0003cbc6892cfb50e9d637e424ac587980413c`. `files/ux-07-final/active-drag-02608b9.png` captures the highlighted handle during motion and `settled-drag-02608b9.png` captures the result. The on-device database confirms Back squat at position 0 and Handstand at position 1; MainActivity remains resumed with PID 24088 and no crash.
 
+### UX-08 — Stable drag and programme preview
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+- [ ] Add drag-boundary hysteresis so a handle held near an item boundary does not oscillate between positions.
+- [ ] Make programme-list cards expand/collapse with smooth motion to show every workout exercise and target summary read-only.
+- [ ] Replace the programme editor’s textual Back control with a left-facing chevron.
+- [ ] Add end-user coverage, run validation once after the complete slice, install and inspect the exact build.
+
 ### QA-01 — Real-phone timers
 
 - [ ] Record phone model, Android version and notification/alarm permissions.
