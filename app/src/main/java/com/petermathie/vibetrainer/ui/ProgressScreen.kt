@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.domain.progress.SessionProgress
 import com.petermathie.vibetrainer.domain.model.ActivityDay
+import com.petermathie.vibetrainer.ui.theme.VibeSpacing
 import java.time.Instant
 import java.time.ZoneId
 import java.io.File
@@ -61,9 +62,10 @@ fun ProgressScreen(vm:EditorViewModel) {
     val valid=sets.filter { it.workoutExerciseId in exerciseRows && SessionProgress.valid(it) && (filter==null || it.variationId==filter) }
     val records=SessionProgress.records(valid,points)
     val recordVisibility=SessionProgress.recordVisibility(exercises.find { it.id==exerciseId }?.trackingType)
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+    ScreenList {
         item {
-            Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+            Column(verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium)) {
+                Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Progress",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f))
                 IconButton(onClick={methodology=true}) { Icon(Icons.Outlined.Info,contentDescription="How progress works") }
             }
@@ -180,6 +182,7 @@ fun ProgressScreen(vm:EditorViewModel) {
                     days = points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) },
                     onDayClick = { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } },
                 )
+            }
             }
         }
         val ids=rows.filter { it.actualExerciseId==exerciseId && workouts.any { w -> w.id==it.workoutId && w.status=="FINISHED" } }.map { it.id }.toSet()

@@ -112,7 +112,7 @@ object VibeSpacing {
 }
 
 object VibeShapes {
-    val card = 22.dp
+    val card = 16.dp
     val control = 14.dp
 }
 
