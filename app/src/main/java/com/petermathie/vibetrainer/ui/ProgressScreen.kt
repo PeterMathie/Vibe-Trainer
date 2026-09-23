@@ -38,6 +38,7 @@ fun ProgressScreen(vm:EditorViewModel) {
     val exerciseRows=rows.filter { it.actualExerciseId==exerciseId && it.workoutId in finishedIds }.map { it.id }.toSet()
     val valid=sets.filter { it.workoutExerciseId in exerciseRows && SessionProgress.valid(it) && (filter==null || it.variationId==filter) }
     val records=SessionProgress.records(valid,points)
+    val recordVisibility=SessionProgress.recordVisibility(exercises.find { it.id==exerciseId }?.trackingType)
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {
             Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
@@ -73,6 +74,25 @@ fun ProgressScreen(vm:EditorViewModel) {
             }
             if(eligibleExerciseIds.isEmpty())Text("Complete a working set before an exercise appears here.")
             if(points.isNotEmpty()) {
+                VibeCard {
+                    Text("Personal records",style=MaterialTheme.typography.titleLarge)
+                    records.scoredPerformance?.let { record ->
+                        PersonalRecordValue(
+                            "Best performance",
+                            "${formatAxis(record.score)} score",
+                            setDescription(record.performance),
+                        )
+                    }
+                    if(recordVisibility.weight) records.weightKg?.let {
+                        PersonalRecordValue("Heaviest weight","${formatAxis(it)} kg")
+                    }
+                    if(recordVisibility.hold) records.holdMillis?.let {
+                        PersonalRecordValue("Longest hold","${formatAxis(it/1000.0)} sec")
+                    }
+                    if(recordVisibility.estimatedOneRepMax) records.estimatedOneRepMaxKg?.let {
+                        PersonalRecordValue("Estimated 1RM","${formatAxis(it)} kg")
+                    }
+                }
                 MiniChart(points.map { it.index ?: it.score },points.map { it.trend },points.map { it.date },if(points.any { it.index!=null }) "index" else "score"){selected=it}
                 val last=points.mapNotNull { it.trend }.takeLast(2)
                 if(last.size==2) Text(if(last[1]>last[0]*1.01)"Rising" else if(last[1]<last[0]*0.99)"Falling" else "Flat")
@@ -83,12 +103,6 @@ fun ProgressScreen(vm:EditorViewModel) {
                     Text("Bands: ${p.bands.joinToString().ifBlank { "None" }} · RPE ${p.performance.rpe ?: "not recorded"}")
                     Text(p.notes.ifBlank { "No exercise notes" })
                 }
-                Text("Personal records",style=MaterialTheme.typography.titleMedium)
-                Text("Weight PR · ${records.weightKg ?: "—"} kg")
-                Text("Repetition PR · ${records.reps ?: "—"} reps")
-                Text("Hold PR · ${records.holdMillis?.div(1000.0) ?: "—"} sec")
-                Text("Estimated 1RM PR · ${records.estimatedOneRepMaxKg ?: "—"} kg")
-                Text("Calculated performance PR · ${records.scoredPerformance?.performance?.let(::setDescription) ?: "—"}")
                 ActivityHeatmap(points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) }) { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } }
             }
         }
@@ -111,6 +125,27 @@ fun ProgressScreen(vm:EditorViewModel) {
         text={Text("The first three valid sessions establish a personal baseline of 100. Before that, charts show raw performance. Skill index is a heuristic: variation order sets the main difficulty; holds, reps and assistance adjust progress only within the same variation.")},
         confirmButton={TextButton(onClick={methodology=false}){Text("Close")}},
     )
+}
+
+@Composable
+private fun PersonalRecordValue(label:String,value:String,detail:String?=null) {
+    Surface(
+        color=MaterialTheme.colorScheme.surfaceVariant,
+        shape=MaterialTheme.shapes.medium,
+        modifier=Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            Modifier.padding(horizontal=14.dp,vertical=10.dp),
+            horizontalArrangement=Arrangement.spacedBy(12.dp),
+            verticalAlignment=androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(label,style=MaterialTheme.typography.labelLarge)
+                detail?.let { Text(it,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+            Text(value,style=MaterialTheme.typography.titleMedium)
+        }
+    }
 }
 
 @Composable

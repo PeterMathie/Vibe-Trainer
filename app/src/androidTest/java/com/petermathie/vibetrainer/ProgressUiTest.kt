@@ -62,10 +62,24 @@ class ProgressUiTest {
         compose.onNodeWithText("Variations").assertIsDisplayed()
         compose.onAllNodes(hasContentDescription("Progress chart", substring = true)).assertCountEquals(2)
         compose.onNodeWithText("Personal records").assertExists()
-        compose.onNodeWithText("Repetition PR", substring = true).assertExists()
+        compose.onNodeWithText("Best performance").assertExists()
+        compose.onNodeWithText("Longest hold").assertExists()
+        compose.onNodeWithText("Heaviest weight").assertDoesNotExist()
+        compose.onNodeWithText("Estimated 1RM").assertDoesNotExist()
+        compose.onNodeWithText("Repetition PR", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Calculated performance PR", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Skill index is a heuristic", substring = true).assertDoesNotExist()
         compose.onNodeWithContentDescription("How progress works").performClick()
         compose.onNodeWithText("Skill index is a heuristic", substring = true).assertExists()
+        compose.onNodeWithText("Close").performClick()
+
+        compose.onNodeWithText("Handstand").performClick()
+        compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextInput("Bench press")
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Bench press").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasText("Bench press") and !hasSetTextAction()).performClick()
+        compose.onNodeWithText("Heaviest weight").assertExists()
+        compose.onNodeWithText("Estimated 1RM").assertExists()
+        compose.onNodeWithText("Longest hold").assertDoesNotExist()
     }
 
     @Test

@@ -40,7 +40,7 @@ class SessionProgressTest {
         assertEquals(setOf("cm","degrees"),series.keys)
         assertEquals(listOf(10.0,12.0),series.getValue("cm").map { it.romValue })
     }
-    @Test fun recordsExposeRepsSeparatelyFromScoredPerformance(){
+    @Test fun recordsExposeHighestScoredPerformanceInsteadOfRepetitionCount(){
         val lowerScore=emptySet("e",1).copy(weightKg=50.0,reps=12)
         val higherScore=emptySet("e",2).copy(weightKg=100.0,reps=3)
         val points=listOf(
@@ -48,9 +48,23 @@ class SessionProgressTest {
             com.petermathie.vibetrainer.domain.progress.ProgressPoint(2,110.0,higherScore,"",null,emptyList()),
         )
         val records=SessionProgress.records(listOf(lowerScore,higherScore),points)
-        assertEquals(12,records.reps)
         assertEquals(higherScore.id,records.scoredPerformance?.performance?.id)
+        assertEquals(110.0,records.scoredPerformance?.score!!,0.0001)
         assertEquals(110.0,records.estimatedOneRepMaxKg!!,0.0001)
+    }
+    @Test fun recordVisibilityFollowsExerciseTrackingType(){
+        assertEquals(
+            com.petermathie.vibetrainer.domain.progress.PersonalRecordVisibility(true,false,true),
+            SessionProgress.recordVisibility("WEIGHT_REPS"),
+        )
+        assertEquals(
+            com.petermathie.vibetrainer.domain.progress.PersonalRecordVisibility(false,true,false),
+            SessionProgress.recordVisibility("SKILL_HOLD"),
+        )
+        assertEquals(
+            com.petermathie.vibetrainer.domain.progress.PersonalRecordVisibility(false,false,false),
+            SessionProgress.recordVisibility("ASSISTED_REPS"),
+        )
     }
     @Test fun savedVariationRankAndBandDefinitionRemainHistorical(){
         val workout=WorkoutEntity("w",null,"Workout","STRENGTH","FINISHED",1,2,"",80.0,false)

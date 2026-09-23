@@ -5,10 +5,15 @@ import com.petermathie.vibetrainer.data.local.*
 data class ProgressPoint(val date: Long, val score: Double, val performance: WorkoutSetEntity, val notes: String, val variation: String?, val bands: List<String>, val index: Double? = null, val trend: Double? = null, val rank: Int = 0)
 data class PersonalRecords(
     val weightKg: Double?,
-    val reps: Int?,
     val holdMillis: Long?,
     val estimatedOneRepMaxKg: Double?,
     val scoredPerformance: ProgressPoint?,
+)
+
+data class PersonalRecordVisibility(
+    val weight: Boolean,
+    val hold: Boolean,
+    val estimatedOneRepMax: Boolean,
 )
 
 object SessionProgress {
@@ -55,11 +60,16 @@ object SessionProgress {
 
     fun records(sets: List<WorkoutSetEntity>, points: List<ProgressPoint>) = PersonalRecords(
         weightKg = sets.mapNotNull { it.weightKg }.maxOrNull(),
-        reps = sets.flatMap { listOfNotNull(it.reps, it.leftReps, it.rightReps) }.maxOrNull(),
         holdMillis = sets.flatMap { listOfNotNull(it.holdMillis, it.leftHoldMillis, it.rightHoldMillis) }.maxOrNull(),
         estimatedOneRepMaxKg = sets.filter { it.weightKg != null && it.reps != null }
             .maxOfOrNull { it.weightKg!! * (1 + it.reps!! / 30.0) },
         scoredPerformance = points.maxByOrNull { it.score },
+    )
+
+    fun recordVisibility(trackingType: String?) = PersonalRecordVisibility(
+        weight = trackingType == "WEIGHT_REPS",
+        hold = trackingType == "HOLD" || trackingType == "SKILL_HOLD",
+        estimatedOneRepMax = trackingType == "WEIGHT_REPS",
     )
 
     fun romSeries(sets: List<WorkoutSetEntity>): Map<String, List<WorkoutSetEntity>> =
