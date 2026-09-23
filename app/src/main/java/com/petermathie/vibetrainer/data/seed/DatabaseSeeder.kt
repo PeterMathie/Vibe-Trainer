@@ -51,9 +51,9 @@ class DatabaseSeeder @Inject constructor(
                 seedDemo()
                 database.metadataDao().put(SeedMetadataEntity(DEMO_KEY, DEMO_VERSION))
             }
-            if (BuildConfig.DEBUG && database.metadataDao().version("progress_demo") == null) {
+            if (BuildConfig.DEBUG && (database.metadataDao().version(PROGRESS_DEMO_KEY) ?: 0) < PROGRESS_DEMO_VERSION) {
                 if(database.workoutDao().demoCount() > 0) seedProgressDemo()
-                database.metadataDao().put(SeedMetadataEntity("progress_demo",1))
+                database.metadataDao().put(SeedMetadataEntity(PROGRESS_DEMO_KEY,PROGRESS_DEMO_VERSION))
             }
             // Demo records use the same historical snapshots as real workouts.
             val sql=database.openHelper.writableDatabase
@@ -224,17 +224,17 @@ class DatabaseSeeder @Inject constructor(
 
     private suspend fun seedProgressDemo() {
         val now=System.currentTimeMillis()
-        repeat(8) { index ->
-            val finished=now-(8-index)*7*86_400_000L
+        repeat(52) { index ->
+            val finished=now-(52-index)*7*86_400_000L
             val id="demo-progress-$index"
             database.workoutDao().insertWorkout(demoWorkout(id,"Demo — Push progression","demo-day-push",finished,TrainingMode.STRENGTH))
             listOf("core:bench-press","core:planche").forEachIndexed { position, exercise ->
                 val row=WorkoutExerciseEntity("$id:$exercise",id,exercise,exercise,position,"Demo session ${index+1}: ${if(index%3==0)"Harder than usual" else "Controlled technique"}",180,null)
                 database.workoutDao().insertWorkoutExercises(listOf(row))
                 repeat(3) { ordinal ->
-                    val set=WorkoutSetEntity("${row.id}:$ordinal",row.id,ordinal+1,"WORKING","COMPLETED",if(position==1)"planche-tuck" else null,if(position==0)50.0+index*2.5 else null,if(position==0)6-ordinal else null,if(position==1)(6000L+index*1000-ordinal*500) else null,null,null,null,null,null,null,7.0+ordinal*.5,null,null,"",finished-600000+position*180000+ordinal*60000,finished)
+                    val set=WorkoutSetEntity("${row.id}:$ordinal",row.id,ordinal+1,"WORKING","COMPLETED",if(position==1)"planche-tuck" else null,if(position==0)50.0+index*.75+(index%4)*.5 else null,if(position==0)6-ordinal else null,if(position==1)(6000L+index*350-ordinal*500) else null,null,null,null,null,null,null,7.0+ordinal*.5,null,null,"",finished-600000+position*180000+ordinal*60000,finished)
                     database.workoutDao().insertSet(set)
-                    if(position==1)database.workoutDao().insertSetBands(listOf(com.petermathie.vibetrainer.data.local.WorkoutSetBandEntity(set.id,BANDS[if(index<4)2 else 1].id,0)))
+                    if(position==1)database.workoutDao().insertSetBands(listOf(com.petermathie.vibetrainer.data.local.WorkoutSetBandEntity(set.id,BANDS[if(index<26)2 else 1].id,0)))
                 }
             }
         }
@@ -297,6 +297,8 @@ class DatabaseSeeder @Inject constructor(
         private const val CATALOGUE_VERSION = 1
         private const val DEMO_KEY = "debug-demo"
         private const val DEMO_VERSION = 1
+        private const val PROGRESS_DEMO_KEY = "progress_demo"
+        private const val PROGRESS_DEMO_VERSION = 2
 
         private val MUSCLES = listOf(
             "ABDUCTORS" to "Abductors", "ADDUCTORS" to "Adductors", "BACK_LOWER" to "Lower back",

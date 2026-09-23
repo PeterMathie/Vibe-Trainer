@@ -16,7 +16,9 @@ import com.petermathie.vibetrainer.ui.EditorViewModel
 import com.petermathie.vibetrainer.ui.ProgressScreen
 import com.petermathie.vibetrainer.ui.theme.VibeTrainerTheme
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,6 +41,7 @@ class ProgressUiTest {
             database.editorDao().exercise(
                 ExerciseEntity("no-history", "No history exercise", "STRENGTH", "WEIGHT_REPS", null, null, "custom", true),
             )
+            assertEquals(52, database.editorDao().workouts().first().count { it.id.startsWith("demo-progress-") })
         }
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { ProgressScreen(viewModel) } }
@@ -47,13 +50,21 @@ class ProgressUiTest {
         compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextInput("No history exercise")
         compose.onNode(hasText("No history exercise") and !hasSetTextAction()).assertDoesNotExist()
         compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextClearance()
-        compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextInput("Planche")
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("Planche").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNode(hasText("Planche") and !hasSetTextAction()).performClick()
+        compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextInput("Handstand")
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Handstand").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasText("Handstand") and !hasSetTextAction()).performClick()
 
+        compose.onNodeWithText("Variations").performClick()
+        compose.onNodeWithText("Wall handstand").performClick()
+        compose.onNodeWithText("Wall handstand").assertIsDisplayed()
+        compose.onNodeWithText("Wall handstand").performClick()
+        compose.onNodeWithText("All variations").performClick()
+        compose.onNodeWithText("Variations").assertIsDisplayed()
         compose.onAllNodes(hasContentDescription("Progress chart", substring = true)).assertCountEquals(2)
         compose.onNodeWithText("Personal records").assertExists()
         compose.onNodeWithText("Repetition PR", substring = true).assertExists()
+        compose.onNodeWithText("Skill index is a heuristic", substring = true).assertDoesNotExist()
+        compose.onNodeWithContentDescription("How progress works").performClick()
         compose.onNodeWithText("Skill index is a heuristic", substring = true).assertExists()
     }
 

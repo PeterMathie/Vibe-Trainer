@@ -10,10 +10,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,6 +30,7 @@ fun ProgressScreen(vm:EditorViewModel) {
     val exercises by vm.exercises.collectAsStateWithLifecycle();val workouts by vm.workouts.collectAsStateWithLifecycle();val rows by vm.workoutExercises.collectAsStateWithLifecycle()
     val sets by vm.sets.collectAsStateWithLifecycle();val links by vm.setBands.collectAsStateWithLifecycle();val bands by vm.bands.collectAsStateWithLifecycle();val variations by vm.variations.collectAsStateWithLifecycle()
     var exerciseId by remember { mutableStateOf<String?>(null) };var picker by remember { mutableStateOf(false) };var filter by remember { mutableStateOf<String?>(null) };var selected by remember { mutableStateOf<Int?>(null) }
+    var variationMenu by remember { mutableStateOf(false) };var methodology by remember { mutableStateOf(false) }
     val points=exerciseId?.let { SessionProgress.points(it,workouts,rows,sets,links,bands,filter,variations) }.orEmpty()
     val finishedIds=workouts.filter { it.status=="FINISHED" }.map { it.id }.toSet()
     val trackableSetRowIds = sets.filter { SessionProgress.valid(it) || it.romValue != null }.map { it.workoutExerciseId }.toSet()
@@ -36,13 +40,38 @@ fun ProgressScreen(vm:EditorViewModel) {
     val records=SessionProgress.records(valid,points)
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {
-            Text("Progress",style=MaterialTheme.typography.headlineSmall)
-            Button(onClick={picker=true},enabled=eligibleExerciseIds.isNotEmpty()) { Text(exercises.find { it.id==exerciseId }?.canonicalName ?: "Choose exercise") }
+            Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Progress",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f))
+                IconButton(onClick={methodology=true}) { Icon(Icons.Outlined.Info,contentDescription="How progress works") }
+            }
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+                Button(onClick={picker=true},enabled=eligibleExerciseIds.isNotEmpty(),modifier=Modifier.weight(1f)) {
+                    Text(exercises.find { it.id==exerciseId }?.canonicalName ?: "Choose exercise",maxLines=1,overflow=TextOverflow.Ellipsis)
+                }
+                Box(Modifier.weight(1f)) {
+                    val exerciseVariations=variations.filter { it.exerciseId==exerciseId }
+                    OutlinedButton(
+                        onClick={variationMenu=true},
+                        enabled=exerciseVariations.isNotEmpty(),
+                        modifier=Modifier.fillMaxWidth(),
+                    ) {
+                        Text(exerciseVariations.find { it.id==filter }?.name ?: "Variations",maxLines=1,overflow=TextOverflow.Ellipsis)
+                    }
+                    DropdownMenu(expanded=variationMenu,onDismissRequest={variationMenu=false}) {
+                        DropdownMenuItem(
+                            text={Text("All variations")},
+                            onClick={filter=null;selected=null;variationMenu=false},
+                        )
+                        exerciseVariations.forEach { variation ->
+                            DropdownMenuItem(
+                                text={Text(variation.name)},
+                                onClick={filter=variation.id;selected=null;variationMenu=false},
+                            )
+                        }
+                    }
+                }
+            }
             if(eligibleExerciseIds.isEmpty())Text("Complete a working set before an exercise appears here.")
-            TextButton(onClick={filter=null;selected=null}){Text(if(filter==null)"✓ All variations" else "All variations")}
-            variations.filter { it.exerciseId==exerciseId }.forEach { v -> TextButton(onClick={filter=v.id;selected=null}){Text((if(filter==v.id)"✓ " else "")+v.name)} }
-            if(points.size<3)Text("Raw performance shown until three valid sessions establish a baseline of 100.")
-            if(variations.any { it.exerciseId==exerciseId })Text("Skill index is a heuristic: ordered variation level sets the main difficulty, while holds, reps and assistance adjust progress only within the same variation. Baseline 100 is your first three valid sessions; it is not force or a comparison with other people.")
             if(points.isNotEmpty()) {
                 MiniChart(points.map { it.index ?: it.score },points.map { it.trend },points.map { it.date },if(points.any { it.index!=null }) "index" else "score"){selected=it}
                 val last=points.mapNotNull { it.trend }.takeLast(2)
@@ -76,6 +105,12 @@ fun ProgressScreen(vm:EditorViewModel) {
         items(points.reversed()) { p -> TextButton(onClick={selected=points.indexOf(p)}){Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")} }
     }
     if(picker)ProgressExercisePicker(vm,eligibleExerciseIds,{picker=false}){exerciseId=it.id;filter=null;selected=null;picker=false}
+    if(methodology)AlertDialog(
+        onDismissRequest={methodology=false},
+        title={Text("How progress works")},
+        text={Text("The first three valid sessions establish a personal baseline of 100. Before that, charts show raw performance. Skill index is a heuristic: variation order sets the main difficulty; holds, reps and assistance adjust progress only within the same variation.")},
+        confirmButton={TextButton(onClick={methodology=false}){Text("Close")}},
+    )
 }
 
 @Composable
