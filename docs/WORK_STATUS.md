@@ -2,7 +2,9 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-08 stable drag and programme preview is complete at `bbe3818`** on `pmathie-cicpilot-persist-workout-drafts`. Direction-change hysteresis prevents boundary hover from immediately reversing a drag. Tapping a programme name smoothly expands every workout/day exercise and target summary read-only, with decorative motion disabled by the reduced-motion preference. The programme editor’s Back control is now a left chevron with an accessible label.
+Current implementation task: **UX-09 Progress exercise eligibility is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. Progress will use a dedicated, fully scrollable picker containing only exercises with at least one valid progress point from a finished workout, removing the shared catalogue picker’s 100-result cutoff.
+
+UX-08 stable drag and programme preview is complete at `bbe3818`. Direction-change hysteresis prevents boundary hover from immediately reversing a drag. Tapping a programme name smoothly expands every workout/day exercise and target summary read-only, with decorative motion disabled by the reduced-motion preference. The programme editor’s Back control is now a left chevron with an accessible label.
 
 Strength and Stretch share the same `ProgrammeEditor`, reorder state and persistence code. Their seeded data shapes differ: Stretch has one programme with four reorderable workout/day rows, each containing one exercise, so only genuinely singleton handles are hidden. Dedicated Compose coverage proves the Stretch preview and persisted day reorder. The final combined gate passed with 34 unit tests and 42 API 35 instrumentation tests; an initial mode-specific test wait and one known asynchronous History assertion flake passed after the wait correction and clean rerun.
 

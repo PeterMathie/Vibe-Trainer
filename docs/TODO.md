@@ -185,6 +185,14 @@ Strength and Stretch use the same `ProgrammeEditor`, reorder state and persisten
 
 The final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` rerun passed with 34 unit tests and 42 API 35 instrumentation tests. The first combined run exposed and prompted correction of a mode-specific test wait, alongside one known asynchronous History assertion flake; both passed in the clean rerun. The exact `bbe3818` APK has SHA-256 `1c19e3338287da2698d4840c75426def10c889239f63b1159a2c476c002a1f12`. Screenshots under `files/ux-08-final/` show the expanded Strength and Stretch cards, chevron-only editor and Stretch reorder handles. MainActivity remains resumed with PID 25277 and no crash.
 
+### UX-09 — Progress exercise eligibility
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+- [ ] Restrict the Progress exercise picker to exercises with at least one valid progress point from a finished workout.
+- [ ] Replace the shared 100-result catalogue picker so Progress has no artificial alphabetical cutoff and the complete eligible set can scroll.
+- [ ] Cover eligible/ineligible selection and deep scrolling, then run one final validation gate and inspect the installed screen.
+
 ### QA-01 — Real-phone timers
 
 - [ ] Record phone model, Android version and notification/alarm permissions.
