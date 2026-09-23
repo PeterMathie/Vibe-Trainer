@@ -497,6 +497,21 @@ Follow-up `c96b8b0` labels measurements by type, removes explanatory choice-edit
 
 Follow-up `6b872f9` replaces the inline icon strip with a compact button and a scrollable picker of 62 curated habit-relevant icons. It also shortens `Save settings` to `Save` and replaces the textual Add choice control with the standard plus icon. Unit tests and API 35 `HabitUiTest` (2) passed; the exact installed APK was assembled successfully with SHA-256 `515da56c8446d2c89c1fdd19169bc738e3abf64f71da26ca09a3857efb8bac5b`. Inspected evidence is under `files/ux-29-icon-picker/`.
 
+### UX-26 — Habit, anatomy and secondary-screen polish
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Use an icon-only habit picker, a full-width standard plus control, a centered Cancel action and a title-row New habit action.
+- [x] Show persisted habit icons on Progress heat-map cards.
+- [x] Render never-trained mapped muscles with the neutral recency colour instead of transparency.
+- [x] Separate the exercise database into Strength and Stretching sections and keep all results scrollable.
+- [x] Space exercise and History actions evenly and use shared outlined buttons/cards instead of the unrelated tonal fill.
+- [x] Show only kilograms in exercise settings unless the existing Pounds setting is enabled, then show pounds.
+- [x] Put corrected icons on the left of More actions, including exercise and cog Settings icons.
+- [x] Add four coherent built-in palettes and show every semantic palette colour while excluding habit indicator colours.
+
+Evidence: `f843253` implements the habit, Progress and anatomy refinements. `c9bf07b` modernizes Exercises, History, More and Style while reusing exercise tags, the existing `lb` preference, shared cards/actions and the central palette registry. Unit tests passed, including contrast validation for all six built-in palettes. Focused API 35 instrumentation passed for `ExerciseEditorUiTest`, `HistoryUiTest`, `NavigationUiTest`, `StyleUiTest`, `HabitUiTest`, `ProgressUiTest` and `MuscleMapUiTest`. The exact installed APK SHA-256 is `41f65144b47d7713371f9f21484d51a53d3fa7c1523583b45972f5f52b9b6f39`; inspected evidence is under `files/ux-30-ui-modernization/`.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.
