@@ -1,6 +1,7 @@
 package com.petermathie.vibetrainer.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,13 +29,16 @@ fun ProgressScreen(vm:EditorViewModel) {
     var exerciseId by remember { mutableStateOf<String?>(null) };var picker by remember { mutableStateOf(false) };var filter by remember { mutableStateOf<String?>(null) };var selected by remember { mutableStateOf<Int?>(null) }
     val points=exerciseId?.let { SessionProgress.points(it,workouts,rows,sets,links,bands,filter,variations) }.orEmpty()
     val finishedIds=workouts.filter { it.status=="FINISHED" }.map { it.id }.toSet()
+    val trackableSetRowIds = sets.filter { SessionProgress.valid(it) || it.romValue != null }.map { it.workoutExerciseId }.toSet()
+    val eligibleExerciseIds = rows.filter { it.workoutId in finishedIds && it.id in trackableSetRowIds }.map { it.actualExerciseId }.toSet()
     val exerciseRows=rows.filter { it.actualExerciseId==exerciseId && it.workoutId in finishedIds }.map { it.id }.toSet()
     val valid=sets.filter { it.workoutExerciseId in exerciseRows && SessionProgress.valid(it) && (filter==null || it.variationId==filter) }
     val records=SessionProgress.records(valid,points)
     LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         item {
             Text("Progress",style=MaterialTheme.typography.headlineSmall)
-            Button(onClick={picker=true}) { Text(exercises.find { it.id==exerciseId }?.canonicalName ?: "Choose exercise") }
+            Button(onClick={picker=true},enabled=eligibleExerciseIds.isNotEmpty()) { Text(exercises.find { it.id==exerciseId }?.canonicalName ?: "Choose exercise") }
+            if(eligibleExerciseIds.isEmpty())Text("Complete a working set before an exercise appears here.")
             TextButton(onClick={filter=null;selected=null}){Text(if(filter==null)"✓ All variations" else "All variations")}
             variations.filter { it.exerciseId==exerciseId }.forEach { v -> TextButton(onClick={filter=v.id;selected=null}){Text((if(filter==v.id)"✓ " else "")+v.name)} }
             if(points.size<3)Text("Raw performance shown until three valid sessions establish a baseline of 100.")
@@ -71,7 +75,57 @@ fun ProgressScreen(vm:EditorViewModel) {
         }
         items(points.reversed()) { p -> TextButton(onClick={selected=points.indexOf(p)}){Text("${Instant.ofEpochMilli(p.date).atZone(ZoneId.systemDefault()).toLocalDate()} · ${setDescription(p.performance)}")} }
     }
-    if(picker)ExercisePicker(vm,{picker=false}){exerciseId=it.id;filter=null;selected=null;picker=false}
+    if(picker)ProgressExercisePicker(vm,eligibleExerciseIds,{picker=false}){exerciseId=it.id;filter=null;selected=null;picker=false}
+}
+
+@Composable
+private fun ProgressExercisePicker(
+    vm: EditorViewModel,
+    eligibleExerciseIds: Set<String>,
+    onDismiss: () -> Unit,
+    onChoose: (com.petermathie.vibetrainer.data.local.ExerciseEntity) -> Unit,
+) {
+    val exercises by vm.exercises.collectAsStateWithLifecycle()
+    val aliases by vm.aliases.collectAsStateWithLifecycle()
+    val mappings by vm.mappings.collectAsStateWithLifecycle()
+    val muscles by vm.muscles.collectAsStateWithLifecycle()
+    var query by remember { mutableStateOf("") }
+    val aliasIds = aliases.filter { it.alias.contains(query, true) }.map { it.exerciseId }.toSet()
+    val muscleIds = muscles.filter { it.displayName.contains(query, true) }.map { it.id }.toSet()
+    val mappedIds = mappings.filter { it.muscleId in muscleIds }.map { it.exerciseId }.toSet()
+    val available = exercises.filter {
+        it.id in eligibleExerciseIds &&
+            !it.isArchived &&
+            (it.canonicalName.contains(query, true) || it.id in aliasIds || it.id in mappedIds)
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choose exercise") },
+        text = {
+            Column {
+                OutlinedTextField(query, { query = it }, label = { Text("Name, alias or muscle") })
+                LazyColumn(
+                    Modifier
+                        .heightIn(max = 420.dp)
+                        .semantics { contentDescription = "Eligible progress exercises" },
+                ) {
+                    if (available.isEmpty()) {
+                        item { Text("No matching exercises with progress data") }
+                    }
+                    items(available, key = { it.id }) { exercise ->
+                        Text(
+                            exercise.canonicalName,
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { onChoose(exercise) }
+                                .padding(vertical = 14.dp),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
 }
 
 @Composable
