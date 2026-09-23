@@ -13,6 +13,7 @@ import com.petermathie.vibetrainer.domain.model.TrainingMode
 import com.petermathie.vibetrainer.ui.theme.VibeTrainerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
@@ -37,10 +38,13 @@ class EndUserControlsTest {
         compose.onNodeWithContentDescription("Activity date navigation").assertExists()
         compose.onNodeWithText("Earlier").assertExists()
         compose.onNodeWithText("Later").assertExists()
+        val earlierCenter = compose.onNodeWithText("Earlier").fetchSemanticsNode().boundsInRoot.center.y
+        val laterCenter = compose.onNodeWithText("Later").fetchSemanticsNode().boundsInRoot.center.y
+        assertTrue(kotlin.math.abs(earlierCenter - laterCenter) < 2f)
         compose.onNodeWithText("Strength").assertIsDisplayed()
         compose.onNodeWithText("Stretch").assertIsDisplayed().performClick()
         assertEquals(TrainingMode.STRETCHING, selectedMode)
-        compose.onNodeWithContentDescription("Home recency date").performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) {
+        compose.onNodeWithContentDescription("Home recency date").performSemanticsAction(SemanticsActions.SetProgress) {
             it((LocalDate.now().toEpochDay() - 10).toFloat())
         }
         compose.waitUntil(15_000) { previewDay != null }

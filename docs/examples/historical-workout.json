@@ -6,7 +6,9 @@
       "id": "example-planche", "canonicalName": "Example planche practice",
       "tag": "STRENGTH", "trackingType": "SKILL_HOLD", "equipment": "Resistance bands",
       "instructions": "Example custom exercise for demonstrating historical imports.",
-      "source": "custom", "isCustom": true, "isArchived": false
+      "source": "custom", "isCustom": true, "isArchived": false, "inputConfig": "HOLD",
+      "targetSets": 1, "targetRepsMin": null, "targetRepsMax": null, "targetRpe": 8.0,
+      "restSeconds": 180
     }],
     "exercise_aliases": [{"exerciseId": "example-planche", "alias": "Example tuck", "normalizedAlias": "example tuck"}],
     "exercise_muscles": [
@@ -25,7 +27,7 @@
       "plannedExerciseId": "example-planche", "actualExerciseId": "example-planche",
       "position": 0, "notes": "Three bands used together; hold time corrected after stopping the timer.",
       "restSeconds": 180, "supersetGroup": null, "exerciseName": "Example planche practice",
-      "trackingType": "SKILL_HOLD", "targets": "1 hold"
+      "trackingType": "SKILL_HOLD", "targets": "1 hold", "inputConfig": "HOLD"
     }],
     "workout_muscles": [
       {"workoutExerciseId": "example-workout-exercise", "muscleId": "SHOULDERS_FRONT", "role": "PRIMARY"},
