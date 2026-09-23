@@ -1,5 +1,6 @@
 package com.petermathie.vibetrainer.ui
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,12 +31,15 @@ fun TrackerScreen(vm: EditorViewModel) {
         items(trackers, key = { it.id }) { tracker ->
             val trackerFields = fields.filter { it.trackerId == tracker.id }
             val activeFields = trackerFields.filterNot { it.isArchived }.sortedBy { it.position }
+            val fieldOrder = rememberReorderState(activeFields.map { it.id }) { key, from, to ->
+                vm.moveTrackerField(key as String, to - from)
+            }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Text(tracker.name, style = MaterialTheme.typography.titleLarge)
                     Row {
-                        TextButton(onClick = { edit = tracker }) { Text("Rename") }
-                        TextButton(onClick = {
+                        VibeActionButton("Rename", { edit = tracker }, importance = ActionImportance.COMPACT)
+                        VibeActionButton("Add field", {
                             field = TrackerFieldEntity(
                                 newId(),
                                 tracker.id,
@@ -46,18 +50,19 @@ fun TrackerScreen(vm: EditorViewModel) {
                                 null,
                                 activeFields.size,
                             )
-                        }) { Text("Add field") }
-                        TextButton(onClick = { vm.save(tracker.copy(isArchived = true)) }) { Text("Archive") }
+                        }, importance = ActionImportance.COMPACT)
+                        VibeActionButton("Archive", { vm.save(tracker.copy(isArchived = true)) }, importance = ActionImportance.COMPACT)
                     }
-                    activeFields.forEachIndexed { index, habitField ->
-                        HabitDailyInput(vm, habitField, values.find { it.fieldId == habitField.id && it.epochDay == epoch }, epoch)
-                        TargetSummary(habitField)
-                        Row {
-                            TextButton(onClick = { field = habitField }) { Text("Edit") }
-                            TextButton(enabled = index > 0, onClick = { vm.moveTrackerField(habitField.id, -1) }) { Text("↑") }
-                            TextButton(enabled = index < activeFields.lastIndex, onClick = { vm.moveTrackerField(habitField.id, 1) }) { Text("↓") }
-                            TextButton(onClick = { vm.save(habitField.copy(isArchived = true)) }) { Text("Archive") }
-                            TextButton(enabled = epoch != null, onClick = { epoch?.let { vm.clearValue(habitField.id, it) } }) { Text("Clear day") }
+                    fieldOrder.ordered(activeFields) { it.id }.forEach { habitField ->
+                        Column(Modifier.animateContentSize()) {
+                            HabitDailyInput(vm, habitField, values.find { it.fieldId == habitField.id && it.epochDay == epoch }, epoch)
+                            TargetSummary(habitField)
+                            Row {
+                                VibeActionButton("Edit", { field = habitField }, importance = ActionImportance.COMPACT)
+                                ReorderHandle(fieldOrder, habitField.id, habitField.name)
+                                VibeActionButton("Archive", { vm.save(habitField.copy(isArchived = true)) }, importance = ActionImportance.COMPACT)
+                                VibeActionButton("Clear", { epoch?.let { vm.clearValue(habitField.id, it) } }, importance = ActionImportance.COMPACT, enabled = epoch != null)
+                            }
                         }
                     }
                     val archived = trackerFields.filter { it.isArchived }
@@ -66,9 +71,9 @@ fun TrackerScreen(vm: EditorViewModel) {
                         archived.forEach { archivedField ->
                             Row {
                                 Text(archivedField.name, modifier = Modifier.weight(1f))
-                                TextButton(onClick = {
+                                VibeActionButton("Restore", {
                                     vm.save(archivedField.copy(isArchived = false, position = activeFields.size))
-                                }) { Text("Restore") }
+                                }, importance = ActionImportance.COMPACT)
                             }
                         }
                     }

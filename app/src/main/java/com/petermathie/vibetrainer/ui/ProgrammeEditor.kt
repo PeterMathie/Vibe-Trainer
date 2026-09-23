@@ -29,58 +29,64 @@ fun ProgrammeEditor(vm: EditorViewModel, mode: TrainingMode, onStart: (String) -
     var editDay by remember { mutableStateOf<ProgrammeDayEntity?>(null) }
     var editEntry by remember { mutableStateOf<ProgrammeExerciseEntity?>(null) }
     var addExercise by rememberSaveable { mutableStateOf(false) }
+    val programmeRows = programmes.filter { it.mode == mode.name }.sortedBy { it.position }
+    val dayRows = days.filter { it.programmeId == selected }.sortedBy { it.position }
+    val entryRows = entries.filter { it.programmeDayId == dayId }.sortedBy { it.position }
+    val programmeOrder = rememberReorderState(programmeRows.map { it.id }) { key, from, to ->
+        vm.moveProgramme(key as String, to - from)
+    }
+    val dayOrder = rememberReorderState(dayRows.map { it.id }) { key, from, to ->
+        vm.moveDay(key as String, to - from)
+    }
+    val entryOrder = rememberReorderState(entryRows.map { it.id }) { key, from, to ->
+        vm.moveEntry(key as String, to - from)
+    }
     BackHandler(selected != null) { if (dayId != null) dayId = null else selected = null }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             Row {
-                if (selected != null) TextButton(onClick = { if (dayId != null) dayId = null else selected = null }) { Text("Back") }
+                if (selected != null) VibeActionButton("Back", { if (dayId != null) dayId = null else selected = null }, importance = ActionImportance.COMPACT)
                 Text(if (dayId != null) days.find { it.id == dayId }?.name.orEmpty() else programmes.find { it.id == selected }?.name ?: "Programmes", style = MaterialTheme.typography.headlineSmall)
             }
         }
         if (selected == null) {
             item { Button(onClick = { rename = ProgrammeEntity(newId(), "", mode.name, false) }) { Text("Create programme") } }
-            items(programmes.filter { it.mode == mode.name }, key = { it.id }) { p ->
-                Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
-                    TextButton(onClick = { selected = p.id }) { Text(p.name) }
+            items(programmeOrder.ordered(programmeRows) { it.id }, key = { it.id }) { p ->
+                Card(Modifier.fillMaxWidth().animateItem()) { Column(Modifier.padding(12.dp)) {
+                    VibeActionButton(p.name, { selected = p.id }, modifier = Modifier.fillMaxWidth(), importance = ActionImportance.PRIMARY)
                     Row {
-                        TextButton(onClick = { rename = p }) { Text("Rename") }
-                        TextButton(onClick = { vm.duplicate(p) }) { Text("Duplicate") }
-                        TextButton(onClick = { vm.save(p.copy(isArchived = true)) }) { Text("Archive") }
+                        VibeActionButton("Rename", { rename = p }, importance = ActionImportance.COMPACT)
+                        VibeActionButton("Duplicate", { vm.duplicate(p) }, importance = ActionImportance.COMPACT)
+                        VibeActionButton("Archive", { vm.save(p.copy(isArchived = true)) }, importance = ActionImportance.COMPACT)
+                        ReorderHandle(programmeOrder, p.id, p.name)
                     }
-                    Row { TextButton(onClick={vm.moveProgramme(p.id,-1)}){Text("Move up")};TextButton(onClick={vm.moveProgramme(p.id,1)}){Text("Move down")} }
                 } }
             }
         } else if (dayId == null) {
             item { Button(onClick = { editDay = ProgrammeDayEntity(newId(), selected!!, "", days.count { it.programmeId == selected }) }) { Text("Add day") } }
-            val siblings = days.filter { it.programmeId == selected }.sortedBy { it.position }
-            items(siblings, key = { it.id }) { d ->
-                Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+            items(dayOrder.ordered(dayRows) { it.id }, key = { it.id }) { d ->
+                Card(Modifier.fillMaxWidth().animateItem()) { Column(Modifier.padding(12.dp)) {
                     Text(d.name, style = MaterialTheme.typography.titleLarge)
                     Row {
-                        TextButton(onClick = { dayId = d.id }) { Text("Exercises") }
-                        TextButton(onClick = { onStart(d.id) }) { Text("Start") }
-                        TextButton(onClick = { editDay = d }) { Text("Rename") }
-                    }
-                    Row {
-                        TextButton(onClick = { vm.moveDay(d.id,-1) }, enabled = siblings.firstOrNull()?.id != d.id) { Text("Move up") }
-                        TextButton(onClick = { vm.moveDay(d.id,1) }, enabled = siblings.lastOrNull()?.id != d.id) { Text("Down") }
-                        TextButton(onClick = { vm.removeDay(d.id) }) { Text("Delete day") }
+                        VibeActionButton("Exercises", { dayId = d.id }, importance = ActionImportance.PRIMARY)
+                        VibeActionButton("Start", { onStart(d.id) }, importance = ActionImportance.SECONDARY)
+                        VibeActionButton("Rename", { editDay = d }, importance = ActionImportance.COMPACT)
+                        ReorderHandle(dayOrder, d.id, d.name)
+                        VibeActionButton("Delete", { vm.removeDay(d.id) }, importance = ActionImportance.COMPACT)
                     }
                 } }
             }
         } else {
             item { Button(onClick = { addExercise = true }) { Text("Add exercise") } }
-            val siblings = entries.filter { it.programmeDayId == dayId }.sortedBy { it.position }
-            items(siblings, key = { it.id }) { e ->
-                Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+            items(entryOrder.ordered(entryRows) { it.id }, key = { it.id }) { e ->
+                Card(Modifier.fillMaxWidth().animateItem()) { Column(Modifier.padding(12.dp)) {
                     Text(exercises.find { it.id == e.exerciseId }?.canonicalName.orEmpty(), style = MaterialTheme.typography.titleMedium)
                     Text("${e.targetSets ?: 3} sets · ${e.targetRepsMin ?: e.targetHoldSeconds ?: 0}${if (e.targetHoldSeconds != null) " sec" else " reps"} · ${e.restSeconds}s rest")
                     e.supersetGroup?.let { Text("Circuit: $it") }
                     Row {
-                        TextButton(onClick = { editEntry = e }) { Text("Targets") }
-                        TextButton(onClick = { vm.moveEntry(e.id,-1) }, enabled = siblings.firstOrNull()?.id != e.id) { Text("Up") }
-                        TextButton(onClick = { vm.moveEntry(e.id,1) }, enabled = siblings.lastOrNull()?.id != e.id) { Text("Down") }
-                        TextButton(onClick = { vm.removeEntry(e.id) }) { Text("Remove") }
+                        VibeActionButton("Targets", { editEntry = e }, importance = ActionImportance.COMPACT)
+                        ReorderHandle(entryOrder, e.id, exercises.find { it.id == e.exerciseId }?.canonicalName.orEmpty())
+                        VibeActionButton("Remove", { vm.removeEntry(e.id) }, importance = ActionImportance.COMPACT)
                     }
                 } }
             }

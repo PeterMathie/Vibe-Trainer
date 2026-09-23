@@ -1,5 +1,6 @@
 package com.petermathie.vibetrainer.ui
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,17 +31,18 @@ fun ExerciseEditor(vm: EditorViewModel) {
                 Text(e.canonicalName,style=MaterialTheme.typography.titleMedium)
                 Text(mappings.filter { it.exerciseId==e.id }.joinToString { m -> "${muscles.find { it.id==m.muscleId }?.displayName} (${m.role.lowercase()})" },style=MaterialTheme.typography.bodySmall)
                 Row {
-                    TextButton(onClick={selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id)}) { Text(if(e.isCustom)"Edit" else "Duplicate") }
-                    TextButton(onClick={variation=e.id}){Text("Add variation")}
+                    VibeActionButton(if(e.isCustom)"Edit" else "Duplicate", { selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id) }, importance = ActionImportance.COMPACT)
+                    VibeActionButton("Add variation", { variation=e.id }, importance = ActionImportance.COMPACT)
                 }
-                if(e.isCustom) TextButton(onClick={vm.saveExercise(e.copy(isArchived=true),aliases.filter { it.exerciseId==e.id }.map { it.alias },mappings.filter { it.exerciseId==e.id }.associate { it.muscleId to it.role })}){Text("Archive")}
-                variations.filter { it.exerciseId==e.id }.sortedBy { it.progressionRank }.forEach { v ->
-                    Row {
+                if(e.isCustom) VibeActionButton("Archive", { vm.saveExercise(e.copy(isArchived=true),aliases.filter { it.exerciseId==e.id }.map { it.alias },mappings.filter { it.exerciseId==e.id }.associate { it.muscleId to it.role }) }, importance = ActionImportance.COMPACT)
+                val exerciseVariations = variations.filter { it.exerciseId==e.id }.sortedBy { it.progressionRank }
+                val variationOrder = rememberReorderState(exerciseVariations.map { it.id }) { key, from, to ->
+                    vm.moveVariation(key as String, to - from)
+                }
+                variationOrder.ordered(exerciseVariations) { it.id }.forEach { v ->
+                    Row(Modifier.animateContentSize()) {
                         Text(v.name,Modifier.weight(1f))
-                        if(!v.isSeeded) {
-                            TextButton(onClick={vm.moveVariation(v.id,-1)}){Text("Up")}
-                            TextButton(onClick={vm.moveVariation(v.id,1)}){Text("Down")}
-                        }
+                        ReorderHandle(variationOrder, v.id, v.name, enabled = !v.isSeeded)
                     }
                 }
             } }

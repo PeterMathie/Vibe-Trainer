@@ -73,10 +73,12 @@ The initial docs-only claim at `160e9cc` is superseded by the user-approved thre
 
 Checkpoint 1 — global controls and Home:
 
-- [ ] Remove the repeated product/header copy from page content and remove the three specified Home headings while retaining the recency maps and heat map as the visual focus.
-- [ ] Replace naked clickable action text with reusable, importance-appropriate action controls.
-- [ ] Replace textual reorder controls in every ordered list with a consistent six-dot drag handle, stable-key drag/drop, placement animation, persistence on completed drag and accessibility reorder actions.
-- [ ] Keep Earlier, date range and Later in one coherent Home row; add focused semantics/interaction evidence.
+- [x] Remove the repeated product/header copy from page content and remove the three specified Home headings while retaining the recency maps and heat map as the visual focus.
+- [x] Replace naked clickable action text on the affected list/action surfaces with reusable, importance-appropriate action controls.
+- [x] Replace textual reorder controls in every ordered list with a consistent six-dot drag handle, stable-key drag/drop, placement animation, persistence on completed drag and accessibility reorder actions.
+- [x] Keep Earlier, date range and Later in one coherent Home row; add focused semantics/interaction evidence.
+
+Checkpoint 1 evidence: `ActionControls.kt` provides the shared action hierarchy, stable-key preview order, completion-only persistence and equivalent Move earlier/Move later accessibility actions. Programme, day, programme-exercise, tracker-field and variation lists use the six-dot handle; no textual Up/Down/Move controls remain. `EndUserControlsTest` verifies the removed Home copy, coherent date-navigation semantics and one completed drag producing exactly one persisted move. Focused `EndUserControlsTest`, `ProgrammeUiTest` and `HabitUiTest` passed on the API 35 emulator.
 
 Checkpoint 2 — discoverable navigation:
 

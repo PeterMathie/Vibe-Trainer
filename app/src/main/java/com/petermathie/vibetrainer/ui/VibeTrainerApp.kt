@@ -42,9 +42,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -138,7 +135,6 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
             },
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
-                AppHeader(state.mode, viewModel::setMode)
                 if(error != null) TextButton(onClick = { editor.error.value = null }) { Text(error.orEmpty(),color=MaterialTheme.colorScheme.error) }
                 when (destination) {
                     Destination.HOME -> HomeScreen(state, viewModel::selectHistoryDay) { destination = Destination.WORKOUT }
@@ -185,42 +181,12 @@ internal fun rememberVibePalette(prefs: android.content.SharedPreferences): Vibe
     ) else VibePalettes.builtIns[id] ?: VibePalettes.MidnightLime
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppHeader(mode: TrainingMode, onModeChange: (TrainingMode) -> Unit) {
-    val palette = LocalVibePalette.current
-    Row(
-        Modifier.fillMaxWidth().background(palette.background).padding(horizontal = VibeSpacing.medium, vertical = VibeSpacing.small),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("VIBE TRAINER", color = palette.accent, style = MaterialTheme.typography.labelLarge)
-            Text("Training log", style = MaterialTheme.typography.titleLarge)
-        }
-        SingleChoiceSegmentedButtonRow {
-            TrainingMode.entries.forEachIndexed { index, item ->
-                SegmentedButton(
-                    selected = mode == item,
-                    onClick = { onModeChange(item) },
-                    shape = SegmentedButtonDefaults.itemShape(index, TrainingMode.entries.size),
-                    label = { Text(if (item == TrainingMode.STRENGTH) "Strength" else "Stretch") },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinue: () -> Unit) {
+internal fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinue: () -> Unit) {
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     var selectedMuscle by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = state.recency.firstOrNull { it.muscleId == selectedMuscle }
     ScreenList {
-        item {
-            Text("Overview", style = MaterialTheme.typography.headlineLarge)
-            Text("Recency, not recovery or fatigue", color = LocalVibePalette.current.textSecondary)
-        }
         state.activeWorkout?.let { workout ->
             item {
                 VibeCard {
@@ -267,7 +233,6 @@ private fun HomeScreen(state: MainUiState, onDayClick: (Long) -> Unit, onContinu
         item {
             VibeCard {
                 Text("LAST 5 WEEKS", color = LocalVibePalette.current.accent, style = MaterialTheme.typography.labelLarge)
-                Text("Habits, workouts and stretching", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(8.dp))
                 ActivityHeatmap(state.activityDays, onDayClick)
                 Text("0 neutral · 1 light · 2 medium · 3+ dark", color = LocalVibePalette.current.textFaint, style = MaterialTheme.typography.bodyMedium)
@@ -283,10 +248,19 @@ fun ActivityHeatmap(days: List<ActivityDay>, onDayClick: (Long) -> Unit) {
     var offset by rememberSaveable { mutableStateOf(0L) }
     val today = LocalDate.now().toEpochDay() + offset
     val start = today - 34
-    Row {
-        TextButton(onClick={offset-=35}){Text("Earlier")}
-        Text("${LocalDate.ofEpochDay(start)} – ${LocalDate.ofEpochDay(today)}",Modifier.weight(1f),style=MaterialTheme.typography.labelSmall)
-        TextButton(onClick={offset=(offset+35).coerceAtMost(0)},enabled=offset<0){Text("Later")}
+    Row(
+        Modifier.fillMaxWidth().semantics { contentDescription = "Activity date navigation" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        VibeActionButton("Earlier", { offset -= 35 }, importance = ActionImportance.COMPACT)
+        Text(
+            "${LocalDate.ofEpochDay(start).format(DateTimeFormatter.ofPattern("d MMM"))} – ${LocalDate.ofEpochDay(today).format(DateTimeFormatter.ofPattern("d MMM"))}",
+            Modifier.weight(1f),
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        VibeActionButton("Later", { offset = (offset + 35).coerceAtMost(0) }, importance = ActionImportance.COMPACT, enabled = offset < 0)
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         repeat(5) { week ->
