@@ -28,6 +28,7 @@ import com.petermathie.vibetrainer.domain.model.TrackingType
 import com.petermathie.vibetrainer.domain.model.TrainingMode
 import com.petermathie.vibetrainer.domain.model.WorkoutStatus
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -168,6 +169,7 @@ class DatabaseSeeder @Inject constructor(
 
     private suspend fun seedProgressDemo() {
         database.openHelper.writableDatabase.execSQL("DELETE FROM workouts WHERE id LIKE 'demo-progress-%'")
+        database.openHelper.writableDatabase.execSQL("DELETE FROM body_measurements WHERE isDemo = 1")
         val now = System.currentTimeMillis()
         val programmes = listOf(
             Triple("push", "demo-day-push", "Planche + Push"),
@@ -228,6 +230,38 @@ class DatabaseSeeder @Inject constructor(
         database.workoutDao().insertWorkoutExercises(rows)
         database.workoutDao().insertSets(sets)
         database.workoutDao().insertSetBands(bandLinks)
+        repeat(52) { week ->
+            val recordedAt = now - (52 - week) * 7 * 86_400_000L
+            database.editorDao().measurement(
+                com.petermathie.vibetrainer.data.local.BodyMeasurementEntity(
+                    id = "demo-bodyweight-$week",
+                    recordedAt = recordedAt,
+                    metric = "Bodyweight",
+                    value = 78.0 - week * 0.07 + (week % 5 - 2) * 0.08,
+                    unit = "kg",
+                    notes = "",
+                    isDemo = true,
+                ),
+            )
+            val weekStart = Instant.ofEpochMilli(recordedAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toEpochDay()
+            repeat(7) { day ->
+                if (day in listOf(0, 2, 4, 6)) {
+                    database.trackerDao().upsertValue(
+                        TrackerDailyValueEntity("demo-piano-minutes", weekStart + day, 20.0 + week / 4.0, null, null, "", now),
+                    )
+                }
+                if (day < 5) {
+                    database.trackerDao().upsertValue(
+                        TrackerDailyValueEntity("demo-meditation-minutes", weekStart + day, 10.0 + (week % 4), null, null, "", now),
+                    )
+                }
+                if (day != 5) {
+                    database.trackerDao().upsertValue(
+                        TrackerDailyValueEntity("demo-protein-grams", weekStart + day, 115.0 + (week + day) % 18, null, null, "", now),
+                    )
+                }
+            }
+        }
     }
 
     private fun progressDirection(exerciseId: String): Int = when (exerciseId) {
@@ -354,7 +388,7 @@ class DatabaseSeeder @Inject constructor(
         private const val SCHEDULE_FREE_DEMO_KEY = "schedule_free_demo"
         private const val SCHEDULE_FREE_DEMO_VERSION = 1
         private const val PROGRESS_DEMO_KEY = "progress_demo"
-        private const val PROGRESS_DEMO_VERSION = 3
+        private const val PROGRESS_DEMO_VERSION = 4
 
         private val MUSCLES = listOf(
             "ABDUCTORS" to "Abductors", "ADDUCTORS" to "Adductors", "BACK_LOWER" to "Lower back",
@@ -486,9 +520,9 @@ class DatabaseSeeder @Inject constructor(
         }
 
         private val DEMO_TRACKERS = listOf(
-            TrackerEntity("demo-piano", "Piano", true),
-            TrackerEntity("demo-meditation", "Meditation", true),
-            TrackerEntity("demo-protein", "Protein", true),
+            TrackerEntity("demo-piano", "Piano", true, colourArgb = 0xFF7E57C2L),
+            TrackerEntity("demo-meditation", "Meditation", true, colourArgb = 0xFF26A69AL),
+            TrackerEntity("demo-protein", "Protein", true, colourArgb = 0xFFEF5350L),
         )
         private val DEMO_TRACKER_FIELDS = listOf(
             TrackerFieldEntity("demo-piano-minutes", "demo-piano", "Duration", "DURATION", "min", null, null, 0),

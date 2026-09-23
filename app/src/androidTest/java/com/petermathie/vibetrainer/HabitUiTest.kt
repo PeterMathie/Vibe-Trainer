@@ -38,6 +38,10 @@ class HabitUiTest {
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { TrackerScreen(viewModel) } }
 
+        compose.onNodeWithContentDescription("Set Wellbeing colour 2").performClick()
+        compose.waitUntil(15_000) {
+            runBlocking { database.editorDao().trackers().first().single().colourArgb == 0xFF42A5F5L }
+        }
         compose.onNodeWithText("Add field").performClick()
         compose.onNode(hasText("Name") and hasSetTextAction()).performTextInput("Mood")
         compose.onNodeWithText("choice").performClick()

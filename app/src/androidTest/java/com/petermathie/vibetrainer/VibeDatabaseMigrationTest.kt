@@ -9,6 +9,7 @@ import com.petermathie.vibetrainer.data.local.MIGRATION_4_5
 import com.petermathie.vibetrainer.data.local.MIGRATION_5_6
 import com.petermathie.vibetrainer.data.local.MIGRATION_6_7
 import com.petermathie.vibetrainer.data.local.MIGRATION_7_8
+import com.petermathie.vibetrainer.data.local.MIGRATION_8_9
 import com.petermathie.vibetrainer.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -219,7 +220,23 @@ class VibeDatabaseMigrationTest {
                     val exercises = mutableListOf<String>()
                     while (it.moveToNext()) exercises += it.getString(0)
                     assertEquals(listOf("core:front-split", "core:forward-fold", "core:side-split", "core:bridge"), exercises)
-}
-        }
+                }
             }
+        }
+
+    @Test
+    fun migrate8To9AddsPersistentHabitColour() {
+        helper.createDatabase(databaseName, 8).apply {
+            execSQL("INSERT INTO trackers (id,name,isDemo,isArchived) VALUES ('habit','Meditation',0,0)")
+            close()
+        }
+
+        helper.runMigrationsAndValidate(databaseName, 9, true, MIGRATION_8_9).use { migrated ->
+            migrated.query("SELECT name,colourArgb FROM trackers WHERE id='habit'").use {
+                assertTrue(it.moveToFirst())
+                assertEquals("Meditation", it.getString(0))
+                assertEquals(4283215696L, it.getLong(1))
+            }
+        }
     }
+}

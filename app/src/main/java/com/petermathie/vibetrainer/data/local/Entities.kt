@@ -330,6 +330,7 @@ data class TrackerEntity(
     val name: String,
     val isDemo: Boolean,
     val isArchived: Boolean = false,
+    @androidx.room.ColumnInfo(defaultValue = "4283215696") val colourArgb: Long = 0xFF4CAF50L,
 )
 
 @Entity(

@@ -15,8 +15,25 @@ data class PersonalRecordVisibility(
     val hold: Boolean,
     val estimatedOneRepMax: Boolean,
 )
+data class AggregateProgressPoint(val date: Long, val averageIndex: Double, val exerciseCount: Int)
 
 object SessionProgress {
+    fun aggregate(pointsByExercise: Map<String, List<ProgressPoint>>): List<AggregateProgressPoint> {
+        val weeklyByExercise = pointsByExercise.mapValues { (_, points) ->
+            points.filter { it.index != null }
+                .groupBy { java.time.Instant.ofEpochMilli(it.date).atZone(java.time.ZoneOffset.UTC).toLocalDate().toEpochDay() / 7 }
+                .mapValues { (_, values) -> values.mapNotNull { it.index }.average() }
+        }
+        return weeklyByExercise.values.flatMap { it.keys }.distinct().sorted().mapNotNull { week ->
+            val values = weeklyByExercise.values.mapNotNull { it[week] }
+            if (values.isEmpty()) null else AggregateProgressPoint(
+                date = java.time.LocalDate.ofEpochDay(week * 7 + 6).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(),
+                averageIndex = values.average(),
+                exerciseCount = values.size,
+            )
+        }
+    }
+
     fun valid(s: WorkoutSetEntity): Boolean = s.setType == "WORKING" && s.result == "COMPLETED" && s.romValue == null && ((s.reps ?: 0)>0 || (s.holdMillis ?: 0)>0 || (s.leftReps ?: 0)>0 || (s.rightReps ?: 0)>0 || (s.leftHoldMillis ?: 0)>0 || (s.rightHoldMillis ?: 0)>0)
     fun score(s: WorkoutSetEntity, bodyweight: Double?, width: Double, trackingType: String? = null): Double? {
         if(!valid(s)) return null

@@ -1,6 +1,8 @@
 package com.petermathie.vibetrainer.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -9,6 +11,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
@@ -19,22 +23,40 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.domain.progress.SessionProgress
 import com.petermathie.vibetrainer.domain.model.ActivityDay
 import java.time.Instant
 import java.time.ZoneId
+import java.io.File
+import java.time.LocalDate
 
 @Composable
 fun ProgressScreen(vm:EditorViewModel) {
     val exercises by vm.exercises.collectAsStateWithLifecycle();val workouts by vm.workouts.collectAsStateWithLifecycle();val rows by vm.workoutExercises.collectAsStateWithLifecycle()
     val sets by vm.sets.collectAsStateWithLifecycle();val links by vm.setBands.collectAsStateWithLifecycle();val bands by vm.bands.collectAsStateWithLifecycle();val variations by vm.variations.collectAsStateWithLifecycle()
+    val trackers by vm.trackers.collectAsStateWithLifecycle();val fields by vm.fields.collectAsStateWithLifecycle();val values by vm.values.collectAsStateWithLifecycle();val measurements by vm.measurements.collectAsStateWithLifecycle()
+    val context=LocalContext.current
     var exerciseId by remember { mutableStateOf<String?>(null) };var picker by remember { mutableStateOf(false) };var filter by remember { mutableStateOf<String?>(null) };var selected by remember { mutableStateOf<Int?>(null) }
     var variationMenu by remember { mutableStateOf(false) };var methodology by remember { mutableStateOf(false) }
+    var selectedWeight by remember { mutableStateOf<Int?>(null) };var selectedPhoto by remember { mutableStateOf<File?>(null) }
     val points=exerciseId?.let { SessionProgress.points(it,workouts,rows,sets,links,bands,filter,variations) }.orEmpty()
     val finishedIds=workouts.filter { it.status=="FINISHED" }.map { it.id }.toSet()
     val trackableSetRowIds = sets.filter { SessionProgress.valid(it) || it.romValue != null }.map { it.workoutExerciseId }.toSet()
     val eligibleExerciseIds = rows.filter { it.workoutId in finishedIds && it.id in trackableSetRowIds }.map { it.actualExerciseId }.toSet()
+    val aggregate = remember(eligibleExerciseIds, workouts, rows, sets, links, bands, variations) {
+        SessionProgress.aggregate(
+            eligibleExerciseIds.associateWith { id ->
+                SessionProgress.points(id, workouts, rows, sets, links, bands, null, variations)
+            },
+        )
+    }
+    val bodyweights = measurements.filter { it.metric.equals("Bodyweight", true) }.sortedBy { it.recordedAt }
+    val progressPhotos = remember(context) {
+        File(context.filesDir, "progress-photos").listFiles().orEmpty()
+            .mapNotNull { file -> file.name.substringBefore('.').toLongOrNull()?.let { it to file } }
+    }
     val exerciseRows=rows.filter { it.actualExerciseId==exerciseId && it.workoutId in finishedIds }.map { it.id }.toSet()
     val valid=sets.filter { it.workoutExerciseId in exerciseRows && SessionProgress.valid(it) && (filter==null || it.variationId==filter) }
     val records=SessionProgress.records(valid,points)
@@ -73,6 +95,57 @@ fun ProgressScreen(vm:EditorViewModel) {
                 }
             }
             if(eligibleExerciseIds.isEmpty())Text("Complete a working set before an exercise appears here.")
+            if (aggregate.isNotEmpty()) {
+                VibeCard {
+                    Text("Overall training trend", style = MaterialTheme.typography.titleLarge)
+                    Text("Average normalized score across ${aggregate.last().exerciseCount} exercises")
+                    MiniChart(
+                        values = aggregate.map { it.averageIndex },
+                        dates = aggregate.map { it.date },
+                        unit = "index",
+                    ) {}
+                }
+            }
+            if (bodyweights.isNotEmpty()) {
+                VibeCard {
+                    Text("Bodyweight", style = MaterialTheme.typography.titleLarge)
+                    MiniChart(
+                        values = bodyweights.map { if (it.unit.equals("lb", true)) it.value / 2.2046226218 else it.value },
+                        dates = bodyweights.map { it.recordedAt },
+                        unit = "kg",
+                    ) { index ->
+                        selectedWeight = index
+                        val day = Instant.ofEpochMilli(bodyweights[index].recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+                        selectedPhoto = progressPhotos.firstOrNull { (timestamp, _) ->
+                            Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate() == day
+                        }?.second
+                    }
+                    selectedWeight?.let { bodyweights.getOrNull(it) }?.let {
+                        Text("${Instant.ofEpochMilli(it.recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()} · ${formatAxis(it.value)} ${it.unit}")
+                    }
+                }
+            }
+            trackers.filterNot { it.isArchived }.forEach { tracker ->
+                key(tracker.id) {
+                    val fieldIds = fields.filter { it.trackerId == tracker.id && !it.isArchived }.map { it.id }.toSet()
+                    val habitDays = values.filter { it.fieldId in fieldIds }
+                        .groupBy { it.epochDay }
+                        .map { ActivityDay(it.key, 1) }
+                    VibeCard {
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Box(Modifier.size(14.dp).background(Color(tracker.colourArgb.toInt()), MaterialTheme.shapes.small))
+                            Spacer(Modifier.width(8.dp))
+                            Text(tracker.name, style = MaterialTheme.typography.titleLarge)
+                        }
+                        ActivityHeatmap(
+                            days = habitDays,
+                            onDayClick = {},
+                            activityColor = Color(tracker.colourArgb.toInt()),
+                            itemLabel = tracker.name.lowercase(),
+                        )
+                    }
+                }
+            }
             if(points.isNotEmpty()) {
                 VibeCard {
                     Text("Personal records",style=MaterialTheme.typography.titleLarge)
@@ -103,7 +176,10 @@ fun ProgressScreen(vm:EditorViewModel) {
                     Text("Bands: ${p.bands.joinToString().ifBlank { "None" }} · RPE ${p.performance.rpe ?: "not recorded"}")
                     Text(p.notes.ifBlank { "No exercise notes" })
                 }
-                ActivityHeatmap(points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) }) { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } }
+                ActivityHeatmap(
+                    days = points.groupBy { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay() }.map { ActivityDay(it.key,it.value.size) },
+                    onDayClick = { day -> selected=points.indexOfFirst { Instant.ofEpochMilli(it.date).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()==day }.takeIf { it>=0 } },
+                )
             }
         }
         val ids=rows.filter { it.actualExerciseId==exerciseId && workouts.any { w -> w.id==it.workoutId && w.status=="FINISHED" } }.map { it.id }.toSet()
@@ -125,6 +201,28 @@ fun ProgressScreen(vm:EditorViewModel) {
         text={Text("The first three valid sessions establish a personal baseline of 100. Before that, charts show raw performance. Skill index is a heuristic: variation order sets the main difficulty; holds, reps and assistance adjust progress only within the same variation.")},
         confirmButton={TextButton(onClick={methodology=false}){Text("Close")}},
     )
+    selectedPhoto?.let { file ->
+        val bitmap = remember(file) {
+            android.graphics.BitmapFactory.decodeFile(
+                file.path,
+                android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 },
+            )
+        }
+        AlertDialog(
+            onDismissRequest = { selectedPhoto = null },
+            title = { Text("Progress photo") },
+            text = {
+                bitmap?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = "Progress photo for selected bodyweight day",
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp),
+                    )
+                } ?: Text("Photo could not be opened")
+            },
+            confirmButton = { TextButton(onClick = { selectedPhoto = null }) { Text("Close") } },
+        )
+    }
 }
 
 @Composable

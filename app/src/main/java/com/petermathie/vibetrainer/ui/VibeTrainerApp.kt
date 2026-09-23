@@ -348,7 +348,12 @@ internal fun HomeScreen(
 }
 
 @Composable
-fun ActivityHeatmap(days: List<ActivityDay>, onDayClick: (Long) -> Unit) {
+fun ActivityHeatmap(
+    days: List<ActivityDay>,
+    onDayClick: (Long) -> Unit,
+    activityColor: androidx.compose.ui.graphics.Color? = null,
+    itemLabel: String = "activities",
+) {
     val palette = LocalVibePalette.current
     val counts = days.associate { it.epochDay to it.activityCount }
     var offset by rememberSaveable { mutableStateOf(0L) }
@@ -375,14 +380,14 @@ fun ActivityHeatmap(days: List<ActivityDay>, onDayClick: (Long) -> Unit) {
                     val epochDay = start + week * 7 + day
                     val count = counts[epochDay] ?: 0
                     val color = when {
-                        count >= 3 -> palette.heatmapThreePlus
-                        count == 2 -> palette.heatmapTwo
-                        count == 1 -> palette.heatmapOne
+                        count >= 3 -> activityColor?.copy(alpha = 1f) ?: palette.heatmapThreePlus
+                        count == 2 -> activityColor?.copy(alpha = 0.68f) ?: palette.heatmapTwo
+                        count == 1 -> activityColor?.copy(alpha = 0.38f) ?: palette.heatmapOne
                         else -> palette.heatmapNeutral
                     }
                     Box(
                         Modifier.fillMaxWidth().height(22.dp)
-                            .semantics { contentDescription = "${LocalDate.ofEpochDay(epochDay)}: $count activities" }
+                            .semantics { contentDescription = "${LocalDate.ofEpochDay(epochDay)}: $count $itemLabel" }
                             .background(color, RoundedCornerShape(5.dp))
                             .clickable { onDayClick(epochDay) },
                     )

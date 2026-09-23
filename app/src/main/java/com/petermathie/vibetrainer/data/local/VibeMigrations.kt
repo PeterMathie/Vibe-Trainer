@@ -202,3 +202,9 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
             )
     }
 }
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE trackers ADD COLUMN colourArgb INTEGER NOT NULL DEFAULT 4283215696")
+    }
+}

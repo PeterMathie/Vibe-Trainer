@@ -23,6 +23,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class ProgressUiTest {
@@ -31,7 +32,10 @@ class ProgressUiTest {
     private lateinit var database: VibeDatabase
 
     @After
-    fun close() = database.close()
+    fun close() {
+        database.close()
+        File(ApplicationProvider.getApplicationContext<Context>().filesDir, "progress-photos").deleteRecursively()
+    }
 
     @Test
     fun chartExposesAxesSkillExplanationAndExplicitRecords() {
@@ -55,9 +59,28 @@ class ProgressUiTest {
             assertTrue(bench.last() > bench.first() + 15.0)
             assertTrue((lunge.maxOrNull() ?: 0.0) - (lunge.minOrNull() ?: 0.0) < 2.0)
             assertTrue(overhead.last() < overhead.first() - 5.0)
+            assertEquals(52, database.editorDao().measurements().first().count { it.isDemo && it.metric == "Bodyweight" })
+            assertTrue(database.editorDao().values().first().size > 500)
+            val photoTime = database.editorDao().measurements().first().filter { it.isDemo }.minOf { it.recordedAt }
+            val directory = File(context.filesDir, "progress-photos").apply { mkdirs() }
+            val bitmap = android.graphics.Bitmap.createBitmap(4, 4, android.graphics.Bitmap.Config.ARGB_8888)
+            File(directory, "$photoTime.jpg").outputStream().use {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+            }
+            bitmap.recycle()
         }
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeTrainerTheme { ProgressScreen(viewModel) } }
+
+        compose.onNodeWithText("Overall training trend").assertExists()
+        compose.onNodeWithText("Bodyweight").assertExists()
+        compose.onNodeWithText("Piano").assertExists()
+        compose.onNodeWithText("Meditation").assertExists()
+        compose.onNodeWithText("Protein").assertExists()
+        assertTrue(compose.onAllNodesWithContentDescription("piano", substring = true).fetchSemanticsNodes().isNotEmpty())
+        compose.onNodeWithContentDescription("kg", substring = true).performTouchInput { click(androidx.compose.ui.geometry.Offset(16f, center.y)) }
+        compose.onNodeWithContentDescription("Progress photo for selected bodyweight day").assertIsDisplayed()
+        compose.onNodeWithText("Close").performClick()
 
         compose.onNodeWithText("Choose exercise").performClick()
         compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextInput("No history exercise")
@@ -73,7 +96,7 @@ class ProgressUiTest {
         compose.onNodeWithText("Wall handstand").performClick()
         compose.onNodeWithText("All variations").performClick()
         compose.onNodeWithText("Variations").assertIsDisplayed()
-        compose.onAllNodes(hasContentDescription("Progress chart", substring = true)).assertCountEquals(2)
+        compose.onAllNodes(hasContentDescription("Progress chart", substring = true)).assertCountEquals(4)
         compose.onNodeWithText("Personal records").assertExists()
         compose.onNodeWithText("Best performance").assertExists()
         compose.onNodeWithText("Longest hold").assertExists()

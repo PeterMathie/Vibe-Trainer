@@ -80,4 +80,26 @@ class SessionProgressTest {
         assertEquals(listOf("Original"),point.bands)
         assertEquals(SessionProgress.score(set,80.0,0.6,"ASSISTED_REPS"),point.score)
     }
+    @Test fun aggregateAveragesNormalizedExerciseScoresByWeek(){
+        fun point(day: Long, index: Double) = com.petermathie.vibetrainer.domain.progress.ProgressPoint(
+            date = java.time.LocalDate.ofEpochDay(day).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(),
+            score = index,
+            performance = emptySet("e", day.toInt()),
+            notes = "",
+            variation = null,
+            bands = emptyList(),
+            index = index,
+        )
+        val aggregate = SessionProgress.aggregate(
+            mapOf(
+                "improving" to listOf(point(0, 100.0), point(7, 120.0)),
+                "declining" to listOf(point(0, 100.0), point(7, 90.0)),
+                "raw-only" to listOf(point(7, 80.0).copy(index = null)),
+            ),
+        )
+        assertEquals(2, aggregate.size)
+        assertEquals(100.0, aggregate[0].averageIndex, 0.0001)
+        assertEquals(105.0, aggregate[1].averageIndex, 0.0001)
+        assertEquals(2, aggregate[1].exerciseCount)
+    }
 }
