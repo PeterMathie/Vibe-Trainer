@@ -82,9 +82,11 @@ Checkpoint 1 evidence: `ActionControls.kt` provides the shared action hierarchy,
 
 Checkpoint 2 — discoverable navigation:
 
-- [ ] Remove Workout as a top-level destination while retaining contextual active-workout access.
-- [ ] Replace the horizontally scrolling destination row with a fixed Home/Programmes/Progress/More bar.
-- [ ] More visibly exposes Exercises, Habits, History, Body, Settings and Style; Compose coverage proves Habits is reachable without horizontal swiping.
+- [x] Remove Workout as a top-level destination while retaining contextual active-workout access.
+- [x] Replace the horizontally scrolling destination row with a fixed Home/Programmes/Progress/More bar.
+- [x] More visibly exposes Exercises, Habits, History, Body, Settings and Style; Compose coverage proves Habits is reachable without horizontal swiping.
+
+Checkpoint 2 evidence: Home continuation and programme starts still route to the active workout editor, but Workout is absent from the fixed four-item `NavigationBar`. More presents six full-width outlined destination controls and secondary-screen back returns to More. `NavigationUiTest` renders at 320dp, verifies all four primary items are displayed, proves Workout is absent, and opens the real Habits screen through visible More → Habits controls on the API 35 emulator.
 
 Checkpoint 3 — programme user flow:
 

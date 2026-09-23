@@ -4,8 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +26,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LibraryBooks
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Button
@@ -79,12 +78,13 @@ import com.petermathie.vibetrainer.ui.theme.VibeTrainerTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-private enum class Destination(val label: String, val icon: ImageVector) {
+internal enum class Destination(val label: String, val icon: ImageVector) {
     HOME("Home", Icons.Outlined.Home),
     PROGRAMMES("Programmes", Icons.Outlined.FitnessCenter),
-    WORKOUT("Workout", Icons.Outlined.PlayArrow),
-    EXERCISES("Exercises", Icons.Outlined.LibraryBooks),
+    ACTIVE_WORKOUT("Workout", Icons.Outlined.PlayArrow),
     PROGRESS("Progress", Icons.Outlined.BarChart),
+    MORE("More", Icons.Outlined.MoreHoriz),
+    EXERCISES("Exercises", Icons.Outlined.LibraryBooks),
     HABITS("Habits", Icons.Outlined.Check),
     HISTORY("History", Icons.Outlined.LibraryBooks),
     MEASUREMENTS("Body", Icons.Outlined.FitnessCenter),
@@ -126,22 +126,18 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
         Scaffold(
             containerColor = palette.background,
             bottomBar = {
-                Row(Modifier.fillMaxWidth().navigationBarsPadding().horizontalScroll(rememberScrollState()).background(palette.surface)) {
-                    Destination.entries.forEach { item ->
-                        TextButton(onClick = { destination = item }) { Text(if(destination == item) "• ${item.label}" else item.label) }
-                    }
-                }
-
+                PrimaryNavigationBar(destination) { destination = it }
             },
         ) { padding ->
+            BackHandler(destination in moreDestinations) { destination = Destination.MORE }
             Column(Modifier.fillMaxSize().padding(padding)) {
                 if(error != null) TextButton(onClick = { editor.error.value = null }) { Text(error.orEmpty(),color=MaterialTheme.colorScheme.error) }
                 when (destination) {
-                    Destination.HOME -> HomeScreen(state, viewModel::selectHistoryDay) { destination = Destination.WORKOUT }
+                    Destination.HOME -> HomeScreen(state, viewModel::selectHistoryDay) { destination = Destination.ACTIVE_WORKOUT }
                     Destination.PROGRAMMES -> ProgrammeEditor(editor, state.mode) { dayId ->
-                        viewModel.startWorkout(dayId) { destination = Destination.WORKOUT }
+                        viewModel.startWorkout(dayId) { destination = Destination.ACTIVE_WORKOUT }
                     }
-                    Destination.WORKOUT -> WorkoutEditor(
+                    Destination.ACTIVE_WORKOUT -> WorkoutEditor(
                         vm = editor,
                         workoutId = state.activeWorkout?.id,
                         onFinish = { id -> viewModel.finishWorkout(id) { destination = Destination.HOME } },
@@ -149,6 +145,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                     )
                     Destination.EXERCISES -> ExerciseEditor(editor)
                     Destination.PROGRESS -> ProgressScreen(editor)
+                    Destination.MORE -> MoreScreen { destination = it }
                     Destination.HABITS -> TrackerScreen(editor)
                     Destination.HISTORY -> HistoryScreen(editor,viewModel::selectHistoryDay)
                     Destination.MEASUREMENTS -> MeasurementsScreen(editor)
@@ -156,6 +153,53 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                     Destination.STYLE -> StyleScreen(paletteId, { paletteId = it; prefs.edit().putString("palette",it).apply() }, viewModel::removeDemoData)
                 }
             }
+        }
+    }
+}
+
+private val primaryDestinations = listOf(
+    Destination.HOME,
+    Destination.PROGRAMMES,
+    Destination.PROGRESS,
+    Destination.MORE,
+)
+
+private val moreDestinations = setOf(
+    Destination.EXERCISES,
+    Destination.HABITS,
+    Destination.HISTORY,
+    Destination.MEASUREMENTS,
+    Destination.SETTINGS,
+    Destination.STYLE,
+)
+
+@Composable
+internal fun PrimaryNavigationBar(selected: Destination, onSelect: (Destination) -> Unit) {
+    val selectedItem = if (selected in moreDestinations) Destination.MORE else selected
+    NavigationBar(Modifier.fillMaxWidth().navigationBarsPadding()) {
+        primaryDestinations.forEach { item ->
+            NavigationBarItem(
+                selected = selectedItem == item,
+                onClick = { onSelect(item) },
+                icon = { Icon(item.icon, contentDescription = null) },
+                label = { Text(item.label) },
+            )
+        }
+    }
+}
+
+@Composable
+internal fun MoreScreen(onSelect: (Destination) -> Unit) {
+    ScreenList {
+        item { Text("More", style = MaterialTheme.typography.headlineLarge) }
+        items(moreDestinations.toList(), key = { it.name }) { destination ->
+            VibeActionButton(
+                label = destination.label,
+                onClick = { onSelect(destination) },
+                modifier = Modifier.fillMaxWidth(),
+                importance = ActionImportance.SECONDARY,
+                icon = destination.icon,
+            )
         }
     }
 }
