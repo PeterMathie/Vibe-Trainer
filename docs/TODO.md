@@ -199,13 +199,19 @@ Evidence: commit `5b6c7ec` gives Progress a dedicated lazy picker. Eligibility r
 
 ### UX-12 — Correct programme start and structured set logging
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Make each programme-list Play affordance start that programme's workout directly, never enter edit context or reuse another programme/day.
-- [ ] Remove weekday/scheduling language from maintained demo programme-day names without rewriting user-authored or historical workout names.
-- [ ] Present the programmed set count as editable Resistance/Reps/RPE rows, keep notes below the rows, expose rest timing from the exercise header, and use a plus-only control for extra sets.
-- [ ] Preserve hold/unilateral type behavior, durable unfinished-entry recovery and duplicate-submission protection.
-- [ ] Add end-user routing/logging regressions, run focused and full validation, install the exact APK and inspect the corrected flow.
+- [x] Make each programme-list Play affordance start that programme's workout directly, never enter edit context or reuse another programme/day.
+- [x] Remove weekday/scheduling language from maintained demo programme-day names without rewriting user-authored or historical workout names.
+- [x] Present the programmed set count as editable Resistance/Reps/RPE rows, keep notes below the rows, expose rest timing from the exercise header, and use a plus-only control for extra sets.
+- [x] Preserve hold/unilateral type behavior, durable unfinished-entry recovery and duplicate-submission protection.
+- [x] Add end-user routing/logging regressions, run focused and full validation, install the exact APK and inspect the corrected flow.
+
+Evidence: implementation commit `4826194` routes main-list Play through the selected programme's first ordered workout, prompts before replacing an unrelated active draft, and transactionally discards only after explicit confirmation. Maintained seeded day names are schedule-free; existing historical workout names remain unchanged. Room schema 6 gives unfinished entry drafts a `(workoutExerciseId, ordinal)` key, with a validated 5→6 migration preserving existing input and allowing independent recoverable rows. Programmed rows now expose only relevant Resistance/Seconds, Reps and RPE inputs, with header rest timing, notes below and a plus-only extra-row action. Submission consumes only the submitted ordinal and reuses saved set IDs.
+
+Focused programme, logging, recovery, migration and workflow classes passed. The final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` gate passed 35 unit and 47 API 35 instrumentation tests. The installed APK from `4826194f6b85271ae1d0cfda1ffb5825a7b5863a` has SHA-256 `842a97fc0a745a463929285744b3bbd1145a74aa557f7847c4d455ea546ce3ab`. Screenshots under `files/ux-12-final/` show the programme-list Play affordance, direct schedule-free `Legs + Mobility` workout, its Handstand warm-up followed by Back squat/Lunge exercises, three structured rows, header timer, notes and plus-only action. MainActivity is resumed on `vibe-log01-api35` with PID 9090 and no crash-buffer entry.
+
+Residual limitation: programmes with multiple workouts currently launch their first ordered workout from the programme-level Play affordance; this correction intentionally did not introduce a workout chooser. Existing historical names containing weekdays are preserved by design.
 
 ### UX-11 — Exercise-aware personal records
 
