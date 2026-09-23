@@ -90,6 +90,9 @@ class ProgressUiTest {
         compose.onNodeWithText("Piano").assertExists()
         compose.onNodeWithText("Meditation").assertExists()
         compose.onNodeWithText("Protein").assertExists()
+        compose.onNodeWithContentDescription("Piano icon").assertExists()
+        compose.onNodeWithContentDescription("Meditation icon").assertExists()
+        compose.onNodeWithContentDescription("Protein icon").assertExists()
         assertTrue(compose.onAllNodesWithContentDescription("piano intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
         repeat(3) {
             val actions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =

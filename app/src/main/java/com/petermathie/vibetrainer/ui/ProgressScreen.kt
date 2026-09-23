@@ -295,6 +295,12 @@ private fun HabitProgressCard(
         modifier = Modifier.reorderItemFeedback(order, cardKey, cardIndex),
     ) {
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Icon(
+                HabitIconCatalog.icon(tracker.iconName),
+                contentDescription = "${tracker.name} icon",
+                tint = Color(tracker.colourArgb.toInt()),
+            )
+            Spacer(Modifier.width(8.dp))
             Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             ReorderHandle(order, cardKey, tracker.name)
         }

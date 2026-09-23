@@ -19,7 +19,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
@@ -47,8 +46,13 @@ fun TrackerScreen(vm: EditorViewModel) {
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
-            Text("Habits", style = MaterialTheme.typography.headlineSmall)
-            Button(onClick = { newHabit = TrackerEntity(newId(), "", false) }) { Text("New habit") }
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Text("Habits", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                Button(onClick = { newHabit = TrackerEntity(newId(), "", false) }) { Text("New habit") }
+            }
         }
         itemsIndexed(
             trackerOrder.ordered(activeTrackers) { it.id },
@@ -351,14 +355,20 @@ private fun HabitSettingsDialog(
             }
         },
         confirmButton = {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                TextButton(onClick = onArchiveHabit) { Text("Archive") }
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+            Box(Modifier.fillMaxWidth()) {
+                TextButton(
+                    onClick = onArchiveHabit,
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.CenterStart),
+                ) { Text("Archive") }
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.Center),
+                ) { Text("Cancel") }
                 TextButton(
                     enabled = name.isNotBlank() &&
                         (!hasNumericField || valid) &&
                         choiceForms.values.all { it.canSave },
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd),
                     onClick = {
                         onSave(
                             tracker.copy(
@@ -383,7 +393,7 @@ private fun HabitSettingsDialog(
             title = { Text("Choose icon") },
             text = {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
+                    columns = GridCells.Fixed(5),
                     modifier = Modifier.heightIn(max = 520.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -400,26 +410,18 @@ private fun HabitSettingsDialog(
                                 MaterialTheme.colorScheme.surfaceVariant
                             },
                             shape = MaterialTheme.shapes.medium,
-                            modifier = Modifier.semantics {
-                                contentDescription = "Set ${tracker.name} icon ${option.label}"
-                            },
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                .semantics {
+                                    contentDescription = "Set ${tracker.name} icon ${option.label}"
+                                },
                         ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
-                                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
+                            Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
                                 Icon(
                                     option.icon,
                                     contentDescription = null,
                                     tint = Color(colour.toInt()),
-                                    modifier = Modifier.size(26.dp),
-                                )
-                                Text(
-                                    option.label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.size(28.dp),
                                 )
                             }
                         }

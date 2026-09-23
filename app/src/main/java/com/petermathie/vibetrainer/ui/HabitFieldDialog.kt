@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -246,7 +247,7 @@ internal fun ChoiceScaleEditor(
                 ShadeBoundary("MEDIUM", "DARK", "Medium to dark boundary")
             }
         }
-        IconButton(
+        Button(
             onClick = {
                 val ordered = choiceOrder.ordered(choices) { it.id }.toMutableList()
                 ordered.add(darkFrom, ChoiceDraft(UUID.randomUUID().toString(), ""))
@@ -255,7 +256,7 @@ internal fun ChoiceScaleEditor(
                 syncChoices(updatedDarkFrom = darkFrom + 1)
             },
             modifier = Modifier
-                .align(Alignment.End)
+                .fillMaxWidth()
                 .semantics { contentDescription = "Add choice" },
         ) {
             Icon(Icons.Outlined.Add, contentDescription = null)

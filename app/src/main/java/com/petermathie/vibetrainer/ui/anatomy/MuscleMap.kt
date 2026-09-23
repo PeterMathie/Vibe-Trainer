@@ -111,7 +111,7 @@ fun MuscleMap(
                     MuscleRecencyBand.HOURS_48_TO_72 -> palette.recency48To72
                     MuscleRecencyBand.DAYS_3_TO_7 -> palette.recency3To7
                     MuscleRecencyBand.OVER_7_DAYS -> palette.recencyOver7
-                    MuscleRecencyBand.NEVER -> Color.Transparent
+                    MuscleRecencyBand.NEVER -> palette.recencyNever
                 }
                 val selected = item.def.group == selectedMuscleId
                 drawPathWithMirror(
