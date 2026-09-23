@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -191,7 +192,7 @@ internal fun ChoiceScaleEditor(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
-                    Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Row(
@@ -211,10 +212,10 @@ internal fun ChoiceScaleEditor(
                                 choices[itemIndex] = choice.copy(value = updated)
                                 syncChoices()
                             },
-                            label = { Text("Choice") },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
+                                .height(48.dp)
                                 .semantics { contentDescription = "Choice ${index + 1}" },
                         )
                         TextButton(
