@@ -103,13 +103,17 @@ Final evidence: source commit `0a61560` passed `gradle :app:testDebugUnitTest :a
 
 ### UX-03 — Historical recency navigation
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Put Previous day and Next day at the far sides of the Strength/Stretch selector on one coherent historical-day row.
-- [ ] Remove the historical-day slider and the “Reconstructed from records up to the end of this day” copy.
-- [ ] Add a Home-only date slider directly beneath the muscle recency maps; dragging previews recency at an earlier date without opening the detailed historical-day screen.
-- [ ] Preserve heat-map day selection, historical activities, mode switching and back behavior.
-- [ ] Add focused Compose coverage, run relevant validation, push evidence and leave the exact app running on the visible emulator.
+- [x] Put Previous day and Next day at the far sides of the Strength/Stretch selector on one coherent historical-day row.
+- [x] Remove the historical-day slider and the “Reconstructed from records up to the end of this day” copy.
+- [x] Add a Home-only date slider directly beneath the muscle recency maps; dragging previews recency at an earlier date without opening the detailed historical-day screen.
+- [x] Preserve heat-map day selection, historical activities, mode switching and back behavior.
+- [x] Add focused Compose coverage, run relevant validation, push evidence and leave the exact app running on the visible emulator.
+
+Evidence: commit `d9c2801` separates Home preview date from detailed history selection and adds the requested controls; `98a38ea` gives the date/back controls semantic contrast and distinct day-step chevrons after emulator inspection. `HistoryUiTest` proves the compact row, removed copy/slider, previous-day navigation, mode switching, activity rendering and back behavior; it also proves Home preview does not select/open a historical day. `EndUserControlsTest` drives the Home slider and verifies its callback. Exact-final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 33 unit tests and 41 API 35 instrumentation tests.
+
+The debug APK at source `98a38ea` has SHA-256 `d743948ee1d9f515709d05b60c3ea63f2c29be5bf5b38e06249dd735b631b3bd`. It installed and launched on `vibe-log01-api35`; MainActivity remained focused with PID 13082. Exact-build screenshots `files/ux-03-final/home-98a38ea.png` and `history-day-98a38ea.png` show the slider directly beneath the Home maps and the historical-day chevron/Strength–Stretch/chevron row with no old slider or reconstruction copy.
 
 ### QA-01 — Real-phone timers
 
