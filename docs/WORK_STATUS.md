@@ -2,7 +2,9 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-10 compact Progress controls and annual demo is complete at `945117b`** on `pmathie-cicpilot-persist-workout-drafts`. Equal-width exercise and variation controls share one row; the variation control displays the selected variation name. The large inline methodology paragraph has moved behind a compact info action.
+Current implementation task: **UX-11 exercise-aware personal records is claimed** on `pmathie-cicpilot-persist-workout-drafts`. The bounded acceptance plan is to move a visually distinct record summary above the charts, remove the repetition-only PR, expose the existing combined load/repetition score as Best performance, and conditionally render weight, hold and estimated-one-rep-max records from the selected exercise's tracking type. Focused domain/Compose coverage will pin both metric presence and irrelevant-metric absence before one combined validation/install/visual-inspection gate.
+
+UX-10 compact Progress controls and annual demo is complete at `945117b`. Equal-width exercise and variation controls share one row; the variation control displays the selected variation name. The large inline methodology paragraph has moved behind a compact info action.
 
 Debug progress seed version 2 supplies 52 weekly Planche and Bench press sessions across roughly one year, upgrading prior debug seed data by stable IDs while respecting deliberate demo removal. Compose coverage verifies the Handstand → Wall handstand dropdown label, on-demand methodology and the 52-session seed. The final combined gate passed with 34 unit tests and 43 API 35 instrumentation tests.
 
