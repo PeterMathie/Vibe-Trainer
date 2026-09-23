@@ -56,6 +56,7 @@ class ProgrammeUiTest {
         compose.onNodeWithContentDescription("Edit programme Alpha").performClick()
 
         compose.onNodeWithText("Strength").assertDoesNotExist()
+        compose.onNodeWithText("Add workout").assertDoesNotExist()
         compose.onNode(hasSetTextAction() and hasText("Alpha")).assertIsDisplayed()
         compose.onNodeWithText("Morning").assertDoesNotExist()
         compose.onNodeWithContentDescription("Reorder Morning").assertDoesNotExist()
@@ -129,20 +130,17 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) { activeProgrammes().any { it.name == "My gym plan" } }
 
-        compose.onNodeWithContentDescription("Edit programme My gym plan").performClick()
-        compose.onNodeWithText("Add workout").performClick()
-        compose.onAllNodes(hasSetTextAction())[1].performTextInput("Push")
-        compose.onNodeWithText("Save").performClick()
-        compose.waitUntil(15_000) {
-            runBlocking { database.editorDao().days().first().any { it.name == "Push" } }
-        }
-        val dayId = runBlocking { database.editorDao().days().first().single().id }
+        val programmeId = activeProgrammes().single().id
+        val dayId = "day-for-history"
         runBlocking {
+            database.editorDao().day(ProgrammeDayEntity(dayId, programmeId, "Push", 0))
             database.editorDao().workout(
                 WorkoutEntity("historical", dayId, "Push", "STRENGTH", "FINISHED", 1, 2, "", null, false),
             )
         }
 
+        compose.onNodeWithContentDescription("Edit programme My gym plan").performClick()
+        compose.onNodeWithText("Add workout").assertDoesNotExist()
         compose.onNode(hasSetTextAction()).performTextClearance()
         compose.onNode(hasSetTextAction()).performTextInput("Renamed plan")
         compose.onNodeWithContentDescription("Save programme name").performClick()

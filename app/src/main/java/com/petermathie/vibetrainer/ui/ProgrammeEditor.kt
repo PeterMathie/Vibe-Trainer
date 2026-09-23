@@ -37,7 +37,6 @@ fun ProgrammeEditor(
     val exercises by vm.exercises.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     var rename by remember { mutableStateOf<ProgrammeEntity?>(null) }
-    var editDay by remember { mutableStateOf<ProgrammeDayEntity?>(null) }
     var editEntry by remember { mutableStateOf<ProgrammeExerciseEntity?>(null) }
     var addExerciseDayId by rememberSaveable { mutableStateOf<String?>(null) }
     val programmeRows = programmes.filter { it.mode == mode.name }.sortedBy { it.position }
@@ -87,26 +86,19 @@ fun ProgrammeEditor(
             }
         } else {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = programmeName,
-                        onValueChange = { programmeName = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Programme name") },
-                        singleLine = true,
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { selectedProgramme?.let { vm.save(it.copy(name = programmeName.trim())) } },
-                                enabled = programmeName.isNotBlank() && programmeName.trim() != selectedProgramme?.name,
-                            ) { Icon(Icons.Outlined.Check, "Save programme name") }
-                        },
-                    )
-                    VibeActionButton(
-                        "Add workout",
-                        { editDay = ProgrammeDayEntity(newId(), selected!!, "", dayRows.size) },
-                        importance = ActionImportance.PRIMARY,
-                    )
-                }
+                OutlinedTextField(
+                    value = programmeName,
+                    onValueChange = { programmeName = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Programme name") },
+                    singleLine = true,
+                    trailingIcon = {
+                        IconButton(
+                            onClick = { selectedProgramme?.let { vm.save(it.copy(name = programmeName.trim())) } },
+                            enabled = programmeName.isNotBlank() && programmeName.trim() != selectedProgramme?.name,
+                        ) { Icon(Icons.Outlined.Check, "Save programme name") }
+                    },
+                )
             }
             items(dayOrder.ordered(dayRows) { it.id }, key = { it.id }) { d ->
                 val dayEntries = entries.filter { it.programmeDayId == d.id }.sortedBy { it.position }
@@ -182,7 +174,6 @@ fun ProgrammeEditor(
             }
         }
     rename?.let { p -> NameDialog("Programme name", p.name, { rename = null }) { vm.save(p.copy(name = it)); rename = null } }
-    editDay?.let { d -> NameDialog("Workout name", d.name, { editDay = null }) { vm.save(d.copy(name = it)); editDay = null } }
     editEntry?.let { e -> EntryDialog(e, { editEntry = null }) { vm.save(it); editEntry = null } }
     addExerciseDayId?.let { targetDayId ->
         ExercisePicker(vm, { addExerciseDayId = null }) { exercise ->
