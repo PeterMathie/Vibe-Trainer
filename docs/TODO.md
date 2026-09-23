@@ -148,11 +148,15 @@ Follow-up commit `372f22a` removes Add workout as requested. Focused `ProgrammeU
 
 ### UX-06 — Direct handle dragging
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Make six-dot handles begin reordering on a normal thumb drag without requiring a long press or being intercepted by a click target.
-- [ ] Preserve completion-only persistence and accessibility Move earlier/Move later actions.
-- [ ] Prove direct-drag programme exercise reordering persists, then run the full gate and inspect the installed build.
+- [x] Make six-dot handles begin reordering on a normal thumb drag without requiring a long press or being intercepted by a click target.
+- [x] Preserve completion-only persistence and accessibility Move earlier/Move later actions.
+- [x] Prove direct-drag programme exercise reordering persists, then run the full gate and inspect the installed build.
+
+Evidence: commits `fd8f0f1` and `ca70b76` remove the empty clickable/long-press path and use Compose’s dedicated vertical `draggable` modifier, committing from its stop callback. `ProgrammeUiTest` now performs the programme/day/exercise gesture without a hold and verifies Room order. Focused coverage and full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 33 unit tests and 41 API 35 instrumentation tests.
+
+The exact `ca70b76` APK has SHA-256 `5c052cf9f065fad606af57fa1333c2b4a3de4e260a499a06f7b40ac47187d34f`. An actual `adb input swipe` on the visible Handstand handle immediately placed Back squat first and Handstand second; the on-device Room database contained the same persisted positions. `files/ux-06-final/persisted-order-ca70b76.png` records the result. MainActivity remains resumed with PID 20421 and no AndroidRuntime crash.
 
 ### QA-01 — Real-phone timers
 

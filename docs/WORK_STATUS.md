@@ -2,7 +2,9 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-06 direct handle dragging is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. The shared six-dot handle currently requires a long press and includes an empty click target; this slice will make a normal thumb drag claim the gesture directly while retaining completion-only persistence and accessibility reorder actions.
+Current implementation task: **UX-06 direct handle dragging is complete through `ca70b76`** on `pmathie-cicpilot-persist-workout-drafts`. The shared six-dot handle no longer requires a long press or sits behind an empty click target. A dedicated vertical `draggable` modifier claims normal thumb movement and commits once its stop callback runs; accessibility Move earlier/Move later actions remain.
+
+Focused `ProgrammeUiTest` now drags without a hold and proves programme/day/exercise Room order, followed by full validation with 33 unit tests and 41 API 35 instrumentation tests. The exact APK SHA-256 is `5c052cf9f065fad606af57fa1333c2b4a3de4e260a499a06f7b40ac47187d34f`. A real `adb input swipe` moved Handstand below Back squat, and a direct read of the on-device Room database confirmed Back squat at position 0 and Handstand at position 1. Screenshot `files/ux-06-final/persisted-order-ca70b76.png` records the installed result; MainActivity remains resumed with PID 20421 and no crash.
 
 UX-05 duplicated workout-card controls is complete through `372f22a`. Single-workout cards now start directly with Start workout and contain no repeated workout heading, Rename workout or Delete workout. The programme editor also no longer shows Add workout. Exercise edit/remove/reorder controls and the full-width plus remain directly available; multi-workout programmes retain compact titled reorder rows to distinguish their workouts.
 
