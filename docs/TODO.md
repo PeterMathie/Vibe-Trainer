@@ -491,6 +491,8 @@ Evidence: commit `5ce5fb2` implements the visual editor, icon catalogue and pres
 
 Follow-up commits `4439ea3` and `0e9e3ce` move the full list editor into the main habit settings dialog, replace boundary selectors with spatial divider lines, autosave daily input, move the pencil into the title row and shorten each choice box. Unit tests and API 35 `HabitUiTest` (2) passed after the compact-row change; the preceding inline-editor checkpoint also passed `ProgressUiTest` (2) and debug app/test assembly. The installed APK SHA-256 is `f52a20948af92ce1268e1472cadfa39db8c2d9c4067d96c511dc5c42fd0987d8`; inspected evidence is under `files/ux-26-inline-habits/`.
 
+Follow-up `3f764a8` removes measurement-level archive actions and redundant non-numeric heat-map copy, keeps permanent deletion in the archived-habits area, aligns Archive/Cancel/Save in the dialog action row and matches remove icons to the grey reorder handles. Unit tests and API 35 `HabitUiTest` (2) passed. Installed APK SHA-256: `2eaedfc29338211c238440dd974880e8612c6cccf87da201a3effc3cd995191f`; inspected evidence is under `files/ux-27-habit-settings/`.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.
