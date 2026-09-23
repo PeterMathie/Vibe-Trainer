@@ -5,6 +5,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -16,6 +19,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
@@ -200,6 +204,7 @@ private fun HabitSettingsDialog(
     var name by remember(tracker.id) { mutableStateOf(tracker.name) }
     var colour by remember(tracker.id) { mutableLongStateOf(tracker.colourArgb) }
     var iconName by remember(tracker.id) { mutableStateOf(tracker.iconName) }
+    var iconsOpen by remember(tracker.id) { mutableStateOf(false) }
     var coloursOpen by remember(tracker.id) { mutableStateOf(false) }
     var lightBelow by remember(tracker.id, tracker.heatmapLightBelow) {
         mutableStateOf(formatThreshold(tracker.heatmapLightBelow))
@@ -262,32 +267,17 @@ private fun HabitSettingsDialog(
                                 }
                             }
                         }
-                        Text("Icon", style = MaterialTheme.typography.titleMedium)
-                        Row(
-                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        OutlinedButton(
+                            onClick = { iconsOpen = true },
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            HabitIconCatalog.options.forEach { option ->
-                                Surface(
-                                    onClick = { iconName = option.key },
-                                    color = if (iconName == option.key) {
-                                        Color(colour.toInt()).copy(alpha = 0.24f)
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    },
-                                    shape = CircleShape,
-                                    modifier = Modifier.semantics {
-                                        contentDescription = "Set ${tracker.name} icon ${option.label}"
-                                    },
-                                ) {
-                                    Icon(
-                                        option.icon,
-                                        contentDescription = null,
-                                        tint = Color(colour.toInt()),
-                                        modifier = Modifier.padding(8.dp).size(24.dp),
-                                    )
-                                }
-                            }
+                            Icon(
+                                HabitIconCatalog.icon(iconName),
+                                contentDescription = null,
+                                tint = Color(colour.toInt()),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Choose icon")
                         }
                         if (hasNumericField) {
                             Text("Shade thresholds", style = MaterialTheme.typography.titleMedium)
@@ -383,10 +373,64 @@ private fun HabitSettingsDialog(
                             },
                         )
                     },
-                ) { Text("Save settings") }
+                ) { Text("Save") }
             }
         },
     )
+    if (iconsOpen) {
+        AlertDialog(
+            onDismissRequest = { iconsOpen = false },
+            title = { Text("Choose icon") },
+            text = {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier.heightIn(max = 520.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(HabitIconCatalog.options, key = { it.key }) { option ->
+                        Surface(
+                            onClick = {
+                                iconName = option.key
+                                iconsOpen = false
+                            },
+                            color = if (option.key == iconName) {
+                                Color(colour.toInt()).copy(alpha = 0.24f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.semantics {
+                                contentDescription = "Set ${tracker.name} icon ${option.label}"
+                            },
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(
+                                    option.icon,
+                                    contentDescription = null,
+                                    tint = Color(colour.toInt()),
+                                    modifier = Modifier.size(26.dp),
+                                )
+                                Text(
+                                    option.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { iconsOpen = false }) { Text("Close") }
+            },
+        )
+    }
 }
 
 private fun formatThreshold(value: Double): String =

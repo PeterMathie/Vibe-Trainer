@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -245,18 +246,20 @@ internal fun ChoiceScaleEditor(
                 ShadeBoundary("MEDIUM", "DARK", "Medium to dark boundary")
             }
         }
-        VibeActionButton(
-            "Add choice",
-            {
+        IconButton(
+            onClick = {
                 val ordered = choiceOrder.ordered(choices) { it.id }.toMutableList()
                 ordered.add(darkFrom, ChoiceDraft(UUID.randomUUID().toString(), ""))
                 choices.clear()
                 choices.addAll(ordered)
                 syncChoices(updatedDarkFrom = darkFrom + 1)
             },
-            modifier = Modifier.fillMaxWidth(),
-            importance = ActionImportance.SECONDARY,
-        )
+            modifier = Modifier
+                .align(Alignment.End)
+                .semantics { contentDescription = "Add choice" },
+        ) {
+            Icon(Icons.Outlined.Add, contentDescription = null)
+        }
         if (
             choices.size < 2 ||
             choices.map { it.value.trim() }.distinct().size != choices.size ||

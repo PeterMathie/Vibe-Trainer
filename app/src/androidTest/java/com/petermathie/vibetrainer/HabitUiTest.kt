@@ -64,10 +64,12 @@ class HabitUiTest {
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Change colour").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithContentDescription("Set Wellbeing icon Mood").assertExists().performClick()
+        compose.onNodeWithContentDescription("Set Wellbeing icon Mood").assertDoesNotExist()
+        compose.onNodeWithText("Choose icon").performClick()
+        compose.onNodeWithContentDescription("Set Wellbeing icon Mood").performScrollTo().performClick()
         compose.onNodeWithText("Change colour").performClick()
         compose.onNodeWithContentDescription("Set Wellbeing colour 2").performClick()
-        compose.onNodeWithText("Save settings").performClick()
+        compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) {
             runBlocking {
                 database.editorDao().trackers().first().single().let {
@@ -80,7 +82,7 @@ class HabitUiTest {
         compose.onNodeWithText("Choice shade scale").assertDoesNotExist()
         compose.onNodeWithText("Drag a choice across either line to change its shade.").assertDoesNotExist()
         compose.onNodeWithText("What would you like to track?").assertDoesNotExist()
-        compose.onNodeWithText("Save settings").performClick()
+        compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Choose…").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Choose…").performClick()
         compose.onNodeWithText("Happy").performClick()
@@ -105,7 +107,7 @@ class HabitUiTest {
                 .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
         assertEquals(true, actions.first { it.label == "Move earlier" }.action())
         compose.waitForIdle()
-        compose.onNodeWithText("Add choice").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Add choice").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Choice 3").performTextInput("Great")
         val greatActions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =
             compose.onNodeWithContentDescription("Reorder Great")
@@ -114,7 +116,7 @@ class HabitUiTest {
         assertEquals(true, greatActions.first { it.label == "Move later" }.action())
         compose.onNodeWithContentDescription("Light to medium boundary").assertExists()
         compose.onNodeWithContentDescription("Medium to dark boundary").assertExists()
-        compose.onNodeWithText("Save settings").performClick()
+        compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) {
             runBlocking {
                 database.editorDao().fields().first().single().let {
