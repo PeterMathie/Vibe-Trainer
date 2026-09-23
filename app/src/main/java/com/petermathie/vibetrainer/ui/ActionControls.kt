@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material3.Button
@@ -181,12 +182,12 @@ fun ReorderHandle(
     val reducedMotion = LocalVibeReducedMotion.current
     val dragging = state.isDragging(itemKey)
     val highlight by animateColorAsState(
-        if (dragging) MaterialTheme.colorScheme.primary else Color.Transparent,
+        if (dragging) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent,
         if (reducedMotion) snap() else tween(120),
         label = "reorder handle highlight",
     )
     val scale by animateFloatAsState(
-        if (dragging) 1.12f else 1f,
+        if (dragging) 1.05f else 1f,
         if (reducedMotion) snap() else tween(120),
         label = "reorder handle scale",
     )
@@ -195,12 +196,6 @@ fun ReorderHandle(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .defaultMinSize(48.dp, 48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(CircleShape)
-            .background(highlight)
             .semantics {
                 contentDescription = "Reorder $itemLabel"
                 stateDescription = if (dragging) "Dragging" else "Ready to drag"
@@ -221,11 +216,23 @@ fun ReorderHandle(
                 onDragStopped = { state.end() },
             ),
     ) {
-        Icon(
-            Icons.Outlined.DragIndicator,
-            contentDescription = null,
-            tint = if (dragging) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(36.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .clip(CircleShape)
+                .background(highlight),
+        ) {
+            Icon(
+                Icons.Outlined.DragIndicator,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
