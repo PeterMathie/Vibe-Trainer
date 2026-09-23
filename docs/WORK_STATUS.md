@@ -2,7 +2,7 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **paused at a pushed UX-02 completion boundary** on `pmathie-cicpilot-persist-workout-drafts`. The earlier docs-only scope at `160e9cc` was superseded by the user-approved three-checkpoint plan recorded in TODO.md, which is now complete.
+Current implementation task: **UX-03 historical recency navigation is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. The bounded change moves the date slider from the detailed historical-day screen to directly beneath the Home recency maps, where it previews earlier recency without leaving Home. The historical screen will remove its reconstruction copy and place Previous day / Strength–Stretch / Next day in one row while preserving heat-map navigation, activity detail, mode switching and back behavior.
 
 Checkpoint 1 removes the repeated header and specified Home copy, establishes reusable visible action controls, and replaces every textual ordered-list control with a stable-key six-dot drag interaction plus accessibility reorder actions and completion-only persistence. Checkpoint 2 removes Workout from top-level navigation and introduces a fixed Home/Programmes/Progress/More bar whose More screen visibly exposes Exercises, Habits, History, Body, Settings and Style. Checkpoint 3 replaces the fragmented programme/day flow with compact list affordances and a coherent editor where workout exercise summaries are visible by default. Each checkpoint requires focused end-user evidence and a pushed status boundary; final acceptance additionally requires the full test/build suite and installed-emulator screenshot inspection.
 

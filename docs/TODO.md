@@ -101,6 +101,16 @@ Checkpoint 3 focused evidence: `ProgrammeUiTest` now approaches the feature only
 
 Final evidence: source commit `0a61560` passed `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` with 33 unit tests and 40 API 35 instrumentation tests. The exact APK (`SHA-256 2d6997316bacd4f52b0113448c842de77a8265e4c17f09a23057b2035ccf08e9`) installed and cold-launched on `vibe-log01-api35`; MainActivity remained focused with PID 9389 and no AndroidRuntime errors. Screenshots in the session artifact directory `files/ux-02-final/` cover Home, More, programme list and programme editor. Inspection confirmed the mode selector clears the status bar, Home centers the maps/heat map and one-row date controls, all More destinations are visible, list cards contain only pencil/play/drag affordances, and workout exercises/targets are visible by default. An initial screenshot exposed a wrapped Archive label; commit `9e9d570` corrected the layout and the final screenshot has no clipping or overlap.
 
+### UX-03 — Historical recency navigation
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+- [ ] Put Previous day and Next day at the far sides of the Strength/Stretch selector on one coherent historical-day row.
+- [ ] Remove the historical-day slider and the “Reconstructed from records up to the end of this day” copy.
+- [ ] Add a Home-only date slider directly beneath the muscle recency maps; dragging previews recency at an earlier date without opening the detailed historical-day screen.
+- [ ] Preserve heat-map day selection, historical activities, mode switching and back behavior.
+- [ ] Add focused Compose coverage, run relevant validation, push evidence and leave the exact app running on the visible emulator.
+
 ### QA-01 — Real-phone timers
 
 - [ ] Record phone model, Android version and notification/alarm permissions.
