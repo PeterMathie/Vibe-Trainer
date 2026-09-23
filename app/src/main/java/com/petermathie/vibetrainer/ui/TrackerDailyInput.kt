@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.petermathie.vibetrainer.data.local.TrackerDailyValueEntity
 import com.petermathie.vibetrainer.data.local.TrackerFieldEntity
@@ -172,6 +173,7 @@ private fun ChoiceInput(
                                 option,
                                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 18.dp),
                                 style = MaterialTheme.typography.labelLarge,
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
