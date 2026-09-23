@@ -39,7 +39,8 @@
       "weightKg": null, "reps": null, "holdMillis": 10000,
       "leftReps": null, "rightReps": null, "leftHoldMillis": null, "rightHoldMillis": null,
       "addedWeightKg": null, "assistanceKg": null, "rpe": 8.0, "romValue": null, "romUnit": null,
-      "notes": "", "loggedAt": 1789461660000, "updatedAt": 1789461660000
+      "notes": "", "loggedAt": 1789461660000, "updatedAt": 1789461660000,
+      "timeUnderTensionMillis": null, "bandResistance": 0
     }],
     "workout_set_bands": [
       {"setId": "example-set", "bandId": "band-yellow", "ordinal": 0},
