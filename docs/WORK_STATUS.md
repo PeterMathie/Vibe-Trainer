@@ -2,7 +2,9 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-09 Progress exercise eligibility is complete at `5b6c7ec`** on `pmathie-cicpilot-persist-workout-drafts`. Progress now uses a dedicated lazy picker containing only exercises backed by a finished workout and either a valid completed working set or ROM measurement. Catalogue-only and archived exercises are excluded, while eligible name/alias/muscle search remains. The shared catalogue picker’s 100-result cap no longer applies.
+Current implementation task: **UX-10 compact Progress controls and annual demo is claimed and in progress** on `pmathie-cicpilot-persist-workout-drafts`. This slice places exercise/variation selection on one row, moves methodology detail behind compact on-demand help, and extends upgrade-safe debug demo history to roughly one year.
+
+UX-09 Progress exercise eligibility is complete at `5b6c7ec`. Progress now uses a dedicated lazy picker containing only exercises backed by a finished workout and either a valid completed working set or ROM measurement. Catalogue-only and archived exercises are excluded, while eligible name/alias/muscle search remains. The shared catalogue picker’s 100-result cap no longer applies.
 
 `ProgressUiTest` excludes an explicitly seeded no-history exercise, opens an eligible chart and scrolls through 105 eligible exercises to the final item. The final combined gate passed with 34 unit tests and 43 API 35 instrumentation tests. Exact APK SHA-256 is `76c8bb5c6250de2a1f69bec5925a7037079a079640ee4f48424de0840ea73782`. Installed screenshot `files/ux-09-final/progress-picker-5b6c7ec.png` shows the eight demo exercises with qualifying history; MainActivity remains resumed with PID 26663 and no AndroidRuntime crash.
 

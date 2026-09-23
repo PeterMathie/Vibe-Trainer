@@ -197,6 +197,15 @@ Evidence: commit `5b6c7ec` gives Progress a dedicated lazy picker. Eligibility r
 
 `ProgressUiTest` proves an exercise without history is excluded, an eligible exercise opens its charts, and the lazy picker can scroll to item 105 rather than stopping at the former 100-item boundary. Final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 34 unit tests and 43 API 35 instrumentation tests. The exact APK has SHA-256 `76c8bb5c6250de2a1f69bec5925a7037079a079640ee4f48424de0840ea73782`; `files/ux-09-final/progress-picker-5b6c7ec.png` shows only the eight demo exercises with qualifying history. MainActivity remains resumed with PID 26663 and no crash.
 
+### UX-10 — Compact Progress controls and annual demo
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+
+- [ ] Put the exercise selector and variation dropdown on one row; show the selected variation name in the dropdown control.
+- [ ] Remove the large inline methodology explanation while retaining concise on-demand explanation.
+- [ ] Expand debug demo progress history to approximately one year and upgrade existing debug seed data without restoring deliberately removed demos.
+- [ ] Update coverage, run one combined final gate, install and inspect the exact build.
+
 ### QA-01 — Real-phone timers
 
 - [ ] Record phone model, Android version and notification/alarm permissions.
