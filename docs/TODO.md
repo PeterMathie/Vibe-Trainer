@@ -524,9 +524,11 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 - [x] Pin today’s Body entry controls first, keep chart/calendar/photo selection linked, and persist drag order for the trend, calendar and photos cards.
 - [x] Run affected unit/API 35 coverage, install the exact APK and leave it foregrounded on the visible emulator.
 
-Evidence: `5593d4a` implements the Exercise, Programme, workout-label and Settings control refinements. `ed67c48` implements saved collapsed Progress cards and the pinned-today/reorderable Body layout. Unit tests and debug assembly passed. API 35 `ExerciseEditorUiTest`, `ProgrammeUiTest`, `WorkoutLoggingUiTest`, `StyleUiTest`, `ProgressUiTest`, `MeasurementsUiTest` and `NavigationUiTest` passed; Progress and Measurements also passed independently while their new collapse and persistence assertions were stabilized. The exact installed APK SHA-256 is `b2560e744141ae3c8e416bc30e75410e1a23c0c6b78c4227887e04e7fcb786fb`; MainActivity is foregrounded with PID 6338 and no AndroidRuntime/FATAL launch error. Evidence is under `files/ux-31-controls/`.
+Evidence: `5593d4a` implements the Exercise, Programme, workout-label and initial Settings control refinements. `ed67c48` implements saved collapsed Progress cards and the pinned-today/reorderable Body layout. Follow-up `f9d47b6` represents binary notification/timer permissions as switches and renders open-source Markdown as structured headings, emphasis, lists, code and tables. `75ee13e` limits Style previews to interface colours.
 
-Style’s semantic swatches include base surfaces/text, anatomy recency and generic Progress heat-map roles. They do not include per-habit indicator colours; several roles can intentionally resolve to similar colours within a palette.
+Unit tests and debug assembly passed. API 35 `ExerciseEditorUiTest`, `ProgrammeUiTest`, `WorkoutLoggingUiTest`, `SettingsUiTest`, `StyleUiTest`, `ProgressUiTest`, `MeasurementsUiTest` and `NavigationUiTest` passed. The exact installed APK SHA-256 is `10c87ba5f5733fbbae6af41233e73a3a63210a01ce826bf826f4320d9bd739b6`; MainActivity is foregrounded with PID 7653 and no AndroidRuntime/FATAL launch error. Evidence is under `files/ux-31-controls/`.
+
+Style palettes preview interface surfaces, text, borders, accents, generic workout heat-map colours and danger states. Per-habit indicators and muscle-map anatomy/recency colours remain independent and are not included in palette previews.
 
 ## Intentionally deferred
 
