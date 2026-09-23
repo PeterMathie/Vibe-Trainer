@@ -262,6 +262,22 @@ Progress demo version 3 creates 156 workouts (three per week), covering every ex
 
 Validation passed 33 unit tests, debug app/test assembly, `ProgressUiTest` (2), `WorkoutLoggingUiTest` (6) and `WorkoutWorkflowTest` (4). Tests assert 156 annual sessions and representative improving/plateau/declining trajectories. The installed APK SHA-256 is `9959b4c8607a954e1e994bbe0f49a3e959adb42df902bd2d3e828feda4882105`; `files/ux-15-final/handstand-labels.png` records the inspected row.
 
+### UX-16 — Progress overview, habit heat maps and bodyweight photos
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Show an aggregate weekly training trend from normalized exercise scores.
+- [x] Show bodyweight history and open a same-day progress photo when one exists.
+- [x] Show one Progress heat map per active habit with a persistent user-selected color.
+- [x] Seed one year of representative bodyweight and habit history in debug builds.
+- [x] Preserve tracker data through a tested Room migration and generated schema.
+
+Evidence: implementation commit `1b4df3b` adds the aggregate trend, bodyweight chart/photo popup and colored habit heat maps. Room schema 9 adds `trackers.colourArgb`; migration 8→9 preserves existing trackers with the green default. The tracker editor offers seven accessible color swatches. Progress demo version 4 supplies 52 bodyweight records plus year-long Piano, Meditation and Protein activity.
+
+Validation passed 33 unit tests and debug app/test assembly. Focused API 35 instrumentation passed: `ProgressUiTest` (2), `HabitUiTest` (1), `VibeDatabaseMigrationTest` (7) and `WorkoutLoggingUiTest` (6). The exact installed APK SHA-256 is `49b3154d80adc5727d4fbea3b0c051776fa82e13083978ae43036f6b277df96a`. Installed screenshots `files/ux-16-final/progress-top.png` and `progress-lower.png` confirm readable annual charts, distinct habit colors and continued scrolling into the existing Progress content.
+
+Limitation: photo association intentionally reuses the existing timestamp-named photo files and matches by local calendar date. A photo captured on a different date from a historical bodyweight entry is not automatically linked.
+
 ### UX-11 — Exercise-aware personal records
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.

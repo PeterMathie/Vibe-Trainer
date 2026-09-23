@@ -2,11 +2,13 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-15 single-line Handstand labels and representative annual history is complete** at `f17d605` on `pmathie-cicpilot-persist-workout-drafts`. Handstand uses single-line `Freestanding s` and `Total wall s` labels at 9sp; installed bounds show both fields and RPE share the exact `677–845` vertical range.
+Current implementation task: **UX-16 Progress overview, habit heat maps and bodyweight photos is complete** at `1b4df3b` on `pmathie-cicpilot-persist-workout-drafts`. Progress now begins with an aggregate weekly normalized training trend and one year of bodyweight history. Selecting a bodyweight point opens a progress photo recorded on the same local calendar date when available.
 
-Progress demo version 3 now supplies 156 deterministic workouts: Planche + Push, Legs + Mobility and Muscle-up + Pull every week for 52 weeks, with all programme exercises and three sets each. Exercise-aware trajectories intentionally include clear improvement, stable plateaus and decline. Existing debug installs delete only prior `demo-progress-*` rows before regenerating, and bulk inserts keep seeding efficient.
+Each active habit has its own heat map using a persisted user-selected color. Room schema 9 and migration 8→9 add `trackers.colourArgb` without replacing existing tracker data. Progress demo version 4 retains the 156 annual workouts and adds 52 bodyweight records plus year-long Piano, Meditation and Protein values.
 
-Validation passed 33 unit tests, debug app/test assembly, `ProgressUiTest` (2), `WorkoutLoggingUiTest` (6) and `WorkoutWorkflowTest` (4). The exact installed APK SHA-256 is `9959b4c8607a954e1e994bbe0f49a3e959adb42df902bd2d3e828feda4882105`; `files/ux-15-final/handstand-labels.png` records the inspected layout.
+Validation passed 33 unit tests, debug app/test assembly, `ProgressUiTest` (2), `HabitUiTest` (1), `VibeDatabaseMigrationTest` (7) and `WorkoutLoggingUiTest` (6). The exact installed APK SHA-256 is `49b3154d80adc5727d4fbea3b0c051776fa82e13083978ae43036f6b277df96a`; `files/ux-16-final/progress-top.png` and `progress-lower.png` record the inspected charts and three distinct habit heat maps. Photo lookup deliberately reuses timestamp-named files and matches local calendar dates; photos captured on another date are not linked automatically.
+
+Previous task: **UX-15 single-line Handstand labels and representative annual history is complete** at `f17d605`. Handstand uses single-line `Freestanding s` and `Total wall s` labels at 9sp. Progress demo version 3 established 156 deterministic workouts across all three strength programmes, with improving, stable and declining trajectories.
 
 Current implementation task: **UX-14 compact autosaving workout rows and curated catalogue is complete** at `1753c9e` on `pmathie-cicpilot-persist-workout-drafts`. Active set rows no longer have a check button: every valid edit autosaves through the row's durable set ID, and later corrections update that set rather than creating duplicates. Clearing the final performance metric removes the saved set and retains recoverable draft state.
 
