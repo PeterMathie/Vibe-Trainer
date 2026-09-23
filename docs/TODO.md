@@ -199,12 +199,16 @@ Evidence: commit `5b6c7ec` gives Progress a dedicated lazy picker. Eligibility r
 
 ### UX-11 — Exercise-aware personal records
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 23 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed and completed: 23 September 2026.
 
-- [ ] Promote Personal records above Progress charts and present records as a visually distinct app-styled summary.
-- [ ] Remove the repetition-only PR and replace the opaque calculated-performance row with the highest scored performance.
-- [ ] Filter weight, hold and estimated-one-rep-max records by the selected exercise's tracking type so irrelevant metrics are absent rather than rendered as empty values.
-- [ ] Add focused domain and Compose regression coverage, run the combined validation gate, install the exact APK and inspect the resulting Progress page.
+- [x] Promote Personal records above Progress charts and present records as a visually distinct app-styled summary.
+- [x] Remove the repetition-only PR and replace the opaque calculated-performance row with the highest scored performance.
+- [x] Filter weight, hold and estimated-one-rep-max records by the selected exercise's tracking type so irrelevant metrics are absent rather than rendered as empty values.
+- [x] Add focused domain and Compose regression coverage, run the combined validation gate, install the exact APK and inspect the resulting Progress page.
+
+Evidence: implementation `a990214` moves a bordered Personal records card directly below the exercise selectors. Best performance reports the highest existing domain score and identifies its contributing set. `WEIGHT_REPS` exercises show available Heaviest weight and Estimated 1RM records; `HOLD`/`SKILL_HOLD` exercises show Longest hold; bodyweight, assisted-repetition and repetition exercises do not receive irrelevant weight/hold rows. Null records are omitted rather than displayed as placeholders. The standalone Repetition PR and Calculated performance PR labels are removed.
+
+Focused unit/assembly/Progress instrumentation passed. The final clean full gate passed 35 unit tests and 43 API 35 instrumentation tests; two preceding full instrumentation attempts encountered the established asynchronous in-memory Room teardown race in two unrelated tests, while all Progress tests passed in every attempt. The exact APK SHA-256 is `8972fd690469e8b335520ef89f34c0e94075be32b4e5dec037e11e823c737fbb`. `files/ux-11-final/weighted-records-a990214.png` visibly shows only the weighted records for Bench press, while `hold-records-a990214.png` shows only hold-relevant records for Handstand. MainActivity remains resumed with PID 29387 and no AndroidRuntime crash.
 
 ### UX-10 — Compact Progress controls and annual demo
 
