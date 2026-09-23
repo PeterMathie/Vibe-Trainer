@@ -429,12 +429,24 @@ Evidence: commit `3062c46` implements the compact cards, progressive settings di
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
 
-- [x] Remove visible separator strokes between adjacent muscle regions while retaining selection highlighting and the body silhouette.
+- [x] Make the untrained/body-white SVG regions transparent and remove visible separator strokes while retaining selection highlighting and the body silhouette.
 - [x] Render the recency slider as a neutral grey track with only the current-position thumb in the accent colour.
 - [x] Fit the Home recency card and five-week heat map within the available viewport without vertical scrolling.
 - [x] Preserve full-size heat maps outside Home and keep the fixed bottom navigation visible.
 
-Evidence: commit `3d29f5a` uses a viewport-fitted Home column, flexible map region and Home-only compact heat-map cells. Unit tests, debug app/test assembly and focused API 35 `NavigationUiTest` passed. The exact installed APK has SHA-256 `744c9add1678181ee464e4c3bace91d222e6b3a1d810c9f808e39802bab6fd43`; `files/ux-21-home-fit.png` shows both cards, the neutral slider and fixed navigation in one screen with no scrolling.
+Evidence: commit `3d29f5a` uses a viewport-fitted Home column, flexible map region and Home-only compact heat-map cells. The transparent SVG follow-up was verified through debug assembly and installed screenshot inspection. `files/ux-22-transparent-svg.png` shows only tracked colour fills over the card background, with both cards and fixed navigation still fitting without scrolling.
+
+### UX-22 — Tracking display refinements
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Make all white and never-trained anatomy fills transparent and enlarge both Home figures without losing the fitted layout.
+- [x] Rename the Home activity card to `Work tracker`.
+- [x] Render Progress RPE as bars against a fixed 0–10 scale.
+- [x] Increase vertical spacing throughout the habit settings dialog.
+- [x] Move the persistent reduced-motion explanation behind a compact `(i)` action.
+
+Evidence: commit `6f3519e` implements the refinements. Unit tests and debug app/test assembly passed; focused API 35 `HabitUiTest` (1) and `ProgressUiTest` (2) passed, including a semantic assertion for the fixed 0–10 RPE range. Final debug assembly passed with APK SHA-256 `983bf1520c8199baf02ec99a05c8364b5abee8653bd769942b9cbef0cdedd6cf`. `files/ux-22-home-final.png` shows the enlarged transparent figures and renamed Work tracker while retaining the one-screen Home layout.
 
 ## Intentionally deferred
 
