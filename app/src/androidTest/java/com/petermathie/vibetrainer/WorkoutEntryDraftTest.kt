@@ -179,6 +179,6 @@ class WorkoutEntryDraftTest {
                 com.petermathie.vibetrainer.data.local.MIGRATION_7_8,
             )
             .build()
-        repository = TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao())
+        repository = TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao(), context)
     }
 }

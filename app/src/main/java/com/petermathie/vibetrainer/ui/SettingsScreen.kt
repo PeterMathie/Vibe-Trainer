@@ -45,14 +45,20 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import java.io.File
 import com.petermathie.vibetrainer.data.BackupPreferences
+import com.petermathie.vibetrainer.data.DemoRemovalSummary
 
 @Composable
-fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
+fun SettingsScreen(
+    vm: EditorViewModel,
+    onStyle: () -> Unit,
+    onRemoveDemo: ((Result<DemoRemovalSummary>) -> Unit) -> Unit,
+) {
     val context=LocalContext.current;val prefs=context.getSharedPreferences("settings",0);val scope=rememberCoroutineScope()
     var message by remember { mutableStateOf("") };var last by remember { mutableStateOf(prefs.getLong("backup",0)) }
     var notices by remember { mutableStateOf<String?>(null) }
     var reducedMotionInfo by remember { mutableStateOf(false) }
     var preciseTimerInfo by remember { mutableStateOf(false) }
+    var confirmRemoveDemo by remember { mutableStateOf(false) }
     var lb by remember { mutableStateOf(prefs.getBoolean("lb",false)) };var female by remember { mutableStateOf(prefs.getBoolean("female",false)) }
     var auto by remember { mutableStateOf(prefs.getBoolean("autoRest",false)) };var haptic by remember { mutableStateOf(prefs.getBoolean("haptic",true)) };var reduced by remember { mutableStateOf(prefs.getBoolean("reducedMotion",false)) }
     var notificationsEnabled by remember { mutableStateOf(timerNotificationsEnabled(context)) }
@@ -115,7 +121,7 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
             VibeActionButton("Restore / import structured JSON", {restore.launch(arrayOf("application/json","text/plain"))}, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
             VibeActionButton("CSV export", {csv.launch("vibe-trainer-workouts.csv")}, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
             Text("Last backup: ${if(last==0L)"Never" else Instant.ofEpochMilli(last)}")
-            VibeActionButton("Remove demo data", onRemoveDemo, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
+            VibeActionButton("Remove demo data", { confirmRemoveDemo = true }, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
             VibeActionButton("Open-source asset notices", {notices=context.assets.open("THIRD_PARTY_NOTICES.md").bufferedReader().use { it.readText() }}, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
             Text(message)
         }
@@ -133,8 +139,31 @@ fun SettingsScreen(vm:EditorViewModel,onStyle:()->Unit,onRemoveDemo:()->Unit) {
         text = { Text("This permission lets Android deliver rest-timer alerts at the requested time. Without it, background alerts may be delayed.") },
         confirmButton = { TextButton(onClick = { preciseTimerInfo = false }) { Text("Close") } },
     )
+    if (confirmRemoveDemo) AlertDialog(
+        onDismissRequest = { confirmRemoveDemo = false },
+        title = { Text("Remove all demo personal data?") },
+        text = {
+            Text("This removes demo workouts, programmes, habits, body history and generated progress photos. Your exercise catalogue and your own records stay intact.")
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                confirmRemoveDemo = false
+                onRemoveDemo { result ->
+                    message = result.fold(
+                        onSuccess = { summary -> demoRemovalMessage(summary) },
+                        onFailure = { error -> "Demo data was not fully removed: ${error.message.orEmpty()}" },
+                    )
+                }
+            }) { Text("Remove demo data") }
+        },
+        dismissButton = { TextButton(onClick = { confirmRemoveDemo = false }) { Text("Cancel") } },
+    )
     if(pendingImport!=null)AlertDialog(onDismissRequest={pendingImport=null},title={Text("Import records?")},text={Text("Matching record IDs will be updated. Other records are retained. Make a backup first if you want to keep the previous values.")},confirmButton={TextButton(onClick={val text=pendingImport!!;pendingImport=null;scope.launch{try{val restored=BackupPreferences.validate(text);vm.importJson(text);BackupPreferences.restore(restored,prefs);lb=prefs.getBoolean("lb",false);female=prefs.getBoolean("female",false);auto=prefs.getBoolean("autoRest",false);haptic=prefs.getBoolean("haptic",true);reduced=prefs.getBoolean("reducedMotion",false);message="Import complete. Restored colours are active."}catch(e:Exception){message="Import failed: ${e.message}"}}}){Text("Import")}},dismissButton={TextButton(onClick={pendingImport=null}){Text("Cancel")}})
 }
+
+private fun demoRemovalMessage(summary: DemoRemovalSummary): String =
+    "Removed demo personal data: ${summary.workouts} workouts, ${summary.programmes} programmes, " +
+        "${summary.trackers} habits, ${summary.measurements} body entries and ${summary.photos} photos."
 
 private fun timerNotificationsEnabled(context: android.content.Context): Boolean =
     context.getSystemService(NotificationManager::class.java).areNotificationsEnabled() &&

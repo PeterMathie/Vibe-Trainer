@@ -102,7 +102,7 @@ class WorkoutLoggingUiTest {
             )
         }
         val workoutId = runBlocking {
-            TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao())
+            TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao(), context)
                 .startWorkout("demo-day-push")
         }
         val viewModel = EditorViewModel(database)
@@ -223,7 +223,7 @@ class WorkoutLoggingUiTest {
 
     private fun startPushWorkout(context: Context) = runBlocking {
         DatabaseSeeder(context, database).seedIfNeeded()
-        val repository = TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao())
+        val repository = TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao(), context)
         repository.startWorkout(repository.observeProgrammeDays().first().first { it.id == "demo-day-push" }.id)
     }
 }

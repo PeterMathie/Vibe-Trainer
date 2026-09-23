@@ -165,8 +165,13 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                     Destination.HABITS -> TrackerScreen(editor)
                     Destination.HISTORY -> HistoryScreen(editor,viewModel::selectHistoryDay)
                     Destination.MEASUREMENTS -> MeasurementsScreen(editor)
-                    Destination.SETTINGS -> SettingsScreen(editor,{destination=Destination.STYLE},viewModel::removeDemoData)
-                    Destination.STYLE -> StyleScreen(paletteId, { paletteId = it; prefs.edit().putString("palette",it).apply() }, viewModel::removeDemoData)
+                    Destination.SETTINGS -> SettingsScreen(editor, { destination=Destination.STYLE }) { result ->
+                        viewModel.removeDemoData(result)
+                    }
+                    Destination.STYLE -> StyleScreen(
+                        paletteId,
+                        { paletteId = it; prefs.edit().putString("palette", it).apply() },
+                    ) { result -> viewModel.removeDemoData(result) }
                 }
             }
         }

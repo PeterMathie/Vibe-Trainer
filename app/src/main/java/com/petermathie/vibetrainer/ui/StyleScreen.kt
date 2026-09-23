@@ -14,12 +14,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,13 +32,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.petermathie.vibetrainer.domain.style.PaletteContrast
+import com.petermathie.vibetrainer.data.DemoRemovalSummary
 import com.petermathie.vibetrainer.ui.theme.LocalVibePalette
 import com.petermathie.vibetrainer.ui.theme.VibePalette
 import com.petermathie.vibetrainer.ui.theme.VibePalettes
 import com.petermathie.vibetrainer.ui.theme.VibeShapes
 
 @Composable
-internal fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemoveDemo: () -> Unit) {
+internal fun StyleScreen(
+    selectedId: String,
+    onSelect: (String) -> Unit,
+    onRemoveDemo: ((Result<DemoRemovalSummary>) -> Unit) -> Unit,
+) {
     val prefs = LocalContext.current.getSharedPreferences("settings", 0)
     fun storedHex(key: String, fallback: Int) = String.format("#%06X", 0xFFFFFF and prefs.getInt(key, fallback))
     var accent by remember { mutableStateOf(storedHex("accent", 0xFFC2F85A.toInt())) }
@@ -44,6 +51,8 @@ internal fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemov
     var surface by remember { mutableStateOf(storedHex("surface", 0xFF101B23.toInt())) }
     var error by remember { mutableStateOf<String?>(null) }
     var applied by remember { mutableStateOf(false) }
+    var confirmRemoveDemo by remember { mutableStateOf(false) }
+    var demoMessage by remember { mutableStateOf<String?>(null) }
     ScreenList {
         item {
             Text("Style", style = MaterialTheme.typography.headlineLarge)
@@ -87,11 +96,29 @@ internal fun StyleScreen(selectedId: String, onSelect: (String) -> Unit, onRemov
         item {
             VibeCard {
                 Text("Development data", style = MaterialTheme.typography.titleLarge)
-                Text("Remove demo workouts, programmes and trackers while keeping the exercise database.", color = LocalVibePalette.current.textSecondary)
-                OutlinedButton(onClick = onRemoveDemo, modifier = Modifier.fillMaxWidth()) { Text("Remove demo data") }
+                Text("Remove all fake personal history while keeping the complete exercise catalogue and your own data.", color = LocalVibePalette.current.textSecondary)
+                OutlinedButton(onClick = { confirmRemoveDemo = true }, modifier = Modifier.fillMaxWidth()) { Text("Remove demo data") }
+                demoMessage?.let { Text(it, color = LocalVibePalette.current.textSecondary) }
             }
         }
     }
+    if (confirmRemoveDemo) AlertDialog(
+        onDismissRequest = { confirmRemoveDemo = false },
+        title = { Text("Remove all demo personal data?") },
+        text = { Text("Demo workouts, programmes, habits, body history and generated photos will be removed. Catalogue definitions and your own records will remain.") },
+        confirmButton = {
+            TextButton(onClick = {
+                confirmRemoveDemo = false
+                onRemoveDemo { result ->
+                    demoMessage = result.fold(
+                        onSuccess = { "Demo personal data removed. Exercise catalogue preserved." },
+                        onFailure = { "Demo data was not fully removed: ${it.message.orEmpty()}" },
+                    )
+                }
+            }) { Text("Remove demo data") }
+        },
+        dismissButton = { TextButton(onClick = { confirmRemoveDemo = false }) { Text("Cancel") } },
+    )
 }
 
 @Composable

@@ -91,4 +91,5 @@ interface EditorDao {
     @Query("SELECT * FROM body_measurements ORDER BY recordedAt DESC") fun measurements(): Flow<List<BodyMeasurementEntity>>
     @Upsert suspend fun measurement(row: BodyMeasurementEntity)
     @Query("DELETE FROM body_measurements WHERE id = :id") suspend fun deleteMeasurement(id: String)
+    @Query("DELETE FROM body_measurements WHERE isDemo = 1") suspend fun deleteDemoMeasurements(): Int
 }

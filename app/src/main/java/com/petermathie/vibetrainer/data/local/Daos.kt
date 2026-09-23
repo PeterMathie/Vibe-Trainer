@@ -149,7 +149,7 @@ interface ProgrammeDao {
     suspend fun modeForDay(dayId: String): String?
 
     @Query("DELETE FROM programmes WHERE isDemo = 1")
-    suspend fun deleteDemoProgrammes()
+    suspend fun deleteDemoProgrammes(): Int
 }
 
 @Dao
@@ -225,7 +225,7 @@ interface WorkoutDao {
     suspend fun finish(workoutId: String, finishedAt: Long)
 
     @Query("DELETE FROM workouts WHERE isDemo = 1")
-    suspend fun deleteDemoWorkouts()
+    suspend fun deleteDemoWorkouts(): Int
 
     @Query(
         """
@@ -347,7 +347,7 @@ interface TrackerDao {
     fun observeHistoryValues(): Flow<List<HistoryTrackerRow>>
 
     @Query("DELETE FROM trackers WHERE isDemo = 1")
-    suspend fun deleteDemoTrackers()
+    suspend fun deleteDemoTrackers(): Int
 }
 
 @Dao

@@ -80,6 +80,7 @@ class DatabaseSeeder @Inject constructor(
             sql.execSQL("INSERT OR IGNORE INTO workout_muscles SELECT we.id,em.muscleId,em.role FROM workout_exercises we JOIN exercise_muscles em ON em.exerciseId=we.actualExerciseId")
             sql.execSQL("UPDATE workout_exercises SET exerciseName=(SELECT canonicalName FROM exercises WHERE id=actualExerciseId),trackingType=(SELECT trackingType FROM exercises WHERE id=actualExerciseId) WHERE exerciseName=''")
         }
+        if (BuildConfig.DEBUG) DemoProgressPhotos.claimLegacyPhotos(context, database)
     }
 
     private suspend fun seedCatalogue() {
@@ -354,13 +355,7 @@ class DatabaseSeeder @Inject constructor(
         if (file.exists()) return
         val bitmap = Bitmap.createBitmap(720, 960, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        val palettes = listOf(
-            0xFF263238.toInt() to 0xFF26A69A.toInt(),
-            0xFF312A3D.toInt() to 0xFF7E57C2.toInt(),
-            0xFF3D2A2A.toInt() to 0xFFEF5350.toInt(),
-            0xFF243324.toInt() to 0xFF8BC34A.toInt(),
-        )
-        val (background, accent) = palettes[(week / 17).coerceIn(palettes.indices)]
+        val (background, accent) = DemoProgressPhotos.palette(week)
         canvas.drawColor(background)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = accent }
         canvas.drawCircle(360f, 230f, 105f, paint)
@@ -371,6 +366,7 @@ class DatabaseSeeder @Inject constructor(
         canvas.drawText("Demo progress", 360f, 890f, paint)
         file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 88, it) }
         bitmap.recycle()
+        DemoProgressPhotos.markOwned(context, file)
     }
 
     private fun progressDirection(exerciseId: String): Int = when (exerciseId) {

@@ -37,6 +37,7 @@ class WorkoutWorkflowTest {
             database.programmeDao(),
             database.workoutDao(),
             database.trackerDao(),
+            context,
         )
     }
 

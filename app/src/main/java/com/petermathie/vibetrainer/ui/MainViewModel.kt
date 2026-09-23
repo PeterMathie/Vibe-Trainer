@@ -144,5 +144,8 @@ class MainViewModel @Inject constructor(
         onFinished()
     }
 
-    fun removeDemoData() = viewModelScope.launch { repository.removeDemoData() }
+    fun removeDemoData(onResult: (Result<com.petermathie.vibetrainer.data.DemoRemovalSummary>) -> Unit) =
+        viewModelScope.launch {
+            onResult(runCatching { repository.removeDemoData() })
+        }
 }

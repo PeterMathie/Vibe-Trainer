@@ -45,7 +45,7 @@ class EditorWorkflowTest {
     }
     @Test(timeout=120000) fun draftsDoNotColourMusclesAndDefinitionEditsPreserveFinishedHistory()=runBlocking {
         db.openHelper.writableDatabase.execSQL("DELETE FROM workouts")
-        val repository=com.petermathie.vibetrainer.data.TrainingRepository(db,db.programmeDao(),db.workoutDao(),db.trackerDao())
+        val repository=com.petermathie.vibetrainer.data.TrainingRepository(db,db.programmeDao(),db.workoutDao(),db.trackerDao(),ApplicationProvider.getApplicationContext())
         val day=repository.observeProgrammeDays().first().first()
         val id=repository.startWorkout(day.id)
         val exercise=repository.observeDraft().first { it!=null }!!.exercises.first()

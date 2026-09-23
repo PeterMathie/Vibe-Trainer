@@ -47,6 +47,7 @@ class HistoryUiTest {
             database.programmeDao(),
             database.workoutDao(),
             database.trackerDao(),
+            context,
         )
         val viewModel = MainViewModel(repository, database.catalogueDao())
         val firstDay = LocalDate.now().minusDays(1)
@@ -102,7 +103,7 @@ class HistoryUiTest {
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         DatabaseSeeder(context, database).seedIfNeeded()
         val viewModel = MainViewModel(
-            TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao()),
+            TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao(), context),
             database.catalogueDao(),
         )
         val previewDay = LocalDate.now().minusDays(10).toEpochDay()

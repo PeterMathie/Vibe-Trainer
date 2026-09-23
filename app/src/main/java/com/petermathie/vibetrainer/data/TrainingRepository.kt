@@ -1,5 +1,6 @@
 package com.petermathie.vibetrainer.data
 
+import android.content.Context
 import androidx.room.withTransaction
 import com.petermathie.vibetrainer.data.local.ProgrammeDao
 import com.petermathie.vibetrainer.data.local.TrackerDao
@@ -22,6 +23,8 @@ import com.petermathie.vibetrainer.domain.model.WorkoutExerciseLog
 import com.petermathie.vibetrainer.domain.model.WorkoutSetLog
 import com.petermathie.vibetrainer.domain.model.WorkoutStatus
 import com.petermathie.vibetrainer.domain.recency.RecencyCalculator
+import com.petermathie.vibetrainer.data.seed.DemoProgressPhotos
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
@@ -40,6 +43,7 @@ class TrainingRepository @Inject constructor(
     private val programmeDao: ProgrammeDao,
     private val workoutDao: WorkoutDao,
     private val trackerDao: TrackerDao,
+    @ApplicationContext private val context: Context,
 ) {
     fun observeProgrammeDays(): Flow<List<ProgrammeDaySummary>> = programmeDao.observeDays().map { rows ->
         rows.map { ProgrammeDaySummary(it.id, it.name, TrainingMode.valueOf(it.mode), it.exerciseCount) }
@@ -192,10 +196,17 @@ class TrainingRepository @Inject constructor(
             HistoryDayDetail(epochDay, workoutActivities + trackerActivities)
         }
 
-    suspend fun removeDemoData() = database.withTransaction {
-        workoutDao.deleteDemoWorkouts()
-        programmeDao.deleteDemoProgrammes()
-        trackerDao.deleteDemoTrackers()
+    suspend fun removeDemoData(): DemoRemovalSummary {
+        val photos = DemoProgressPhotos.deleteOwned(context)
+        return database.withTransaction {
+            DemoRemovalSummary(
+                workouts = workoutDao.deleteDemoWorkouts(),
+                programmes = programmeDao.deleteDemoProgrammes(),
+                trackers = trackerDao.deleteDemoTrackers(),
+                measurements = database.editorDao().deleteDemoMeasurements(),
+                photos = photos,
+            )
+        }
     }
 
     private suspend fun loadWorkout(row: WorkoutEntity): ActiveWorkout {
@@ -213,6 +224,7 @@ class TrainingRepository @Inject constructor(
                     result = com.petermathie.vibetrainer.domain.model.SetResult.valueOf(set.result),
                 )
             }
+
             WorkoutExerciseLog(
                 id = exercise.workoutExerciseId,
                 plannedExerciseId = exercise.plannedExerciseId,
@@ -227,3 +239,11 @@ class TrainingRepository @Inject constructor(
         return ActiveWorkout(row.id, row.name, TrainingMode.valueOf(row.mode), row.startedAt, row.notes, exercises)
     }
 }
+
+data class DemoRemovalSummary(
+    val workouts: Int,
+    val programmes: Int,
+    val trackers: Int,
+    val measurements: Int,
+    val photos: Int,
+)
