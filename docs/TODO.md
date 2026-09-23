@@ -512,6 +512,22 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 
 Evidence: `f843253` implements the habit, Progress and anatomy refinements. `c9bf07b` modernizes Exercises, History, More and Style while reusing exercise tags, the existing `lb` preference, shared cards/actions and the central palette registry. Unit tests passed, including contrast validation for all six built-in palettes. Focused API 35 instrumentation passed for `ExerciseEditorUiTest`, `HistoryUiTest`, `NavigationUiTest`, `StyleUiTest`, `HabitUiTest`, `ProgressUiTest` and `MuscleMapUiTest`. The exact installed APK SHA-256 is `41f65144b47d7713371f9f21484d51a53d3fa7c1523583b45972f5f52b9b6f39`; inspected evidence is under `files/ux-30-ui-modernization/`.
 
+### UX-27 — Compact controls, collapsed Progress and reorderable Body
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Replace separate Exercise sections with a Strength/Stretch filter, keep the search and compact add action on one row, and default custom exercises to the active filter.
+- [x] Rename generic `Time held` to `Time Under Tension` and `Time under tension` to `Total Time` across exercise settings and workout logging while preserving Handstand-specific labels.
+- [x] Replace Programme’s textual creation action with the shared full-width plus control at the bottom of the list.
+- [x] Align Settings toggles and real information icons, move precise-timer guidance into an on-demand dialog, and render Settings actions consistently.
+- [x] Start every major Progress card collapsed, retaining its title/icon and reorder handle; expand the body by pressing its header.
+- [x] Pin today’s Body entry controls first, keep chart/calendar/photo selection linked, and persist drag order for the trend, calendar and photos cards.
+- [x] Run affected unit/API 35 coverage, install the exact APK and leave it foregrounded on the visible emulator.
+
+Evidence: `5593d4a` implements the Exercise, Programme, workout-label and Settings control refinements. `ed67c48` implements saved collapsed Progress cards and the pinned-today/reorderable Body layout. Unit tests and debug assembly passed. API 35 `ExerciseEditorUiTest`, `ProgrammeUiTest`, `WorkoutLoggingUiTest`, `StyleUiTest`, `ProgressUiTest`, `MeasurementsUiTest` and `NavigationUiTest` passed; Progress and Measurements also passed independently while their new collapse and persistence assertions were stabilized. The exact installed APK SHA-256 is `b2560e744141ae3c8e416bc30e75410e1a23c0c6b78c4227887e04e7fcb786fb`; MainActivity is foregrounded with PID 6338 and no AndroidRuntime/FATAL launch error. Evidence is under `files/ux-31-controls/`.
+
+Style’s semantic swatches include base surfaces/text, anatomy recency and generic Progress heat-map roles. They do not include per-habit indicator colours; several roles can intentionally resolve to similar colours within a palette.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.

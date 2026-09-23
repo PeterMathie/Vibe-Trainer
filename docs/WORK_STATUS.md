@@ -2,6 +2,14 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
+Current implementation task: **UX-27 compact controls, collapsed Progress and reorderable Body is complete** at `5593d4a` and `ed67c48` on `pmathie-cicpilot-persist-workout-drafts`.
+
+Exercises use a Strength/Stretch filter with a compact search/add row; custom exercises inherit the active classification. Generic timing fields now read Time Under Tension and Total Time, while Handstand retains its specific labels. Programme creation uses the shared full-width bottom plus action. Settings uses aligned information icons, on-demand precise-timer guidance and consistent shared action buttons.
+
+All major Progress cards start title-only and expand from their header while keeping persisted reorder handles available. Body pins today’s entry controls first; its linked trend, calendar and selected-day photo cards are reorderable with persisted layout. Unit tests, debug assembly and affected API 35 Exercise, Programme, workout logging, Style, Progress, Measurements and Navigation suites passed. Exact installed APK SHA-256: `b2560e744141ae3c8e416bc30e75410e1a23c0c6b78c4227887e04e7fcb786fb`. MainActivity is foregrounded on `vibe-log01-api35` with PID 6338 and no AndroidRuntime/FATAL launch error; evidence is under `files/ux-31-controls/`.
+
+Style’s 24 displayed swatches are semantic roles, including base UI, anatomy recency and generic Progress heat-map colours. Per-habit colours are excluded, and a palette may deliberately reuse similar values across roles.
+
 Current implementation task: **UX-26 habit, anatomy and secondary-screen polish is complete** at `f843253` and `c9bf07b` on `pmathie-cicpilot-persist-workout-drafts`. Habit setup uses an icon-only curated picker, full-width plus action, centered Cancel and title-row New habit control; Progress heat maps now show each persisted habit icon. Never-trained mapped muscles use the neutral recency token rather than disappearing into the transparent SVG background.
 
 Exercises are visibly separated into Strength and Stretching sections. Exercise and History cards use shared surfaces with evenly spaced outlined actions, and exercise settings expose only the unit selected by the existing Pounds preference. More uses left-aligned destination icons, with a strength icon for Exercises and a cog for Settings. Style now offers six built-in palettes and displays every semantic palette role colour; habit indicator colours remain independent and are not shown as palette tokens.
