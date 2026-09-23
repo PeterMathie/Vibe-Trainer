@@ -1,7 +1,6 @@
 package com.petermathie.vibetrainer.ui
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
@@ -162,7 +161,6 @@ fun ReorderHandle(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .defaultMinSize(48.dp, 48.dp)
-            .clickable(enabled = enabled, onClick = {})
             .semantics {
                 contentDescription = "Reorder $itemLabel"
                 customActions = buildList {
@@ -176,7 +174,7 @@ fun ReorderHandle(
             }
             .pointerInput(state, itemKey, enabled) {
                 if (!enabled) return@pointerInput
-                detectDragGesturesAfterLongPress(
+                detectDragGestures(
                     onDragStart = { state.begin(itemKey) },
                     onDragEnd = state::end,
                     onDragCancel = state::cancel,

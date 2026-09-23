@@ -159,7 +159,6 @@ class ProgrammeUiTest {
     private fun dragDown(description: String) {
         compose.onNodeWithContentDescription(description).performScrollTo().performTouchInput {
             down(center)
-            advanceEventTime(1_000)
             repeat(5) {
                 moveBy(Offset(0f, 60f))
                 advanceEventTime(50)
