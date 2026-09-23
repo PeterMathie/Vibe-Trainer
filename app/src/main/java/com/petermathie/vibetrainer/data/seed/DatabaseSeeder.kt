@@ -315,7 +315,7 @@ class DatabaseSeeder @Inject constructor(
                         weekStart + day,
                         null,
                         null,
-                        listOf("Terrified", "Lonely", "Sad", "Happy", "Joyful", "Super")[(week + day) % 6],
+                        MOOD_CHOICES[(week + day) % MOOD_CHOICES.size],
                         "",
                         now,
                     ),
@@ -497,7 +497,18 @@ class DatabaseSeeder @Inject constructor(
         private const val SCHEDULE_FREE_DEMO_KEY = "schedule_free_demo"
         private const val SCHEDULE_FREE_DEMO_VERSION = 1
         private const val PROGRESS_DEMO_KEY = "progress_demo"
-        private const val PROGRESS_DEMO_VERSION = 8
+        private const val PROGRESS_DEMO_VERSION = 9
+        private val MOOD_CHOICES = listOf(
+            "Dejected",
+            "Flat",
+            "Displeased",
+            "Agitated",
+            "Neutral",
+            "Content",
+            "Alert",
+            "Happy",
+            "Excited",
+        )
 
         private val MUSCLES = listOf(
             "ABDUCTORS" to "Abductors", "ADDUCTORS" to "Adductors", "BACK_LOWER" to "Lower back",
@@ -643,9 +654,9 @@ class DatabaseSeeder @Inject constructor(
                 null,
                 null,
                 0,
-                choiceOptions = "Terrified\nLonely\nSad\nHappy\nJoyful\nSuper",
+                choiceOptions = MOOD_CHOICES.joinToString("\n"),
                 choiceLightThrough = 2,
-                choiceDarkFrom = 3,
+                choiceDarkFrom = 6,
             ),
             TrackerFieldEntity("demo-journal-entry", "demo-journal", "Entry", "TEXT", null, null, null, 0),
             TrackerFieldEntity("demo-reading-completed", "demo-reading", "Read today", "BOOLEAN", null, null, null, 0),

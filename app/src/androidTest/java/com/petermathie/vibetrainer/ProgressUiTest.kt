@@ -109,7 +109,7 @@ class ProgressUiTest {
         compose.onNodeWithText("Close").performClick()
         compose.onNodeWithText("Mood").performScrollTo().assertIsDisplayed()
         assertTrue(compose.onAllNodesWithContentDescription("1 mood intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
-        assertTrue(compose.onAllNodesWithContentDescription("2 mood intensity", substring = true).fetchSemanticsNodes().isEmpty())
+        assertTrue(compose.onAllNodesWithContentDescription("2 mood intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
         assertTrue(compose.onAllNodesWithContentDescription("3 mood intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
         compose.onNodeWithText("Journal").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Reading").performScrollTo().assertIsDisplayed()
