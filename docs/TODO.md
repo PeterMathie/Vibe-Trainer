@@ -462,6 +462,18 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 
 Evidence: commit `272f902` implements the simplified field model, non-numeric heat-map classification, extra demo habits, placeholder photo generation and settings cleanup. Unit tests and debug app/test assembly passed. Focused API 35 `HabitUiTest` (1), `ProgressUiTest` (2) and `MeasurementsUiTest` (1) passed; unit coverage pins ordered-choice, boolean and written-entry shades. The exact APK SHA-256 is `85034bb7814f57e77c8bd375f1259449f51975ee5d5a9bf281099ea7f2663358`; `files/ux-23-habits.png` and `files/ux-23-body.png` record the colour markers, alternate habit inputs and visible demo photo gallery.
 
+### UX-24 — Linked bodyweight calendar and habit lifecycle
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
+
+- [x] Replace the long Body measurement list with a month calendar showing each recorded daily weight.
+- [x] Reuse the Progress bodyweight chart on Body and synchronize chart selection, calendar selection and selected-day details.
+- [x] Show and manage only the selected day’s weight and photos; attach new entries and photos to that date.
+- [x] Keep Body and Progress backed by the same Room measurement stream so changes update both.
+- [x] Hide archived habits from daily entry and Progress, expose an Archived habits restore section, and allow permanent deletion only when no daily values exist.
+
+Evidence: commit `386a598` implements the shared chart/calendar/day selection and guarded habit lifecycle. Unit tests and debug app/test assembly passed; focused API 35 `HabitUiTest` (2), `MeasurementsUiTest` (1) and `ProgressUiTest` (2) passed. Coverage proves empty-habit deletion, history-preserving archive/restore, calendar weight updates and chart synchronization. Exact APK SHA-256 is `1e02d004f6686c715d7959a8d5c253027982265386299745e84df7293194ae25`; `files/ux-24-body-calendar.png` shows the linked annual chart and readable monthly calendar.
+
 ## Intentionally deferred
 
 - Cloud provider selection and sync implementation.
