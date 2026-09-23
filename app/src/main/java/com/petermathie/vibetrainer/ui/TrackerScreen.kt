@@ -150,16 +150,10 @@ fun TrackerScreen(vm: EditorViewModel) {
                 field = it
                 settings = null
             },
-            onArchiveMeasurement = { vm.save(it.copy(isArchived = true)) },
             onRestoreMeasurement = { restored, position ->
                 vm.save(restored.copy(isArchived = false, position = position))
             },
             onMoveMeasurement = vm::moveTrackerField,
-            canDelete = !hasData(tracker),
-            onDeleteHabit = {
-                settings = null
-                deleteCandidate = tracker
-            },
             onArchiveHabit = {
                 vm.save(tracker.copy(isArchived = true))
                 settings = null
@@ -199,11 +193,8 @@ private fun HabitSettingsDialog(
     onSave: (TrackerEntity, List<TrackerFieldEntity>) -> Unit,
     onAddMeasurement: (Int) -> Unit,
     onEditMeasurement: (TrackerFieldEntity) -> Unit,
-    onArchiveMeasurement: (TrackerFieldEntity) -> Unit,
     onRestoreMeasurement: (TrackerFieldEntity, Int) -> Unit,
     onMoveMeasurement: (String, Int) -> Unit,
-    canDelete: Boolean,
-    onDeleteHabit: () -> Unit,
     onArchiveHabit: () -> Unit,
 ) {
     var name by remember(tracker.id) { mutableStateOf(tracker.name) }
@@ -298,8 +289,8 @@ private fun HabitSettingsDialog(
                                 }
                             }
                         }
-                        Text("Heat-map intensity", style = MaterialTheme.typography.titleMedium)
                         if (hasNumericField) {
+                            Text("Shade thresholds", style = MaterialTheme.typography.titleMedium)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedTextField(
                                     value = lightBelow,
@@ -324,16 +315,6 @@ private fun HabitSettingsDialog(
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                        } else {
-                            Text(
-                                when {
-                                    activeFields.any { it.valueType == "CHOICE" } ->
-                                        "Choices map from light to dark in the order configured."
-                                    activeFields.any { it.valueType == "BOOLEAN" } -> "No is light and Yes is dark."
-                                    else -> "A written entry uses the medium shade."
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                            )
                         }
                         Text("Measurements", style = MaterialTheme.typography.titleMedium)
                         fieldOrder.ordered(activeFields) { it.id }.forEach { habitField ->
@@ -346,7 +327,6 @@ private fun HabitSettingsDialog(
                                     if (habitField.valueType != HabitFieldForm.CHOICE) {
                                         TextButton(onClick = { onEditMeasurement(habitField) }) { Text("Edit") }
                                     }
-                                    TextButton(onClick = { onArchiveMeasurement(habitField) }) { Text("Archive") }
                                 }
                                 choiceForms[habitField.id]?.let { form ->
                                     ChoiceScaleEditor(
@@ -376,10 +356,6 @@ private fun HabitSettingsDialog(
                                 }
                             }
                         }
-                        TextButton(onClick = onArchiveHabit) { Text("Archive habit") }
-                        if (canDelete) {
-                            TextButton(onClick = onDeleteHabit) { Text("Delete habit permanently") }
-                        }
                     }
                 }
             }
@@ -405,7 +381,12 @@ private fun HabitSettingsDialog(
                 },
             ) { Text("Save settings") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onArchiveHabit) { Text("Archive") }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        },
     )
 }
 

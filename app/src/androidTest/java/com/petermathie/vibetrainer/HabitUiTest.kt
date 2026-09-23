@@ -95,7 +95,8 @@ class HabitUiTest {
         compose.onNodeWithText("Choice shade scale").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Choice 3").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("What would you like to track?").assertDoesNotExist()
-        compose.onNodeWithText("Choices map from light to dark in the order configured.").assertExists()
+        compose.onNodeWithText("Heat-map intensity").assertDoesNotExist()
+        compose.onNodeWithText("Archive habit").assertDoesNotExist()
         val actions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =
             compose.onNodeWithContentDescription("Reorder Happy")
                 .fetchSemanticsNode()
@@ -123,7 +124,7 @@ class HabitUiTest {
         }
         compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
         compose.onNodeWithText("Delete habit permanently").assertDoesNotExist()
-        compose.onNodeWithText("Archive habit").performScrollTo().performClick()
+        compose.onNodeWithText("Archive").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Archived habits").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Restore").performClick()
         compose.onNodeWithText("Wellbeing").assertIsDisplayed()
@@ -144,7 +145,12 @@ class HabitUiTest {
         compose.setContent { VibeTrainerTheme { TrackerScreen(viewModel) } }
 
         compose.onNodeWithContentDescription("Edit Disposable settings").performClick()
-        compose.onNodeWithText("Delete habit permanently").performScrollTo().performClick()
+        compose.onNodeWithText("Delete habit permanently").assertDoesNotExist()
+        compose.onNodeWithText("Archive").performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithText("Archived habits").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Delete").performClick()
         compose.onNodeWithText("Delete permanently").performClick()
         compose.waitUntil(15_000) {
             runBlocking { database.editorDao().trackers().first().isEmpty() }
