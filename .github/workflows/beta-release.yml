@@ -1,0 +1,70 @@
+name: Signed beta release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Beta tag, for example v0.4.0-beta.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 9.6
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
+        with:
+          gradle-version: '9.6.0'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: platform-tools
+
+      - name: Install Android 16 SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Build and verify signed beta APK
+        env:
+          EXPECTED_TAG: ${{ inputs.tag }}
+          VIBE_CHECK_BETA_KEYSTORE_BASE64: ${{ secrets.VIBE_CHECK_BETA_KEYSTORE_BASE64 }}
+          VIBE_CHECK_BETA_STORE_PASSWORD: ${{ secrets.VIBE_CHECK_BETA_STORE_PASSWORD }}
+          VIBE_CHECK_BETA_KEY_ALIAS: ${{ secrets.VIBE_CHECK_BETA_KEY_ALIAS }}
+          VIBE_CHECK_BETA_KEY_PASSWORD: ${{ secrets.VIBE_CHECK_BETA_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_TAG" = "v0.4.0-beta.1"
+          export VIBE_CHECK_BETA_KEYSTORE_PATH="$RUNNER_TEMP/vibe-check-beta.jks"
+          trap 'rm -f "$VIBE_CHECK_BETA_KEYSTORE_PATH"' EXIT
+          printf '%s' "$VIBE_CHECK_BETA_KEYSTORE_BASE64" | base64 --decode > "$VIBE_CHECK_BETA_KEYSTORE_PATH"
+          chmod 600 "$VIBE_CHECK_BETA_KEYSTORE_PATH"
+          gradle :app:testDebugUnitTest :app:assembleRelease --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk Vibe-Check-beta.apk
+          apksigner verify --verbose --print-certs Vibe-Check-beta.apk
+          actual_certificate="$(apksigner verify --print-certs Vibe-Check-beta.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          test "$actual_certificate" = "fe115398a3323fcfa54476e0c4714bea8807423fd1d2a3cf411c61bbf72f860a"
+          sha256sum Vibe-Check-beta.apk > Vibe-Check-beta.apk.sha256
+
+      - name: Upload signed beta candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Vibe-Check-beta
+          path: |
+            Vibe-Check-beta.apk
+            Vibe-Check-beta.apk.sha256
+          if-no-files-found: error

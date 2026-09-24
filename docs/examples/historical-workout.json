@@ -1,0 +1,51 @@
+{
+  "format": "vibe-trainer",
+  "version": 1,
+  "tables": {
+    "exercises": [{
+      "id": "example-planche", "canonicalName": "Example planche practice",
+      "tag": "STRENGTH", "trackingType": "SKILL_HOLD", "equipment": "Resistance bands",
+      "instructions": "Example custom exercise for demonstrating historical imports.",
+      "source": "custom", "isCustom": true, "isArchived": false, "inputConfig": "HOLD",
+      "targetSets": 1, "targetRepsMin": null, "targetRepsMax": null, "targetRpe": 8.0,
+      "restSeconds": 180
+    }],
+    "exercise_aliases": [{"exerciseId": "example-planche", "alias": "Example tuck", "normalizedAlias": "example tuck"}],
+    "exercise_muscles": [
+      {"exerciseId": "example-planche", "muscleId": "SHOULDERS_FRONT", "role": "PRIMARY"},
+      {"exerciseId": "example-planche", "muscleId": "CHEST", "role": "SECONDARY"}
+    ],
+    "exercise_variations": [{"id": "example-tuck", "exerciseId": "example-planche", "name": "Tuck", "progressionRank": 0, "isSeeded": false}],
+    "workouts": [{
+      "id": "example-workout", "programmeDayId": null, "name": "Example historical session",
+      "mode": "STRENGTH", "status": "FINISHED", "startedAt": 1789461600000,
+      "finishedAt": 1789462200000, "notes": "Fictional example, not an imported personal record.",
+      "bodyweightKg": 80.0, "isDemo": false
+    }],
+    "workout_exercises": [{
+      "id": "example-workout-exercise", "workoutId": "example-workout",
+      "plannedExerciseId": "example-planche", "actualExerciseId": "example-planche",
+      "position": 0, "notes": "Three bands used together; hold time corrected after stopping the timer.",
+      "restSeconds": 180, "supersetGroup": null, "exerciseName": "Example planche practice",
+      "trackingType": "SKILL_HOLD", "targets": "1 hold", "inputConfig": "HOLD"
+    }],
+    "workout_muscles": [
+      {"workoutExerciseId": "example-workout-exercise", "muscleId": "SHOULDERS_FRONT", "role": "PRIMARY"},
+      {"workoutExerciseId": "example-workout-exercise", "muscleId": "CHEST", "role": "SECONDARY"}
+    ],
+    "workout_sets": [{
+      "id": "example-set", "workoutExerciseId": "example-workout-exercise", "ordinal": 1,
+      "setType": "WORKING", "result": "COMPLETED", "variationId": "example-tuck",
+      "weightKg": null, "reps": null, "holdMillis": 10000,
+      "leftReps": null, "rightReps": null, "leftHoldMillis": null, "rightHoldMillis": null,
+      "addedWeightKg": null, "assistanceKg": null, "rpe": 8.0, "romValue": null, "romUnit": null,
+      "notes": "", "loggedAt": 1789461660000, "updatedAt": 1789461660000,
+      "timeUnderTensionMillis": null, "bandResistance": 0
+    }],
+    "workout_set_bands": [
+      {"setId": "example-set", "bandId": "band-yellow", "ordinal": 0},
+      {"setId": "example-set", "bandId": "band-black", "ordinal": 1},
+      {"setId": "example-set", "bandId": "band-purple", "ordinal": 2}
+    ]
+  }
+}
