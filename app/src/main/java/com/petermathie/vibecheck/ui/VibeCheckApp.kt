@@ -116,6 +116,7 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
     var destination by rememberSaveable { mutableStateOf(Destination.HOME) }
     var paletteId by rememberSaveable { mutableStateOf(prefs.getString("palette",VibePalettes.MidnightLime.id)!!) }
     val palette = rememberVibePalette(prefs)
+    val haptics = rememberVibeHaptics()
     DisposableEffect(prefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { preferences, key ->
             if (key == "palette") paletteId = preferences.getString(key, VibePalettes.MidnightLime.id)!!
@@ -153,7 +154,10 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
                         viewModel::setMode,
                     )
                     Destination.PROGRAMMES -> ProgrammeEditor(editor, state.mode, viewModel::setMode) { dayId, replace ->
-                        viewModel.startWorkout(dayId, replace) { destination = Destination.ACTIVE_WORKOUT }
+                        viewModel.startWorkout(dayId, replace) {
+                            haptics.perform(VibeHapticEvent.PLAY)
+                            destination = Destination.ACTIVE_WORKOUT
+                        }
                     }
                     Destination.ACTIVE_WORKOUT -> WorkoutEditor(
                         vm = editor,
@@ -188,11 +192,17 @@ internal fun ModeSelector(
     onModeChange: (TrainingMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = rememberVibeHaptics()
     SingleChoiceSegmentedButtonRow(modifier) {
         TrainingMode.entries.forEachIndexed { index, item ->
             SegmentedButton(
                 selected = mode == item,
-                onClick = { onModeChange(item) },
+                onClick = {
+                    if (mode != item) {
+                        haptics.perform(VibeHapticEvent.SELECTION)
+                        onModeChange(item)
+                    }
+                },
                 shape = SegmentedButtonDefaults.itemShape(index, TrainingMode.entries.size),
                 label = { Text(if (item == TrainingMode.STRENGTH) "Strength" else "Stretch") },
             )
@@ -220,11 +230,17 @@ private val moreDestinations = setOf(
 @Composable
 internal fun PrimaryNavigationBar(selected: Destination, onSelect: (Destination) -> Unit) {
     val selectedItem = if (selected in moreDestinations) Destination.MORE else selected
+    val haptics = rememberVibeHaptics()
     NavigationBar(Modifier.fillMaxWidth().navigationBarsPadding()) {
         primaryDestinations.forEach { item ->
             NavigationBarItem(
                 selected = selectedItem == item,
-                onClick = { onSelect(item) },
+                onClick = {
+                    if (selectedItem != item) {
+                        haptics.perform(VibeHapticEvent.NAVIGATION)
+                        onSelect(item)
+                    }
+                },
                 icon = { Icon(item.icon, contentDescription = null) },
                 label = { Text(item.label) },
             )
@@ -234,11 +250,15 @@ internal fun PrimaryNavigationBar(selected: Destination, onSelect: (Destination)
 
 @Composable
 internal fun MoreScreen(onSelect: (Destination) -> Unit) {
+    val haptics = rememberVibeHaptics()
     ScreenList {
         item { Text("More", style = MaterialTheme.typography.headlineLarge) }
         items(moreDestinations.toList(), key = { it.name }) { destination ->
             OutlinedButton(
-                onClick = { onSelect(destination) },
+                onClick = {
+                    haptics.perform(VibeHapticEvent.NAVIGATION)
+                    onSelect(destination)
+                },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -291,6 +311,8 @@ internal fun HomeScreen(
     var recencySliderDay by rememberSaveable { mutableFloatStateOf(selectedRecencyDay.toFloat()) }
     LaunchedEffect(selectedRecencyDay) { recencySliderDay = selectedRecencyDay.toFloat() }
     val palette = LocalVibePalette.current
+    val haptics = rememberVibeHaptics()
+    var lastHapticDay by remember { mutableStateOf(selectedRecencyDay) }
     Column(
         Modifier.fillMaxSize().padding(VibeSpacing.medium),
         verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
@@ -303,7 +325,10 @@ internal fun HomeScreen(
                         Text(workout.name, style = MaterialTheme.typography.titleLarge)
                         Text("${workout.exercises.sumOf { it.sets.size }} sets autosaved", color = palette.textSecondary)
                     }
-                    Button(onClick = onContinue) { Text("Continue") }
+                    Button(onClick = {
+                        haptics.perform(VibeHapticEvent.PLAY)
+                        onContinue()
+                    }) { Text("Continue") }
                 }
             }
         }
@@ -346,7 +371,12 @@ internal fun HomeScreen(
                 value = recencySliderDay,
                 onValueChange = {
                     recencySliderDay = it
-                    onRecencyDayChange(it.toLong())
+                    val day = it.toLong()
+                    if (day != lastHapticDay) {
+                        lastHapticDay = day
+                        haptics.perform(VibeHapticEvent.SELECTION)
+                    }
+                    onRecencyDayChange(day)
                 },
                 valueRange = (today - 365).toFloat()..today.toFloat(),
                 steps = 364,

@@ -63,6 +63,7 @@ fun ProgrammeEditor(
         vm.moveDay(key as String, to - from)
     }
     val reducedMotion = LocalVibeReducedMotion.current
+    val haptics = rememberVibeHaptics()
     val activeWorkout = vm.workouts.collectAsStateWithLifecycle().value.find { it.status == "DRAFT" }
     fun requestStart(dayId: String) {
         if (activeWorkout != null && activeWorkout.programmeDayId != dayId) pendingStartDayId = dayId
@@ -108,7 +109,10 @@ fun ProgrammeEditor(
                                 },
                             style = MaterialTheme.typography.titleLarge,
                         )
-                        IconButton(onClick = { selected = p.id }) {
+                        IconButton(onClick = {
+                            haptics.perform(VibeHapticEvent.EDIT)
+                            selected = p.id
+                        }) {
                             Icon(Icons.Outlined.Edit, contentDescription = "Edit programme ${p.name}")
                         }
                         IconButton(
@@ -279,7 +283,22 @@ fun ProgrammeEditor(
                 }
             }
         }
-    rename?.let { p -> NameDialog("Programme name", p.name, { rename = null }) { vm.save(p.copy(name = it)); rename = null } }
+    rename?.let { p ->
+        NameDialog("Programme name", p.name, { rename = null }) { name ->
+            val programme = p.copy(name = name)
+            val day = ProgrammeDayEntity(
+                id = newId(),
+                programmeId = programme.id,
+                name = if (mode == TrainingMode.STRENGTH) "Workout" else "Stretching",
+                position = 0,
+            )
+            vm.createProgramme(programme, day) {
+                haptics.perform(VibeHapticEvent.SUCCESS)
+                selected = programme.id
+            }
+            rename = null
+        }
+    }
     addExerciseDayId?.let { targetDayId ->
         ExercisePicker(vm, { addExerciseDayId = null }) { exercise ->
             vm.save(
@@ -297,7 +316,7 @@ fun ProgrammeEditor(
                     "",
                     null,
                 ),
-            )
+            ) { haptics.perform(VibeHapticEvent.SUCCESS) }
             addExerciseDayId = null
         }
     }

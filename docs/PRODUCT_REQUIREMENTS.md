@@ -103,6 +103,7 @@ Trackers contain any combination of Boolean, number, duration, count, rating, te
 - Structured backup excludes photographs; photographs export separately.
 - Searchable/editable history, bodyweight, measurements and progress photos.
 - kg/lb, plate calculator, haptics, reduced motion and accessibility.
+- Brief interaction haptics respect the haptics preference; body-map history colours interpolate while scrubbing unless reduced motion is enabled.
 - No dead placeholder controls in test builds.
 
 ## Engineering sequence

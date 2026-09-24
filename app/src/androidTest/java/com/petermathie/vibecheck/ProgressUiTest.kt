@@ -99,14 +99,9 @@ class ProgressUiTest {
         compose.onNodeWithContentDescription("Piano icon").assertExists()
         compose.onNodeWithContentDescription("Meditation icon").assertExists()
         compose.onNodeWithContentDescription("Protein icon").assertExists()
-        compose.onNodeWithText("Overall training trend").performScrollTo().performTouchInput { click(center) }
-        compose.onNodeWithText("Bodyweight").performScrollTo().performTouchInput { click(center) }
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithText("Bodyweight").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithContentDescription("kg", substring = true).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Piano").performScrollTo().performTouchInput { click(center) }
-        compose.onNodeWithText("Meditation").performScrollTo().performTouchInput { click(center) }
-        compose.onNodeWithText("Protein").performScrollTo().performTouchInput { click(center) }
         assertTrue(compose.onAllNodesWithContentDescription("piano intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
         repeat(3) {
             val actions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =
@@ -135,7 +130,6 @@ class ProgressUiTest {
         compose.onNodeWithText("Journal").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Reading").performScrollTo().assertIsDisplayed()
 
-        compose.onNodeWithText("Training progress").performScrollTo().performTouchInput { click(center) }
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Choose exercise").fetchSemanticsNodes().isNotEmpty()
         }
@@ -218,7 +212,6 @@ class ProgressUiTest {
         }
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeCheckTheme { ProgressScreen(viewModel) } }
-        compose.onNodeWithText("Training progress").performScrollTo().performClick()
         compose.waitUntil(15_000) {
             runCatching {
                 compose.onNodeWithText("Choose exercise").assertIsEnabled()

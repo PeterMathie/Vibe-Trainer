@@ -1,11 +1,15 @@
 package com.petermathie.vibecheck.ui.anatomy
 
 import android.graphics.Region
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -25,6 +29,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import com.petermathie.vibecheck.domain.model.AnatomySex
 import com.petermathie.vibecheck.domain.model.MuscleRecencyBand
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
+import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
 import androidx.compose.ui.semantics.stateDescription
 import kotlin.math.min
 
@@ -43,6 +48,7 @@ fun MuscleMap(
     selectedMuscleId: String? = null,
 ) {
     val palette = LocalVibePalette.current
+    val reducedMotion = LocalVibeReducedMotion.current
     val diagram = when (sex to view) {
         AnatomySex.MALE to AnatomyView.FRONT -> MuscleDiagrams.MaleFront
         AnatomySex.MALE to AnatomyView.BACK -> MuscleDiagrams.MaleBack
@@ -62,6 +68,22 @@ fun MuscleMap(
     }
     val groups = muscles.map { it.def.group }.distinct()
     val selectedGroup = selectedMuscleId?.takeIf(groups::contains)
+    val animatedColors = groups.associateWith { group ->
+        val targetColor = when (states[group] ?: MuscleRecencyBand.NEVER) {
+            MuscleRecencyBand.UNDER_24_HOURS -> palette.recencyUnder24
+            MuscleRecencyBand.HOURS_24_TO_48 -> palette.recency24To48
+            MuscleRecencyBand.HOURS_48_TO_72 -> palette.recency48To72
+            MuscleRecencyBand.DAYS_3_TO_7 -> palette.recency3To7
+            MuscleRecencyBand.OVER_7_DAYS -> palette.recencyOver7
+            MuscleRecencyBand.NEVER -> palette.recencyNever
+        }
+        val color by animateColorAsState(
+            targetValue = targetColor,
+            animationSpec = if (reducedMotion) snap() else tween(durationMillis = 160),
+            label = "muscle recency $group",
+        )
+        color
+    }
 
     Canvas(
         modifier = modifier
@@ -105,14 +127,7 @@ fun MuscleMap(
                 drawPathWithMirror(item.path, item.def.side, diagram.centerX, Color.Transparent, palette.diagramLine)
             }
             muscles.forEach { item ->
-                val color = when (states[item.def.group] ?: MuscleRecencyBand.NEVER) {
-                    MuscleRecencyBand.UNDER_24_HOURS -> palette.recencyUnder24
-                    MuscleRecencyBand.HOURS_24_TO_48 -> palette.recency24To48
-                    MuscleRecencyBand.HOURS_48_TO_72 -> palette.recency48To72
-                    MuscleRecencyBand.DAYS_3_TO_7 -> palette.recency3To7
-                    MuscleRecencyBand.OVER_7_DAYS -> palette.recencyOver7
-                    MuscleRecencyBand.NEVER -> palette.recencyNever
-                }
+                val color = animatedColors.getValue(item.def.group)
                 val selected = item.def.group == selectedMuscleId
                 drawPathWithMirror(
                     path = item.path,

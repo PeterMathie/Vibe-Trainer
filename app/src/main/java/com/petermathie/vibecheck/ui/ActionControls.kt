@@ -65,14 +65,19 @@ fun VibeActionButton(
     enabled: Boolean = true,
     icon: ImageVector? = null,
 ) {
+    val haptics = rememberVibeHaptics()
+    val click = {
+        if (label == "Edit") haptics.perform(VibeHapticEvent.EDIT)
+        onClick()
+    }
     val content: @Composable RowScope.() -> Unit = {
         icon?.let { Icon(it, contentDescription = null) }
         Text(label)
     }
     when (importance) {
-        ActionImportance.PRIMARY -> Button(onClick, modifier, enabled, content = content)
-        ActionImportance.SECONDARY -> OutlinedButton(onClick, modifier, enabled, content = content)
-        ActionImportance.COMPACT -> FilledTonalButton(onClick, modifier, enabled, content = content)
+        ActionImportance.PRIMARY -> Button(click, modifier, enabled, content = content)
+        ActionImportance.SECONDARY -> OutlinedButton(click, modifier, enabled, content = content)
+        ActionImportance.COMPACT -> FilledTonalButton(click, modifier, enabled, content = content)
     }
 }
 
@@ -107,8 +112,9 @@ class ReorderState internal constructor(
         lastMoveDirection = 0
     }
 
-    fun dragBy(delta: Float, threshold: Float) {
-        val key = draggingKey ?: return
+    fun dragBy(delta: Float, threshold: Float): Boolean {
+        val key = draggingKey ?: return false
+        var moved = false
         dragDistance += delta
         var index = orderedKeys.indexOf(key)
         val downThreshold = if (lastMoveDirection < 0) threshold * 1.5f else threshold
@@ -118,17 +124,20 @@ class ReorderState internal constructor(
             dragDistance -= threshold
             lastMoveDirection = 1
             index++
+            moved = true
         }
         while (dragDistance <= -upThreshold && index > 0) {
             orderedKeys[index] = orderedKeys[index - 1].also { orderedKeys[index - 1] = key }
             dragDistance += threshold
             lastMoveDirection = -1
             index--
+            moved = true
         }
+        return moved
     }
 
-    fun end() {
-        val key = draggingKey ?: return
+    fun end(): Boolean {
+        val key = draggingKey ?: return false
         val endIndex = orderedKeys.indexOf(key)
         val initialIndex = startIndex
         draggingKey = null
@@ -137,7 +146,9 @@ class ReorderState internal constructor(
         lastMoveDirection = 0
         if (initialIndex >= 0 && endIndex >= 0 && initialIndex != endIndex) {
             onMove(key, initialIndex, endIndex)
+            return true
         }
+        return false
     }
 
     fun cancel() {
@@ -188,6 +199,7 @@ fun ReorderHandle(
 ) {
     val threshold = with(LocalDensity.current) { 48.dp.toPx() }
     val reducedMotion = LocalVibeReducedMotion.current
+    val haptics = rememberVibeHaptics()
     val dragging = state.isDragging(itemKey)
     val highlight by animateColorAsState(
         if (dragging) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
@@ -199,7 +211,9 @@ fun ReorderHandle(
         if (reducedMotion) snap() else tween(120),
         label = "reorder handle scale",
     )
-    val dragState = rememberDraggableState { delta -> state.dragBy(delta, threshold) }
+    val dragState = rememberDraggableState { delta ->
+        if (state.dragBy(delta, threshold)) haptics.perform(VibeHapticEvent.DRAG_CROSS)
+    }
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -209,10 +223,18 @@ fun ReorderHandle(
                 stateDescription = if (dragging) "Dragging" else "Ready to drag"
                 customActions = buildList {
                     if (state.canMove(itemKey, -1)) {
-                        add(CustomAccessibilityAction("Move earlier") { state.accessibilityMove(itemKey, -1) })
+                        add(CustomAccessibilityAction("Move earlier") {
+                            state.accessibilityMove(itemKey, -1).also {
+                                if (it) haptics.perform(VibeHapticEvent.DRAG_DROP)
+                            }
+                        })
                     }
                     if (state.canMove(itemKey, 1)) {
-                        add(CustomAccessibilityAction("Move later") { state.accessibilityMove(itemKey, 1) })
+                        add(CustomAccessibilityAction("Move later") {
+                            state.accessibilityMove(itemKey, 1).also {
+                                if (it) haptics.perform(VibeHapticEvent.DRAG_DROP)
+                            }
+                        })
                     }
                 }
             }
@@ -220,8 +242,13 @@ fun ReorderHandle(
                 state = dragState,
                 orientation = Orientation.Vertical,
                 enabled = enabled,
-                onDragStarted = { state.begin(itemKey) },
-                onDragStopped = { state.end() },
+                onDragStarted = {
+                    state.begin(itemKey)
+                    haptics.perform(VibeHapticEvent.DRAG_START)
+                },
+                onDragStopped = {
+                    if (state.end()) haptics.perform(VibeHapticEvent.DRAG_DROP)
+                },
             ),
     ) {
         Box(

@@ -111,7 +111,9 @@ fun ExerciseEditor(vm: EditorViewModel) {
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     VibeActionButton("Settings", { configuring=e }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
-                    VibeActionButton(if(e.isCustom)"Edit" else "Duplicate", { selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id) }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
+                    VibeActionButton(if(e.isCustom)"Edit" else "Duplicate", {
+                        selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id)
+                    }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
                     VibeActionButton("Variation", { variation=e.id }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
                 }
                 if(e.isCustom) VibeActionButton("Archive", { vm.saveExercise(e.copy(isArchived=true),aliases.filter { it.exerciseId==e.id }.map { it.alias },mappings.filter { it.exerciseId==e.id }.associate { it.muscleId to it.role }) }, importance = ActionImportance.SECONDARY)

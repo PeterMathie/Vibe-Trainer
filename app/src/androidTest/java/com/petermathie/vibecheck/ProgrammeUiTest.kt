@@ -159,6 +159,11 @@ class ProgrammeUiTest {
     @Test
     fun createRenameDuplicateArchiveAndDeleteRemainInEditContext() {
         createDatabase()
+        runBlocking {
+            database.editorDao().exercise(
+                ExerciseEntity("new-exercise", "New exercise", "STRENGTH", "WEIGHT_REPS", null, null, "custom", true),
+            )
+        }
         setProgrammeContent { _, _ -> }
 
         compose.onNodeWithContentDescription("Add programme").performScrollTo().performClick()
@@ -167,15 +172,24 @@ class ProgrammeUiTest {
         compose.waitUntil(15_000) { activeProgrammes().any { it.name == "My gym plan" } }
 
         val programmeId = activeProgrammes().single().id
-        val dayId = "day-for-history"
+        val dayId = runBlocking {
+            database.editorDao().days().first().single { it.programmeId == programmeId }.id
+        }
+        compose.onNodeWithContentDescription("Add exercise").performClick()
+        compose.onNodeWithText("New exercise").performClick()
+        compose.waitUntil(15_000) {
+            runBlocking {
+                database.editorDao().entries().first().any {
+                    it.programmeDayId == dayId && it.exerciseId == "new-exercise"
+                }
+            }
+        }
         runBlocking {
-            database.editorDao().day(ProgrammeDayEntity(dayId, programmeId, "Push", 0))
             database.editorDao().workout(
-                WorkoutEntity("historical", dayId, "Push", "STRENGTH", "FINISHED", 1, 2, "", null, false),
+                WorkoutEntity("historical", dayId, "Workout", "STRENGTH", "FINISHED", 1, 2, "", null, false),
             )
         }
 
-        compose.onNodeWithContentDescription("Edit programme My gym plan").performClick()
         compose.onNodeWithText("Add workout").assertDoesNotExist()
         compose.onNode(hasSetTextAction()).performTextClearance()
         compose.onNode(hasSetTextAction()).performTextInput("Renamed plan")
