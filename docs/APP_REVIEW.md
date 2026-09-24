@@ -153,6 +153,7 @@ This is a beta and should be reviewed as one.
 - **Variation defaults:** initial workout row count and header rest action use the first-ranked variation until a row variation is selected.
 
 Release gates are tracked in [Release readiness](RELEASE.md), and hands-on beta journeys are in [Beta testing](BETA_TESTING.md).
+Deferred personality, weekly habit and platform-extension concepts are collected separately in [Future ideas](FUTURE_IDEAS.md); they are exploratory rather than current requirements.
 
 ## Reviewer guide
 
