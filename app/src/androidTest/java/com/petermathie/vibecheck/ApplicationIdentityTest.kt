@@ -17,6 +17,8 @@ class ApplicationIdentityTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         assertEquals("com.petermathie.vibecheck", context.packageName)
         assertEquals("Vibe Check", context.applicationInfo.loadLabel(context.packageManager).toString())
+        assertTrue(context.applicationInfo.icon != 0)
+        assertTrue(context.applicationInfo.roundIcon != 0)
 
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
         assertNotNull(launchIntent)
