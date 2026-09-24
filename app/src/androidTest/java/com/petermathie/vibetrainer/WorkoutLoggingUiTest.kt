@@ -158,8 +158,10 @@ class WorkoutLoggingUiTest {
         }
         val workoutId = startPushWorkout(context)
         val viewModel = EditorViewModel(database)
+        runBlocking { viewModel.variations.first { rows -> rows.any { it.id == "handstand-wall" } } }
         compose.setContent { VibeTrainerTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Set 1 for Handstand").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Wall handstand").performClick()
         compose.onNodeWithText("Freestanding handstand", useUnmergedTree = true).performClick()
         compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").assertDoesNotExist()

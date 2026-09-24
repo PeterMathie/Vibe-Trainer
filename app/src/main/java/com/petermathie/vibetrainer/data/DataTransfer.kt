@@ -71,28 +71,28 @@ object DataTransfer {
                                 row.put("variationInputConfigSnapshot", it.getString(2))
                             }
                         }
-                        if (table == "exercise_variations" && !row.has("trackingType")) {
-                            sql.query(
-                                """
-                                SELECT trackingType,inputConfig,targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds
-                                FROM exercises WHERE id=?
-                                """.trimIndent(),
-                                arrayOf(row.getString("exerciseId")),
-                            ).use {
-                                require(it.moveToFirst()) { "Unknown exercise for variation" }
-                                row.put("trackingType", it.getString(0))
-                                row.put("inputConfig", it.getString(1))
-                                row.put("targetSets", if (it.isNull(2)) JSONObject.NULL else it.getInt(2))
-                                row.put("targetRepsMin", if (it.isNull(3)) JSONObject.NULL else it.getInt(3))
-                                row.put("targetRepsMax", if (it.isNull(4)) JSONObject.NULL else it.getInt(4))
-                                row.put("targetRpe", if (it.isNull(5)) JSONObject.NULL else it.getDouble(5))
-                                row.put("restSeconds", it.getInt(6))
-                            }
-                        }
                         if (!row.has("variationNameSnapshot")) {
                             row.put("variationNameSnapshot", "")
                             row.put("variationTrackingTypeSnapshot", "")
                             row.put("variationInputConfigSnapshot", "")
+                        }
+                    }
+                    if (table == "exercise_variations" && !row.has("trackingType")) {
+                        sql.query(
+                            """
+                            SELECT trackingType,inputConfig,targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds
+                            FROM exercises WHERE id=?
+                            """.trimIndent(),
+                            arrayOf(row.getString("exerciseId")),
+                        ).use {
+                            require(it.moveToFirst()) { "Unknown exercise for variation" }
+                            row.put("trackingType", it.getString(0))
+                            row.put("inputConfig", it.getString(1))
+                            row.put("targetSets", if (it.isNull(2)) JSONObject.NULL else it.getInt(2))
+                            row.put("targetRepsMin", if (it.isNull(3)) JSONObject.NULL else it.getInt(3))
+                            row.put("targetRepsMax", if (it.isNull(4)) JSONObject.NULL else it.getInt(4))
+                            row.put("targetRpe", if (it.isNull(5)) JSONObject.NULL else it.getDouble(5))
+                            row.put("restSeconds", it.getInt(6))
                         }
                     }
                     if (table == "workout_set_bands" && !row.has("nameSnapshot")) {
