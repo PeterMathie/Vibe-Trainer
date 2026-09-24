@@ -88,3 +88,11 @@ Before a signed release:
 
 No signing credentials, signing configuration or publishing task should be
 committed to source control.
+
+## Download-link publication order
+
+Do not merge a live-looking README asset link before its matching release asset
+exists. Before publication, label the download as unavailable without a
+clickable URL. Publish and verify the signed release asset first, then add the
+direct link and verify it returns HTTP 200. This avoids presenting a planned
+release URL as an available download.

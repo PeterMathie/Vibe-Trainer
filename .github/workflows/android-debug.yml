@@ -51,16 +51,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           disable-linux-hw-accel: false
-          script: |
-            gradle :app:connectedDebugAndroidTest --stacktrace
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
-            adb shell am start -W -n com.petermathie.vibecheck/.MainActivity
-            sleep 5
-            adb shell pidof com.petermathie.vibecheck
-            mkdir -p app/build/launch-check
-            adb shell screencap -p /sdcard/vibe-check-launch.png
-            adb pull /sdcard/vibe-check-launch.png app/build/launch-check/home.png
-            adb logcat -d -s AndroidRuntime:E > app/build/launch-check/runtime-errors.txt
+          script: bash .github/scripts/android-emulator-validation.sh
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
