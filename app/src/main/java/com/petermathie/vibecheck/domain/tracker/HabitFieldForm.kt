@@ -1,0 +1,95 @@
+package com.petermathie.vibecheck.domain.tracker
+
+import com.petermathie.vibecheck.data.local.TrackerFieldEntity
+
+data class HabitFieldForm(
+    val name: String,
+    val type: String,
+    val unit: String,
+    val options: String,
+    val target: String,
+    val targetMaximum: String,
+    val comparison: String,
+    val choiceLightThrough: Int = -1,
+    val choiceDarkFrom: Int = -1,
+) {
+    val isNumeric: Boolean
+        get() = type in NUMERIC_TYPES
+
+    val choiceValues: List<String>
+        get() = options.split(',', '\n').map(String::trim).filter(String::isNotBlank)
+
+    val isTargetValid: Boolean
+        get() = target.isBlank() || target.toDoubleOrNull()?.isFinite() == true
+
+    val isRangeValid: Boolean
+        get() = comparison != RANGE || target.isBlank() || (
+            targetMaximum.toDoubleOrNull()?.isFinite() == true &&
+                targetMaximum.toDouble() >= target.toDouble()
+            )
+
+    val areChoicesValid: Boolean
+        get() = type != CHOICE || (
+            choiceValues.size >= 2 &&
+                choiceValues.distinct().size == choiceValues.size
+            )
+
+    val canSave: Boolean
+        get() = name.isNotBlank() && isTargetValid && isRangeValid && areChoicesValid && areChoiceShadesValid
+
+    val areChoiceShadesValid: Boolean
+        get() = type != CHOICE || (
+            choiceLightThrough in 0 until choiceValues.lastIndex &&
+                choiceDarkFrom in 1..choiceValues.lastIndex &&
+                choiceLightThrough < choiceDarkFrom
+            )
+
+    fun applyTo(field: TrackerFieldEntity): TrackerFieldEntity {
+        val minimum = if (isNumeric) target.toDoubleOrNull() else null
+        return field.copy(
+            name = name,
+            valueType = type,
+            unit = unit.takeIf(String::isNotBlank),
+            targetValue = minimum,
+            targetComparison = if (minimum == null) null else comparison,
+            position = field.position,
+            choiceOptions = if (type == CHOICE) choiceValues.joinToString("\n") else "",
+            choiceLightThrough = if (type == CHOICE) choiceLightThrough else -1,
+            choiceDarkFrom = if (type == CHOICE) choiceDarkFrom else -1,
+            targetMaxValue = if (minimum != null && comparison == RANGE) {
+                targetMaximum.toDoubleOrNull()
+            } else {
+                null
+            },
+        )
+    }
+
+    companion object {
+        const val CHOICE = "CHOICE"
+        const val RANGE = "RANGE"
+        val TYPES = listOf(
+            "BOOLEAN",
+            "NUMBER",
+            "TEXT",
+            CHOICE,
+        )
+        val COMPARISONS = listOf("AT_LEAST", "AT_MOST", "EXACTLY", RANGE)
+        private val NUMERIC_TYPES = setOf("NUMBER", "COUNT", "DURATION", "RATING")
+
+        fun from(field: TrackerFieldEntity) = HabitFieldForm(
+            name = field.name,
+            type = when (field.valueType) {
+                "COUNT", "DURATION", "RATING" -> "NUMBER"
+                "DATETIME" -> "TEXT"
+                else -> field.valueType
+            },
+            unit = field.unit.orEmpty(),
+            options = field.choiceOptions,
+            target = field.targetValue?.toString().orEmpty(),
+            targetMaximum = field.targetMaxValue?.toString().orEmpty(),
+            comparison = field.targetComparison ?: "AT_LEAST",
+            choiceLightThrough = field.choiceLightThrough,
+            choiceDarkFrom = field.choiceDarkFrom,
+        )
+    }
+}

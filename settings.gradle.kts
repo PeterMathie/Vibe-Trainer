@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "VibeTrainer"
+rootProject.name = "VibeCheck"
 include(":app")

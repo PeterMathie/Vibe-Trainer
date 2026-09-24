@@ -6,15 +6,15 @@ plugins {
 }
 
 android {
-    namespace = "com.petermathie.vibetrainer"
+    namespace = "com.petermathie.vibecheck"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.petermathie.vibetrainer"
+        applicationId = "com.petermathie.vibecheck"
         minSdk = 23
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.3.0"
+        versionCode = 3
+        versionName = "0.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

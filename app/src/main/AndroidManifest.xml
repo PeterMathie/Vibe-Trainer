@@ -4,11 +4,11 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
-        android:name=".VibeTrainerApplication"
+        android:name=".VibeCheckApplication"
         android:allowBackup="true"
-        android:label="Vibe Trainer"
+        android:label="Vibe Check"
         android:supportsRtl="true"
-        android:theme="@style/Theme.VibeTrainer">
+        android:theme="@style/Theme.VibeCheck">
         <receiver android:name=".ui.RestTimerReceiver" android:exported="false" />
         <activity
             android:name=".MainActivity"

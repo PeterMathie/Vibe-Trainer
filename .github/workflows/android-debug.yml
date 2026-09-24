@@ -54,18 +54,18 @@ jobs:
           script: |
             gradle :app:connectedDebugAndroidTest --stacktrace
             adb install -r app/build/outputs/apk/debug/app-debug.apk
-            adb shell am start -W -n com.petermathie.vibetrainer/.MainActivity
+            adb shell am start -W -n com.petermathie.vibecheck/.MainActivity
             sleep 5
-            adb shell pidof com.petermathie.vibetrainer
+            adb shell pidof com.petermathie.vibecheck
             mkdir -p app/build/launch-check
-            adb shell screencap -p /sdcard/vibe-launch.png
-            adb pull /sdcard/vibe-launch.png app/build/launch-check/home.png
+            adb shell screencap -p /sdcard/vibe-check-launch.png
+            adb pull /sdcard/vibe-check-launch.png app/build/launch-check/home.png
             adb logcat -d -s AndroidRuntime:E > app/build/launch-check/runtime-errors.txt
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: vibe-trainer-debug
+          name: vibe-check-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload test reports and Room schemas
