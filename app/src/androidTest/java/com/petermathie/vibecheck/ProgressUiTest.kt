@@ -123,7 +123,7 @@ class ProgressUiTest {
         compose.onNodeWithContentDescription("kg", substring = true).performTouchInput { click(androidx.compose.ui.geometry.Offset(16f, center.y)) }
         compose.onNodeWithContentDescription("Progress photo for selected bodyweight day").assertIsDisplayed()
         compose.onNodeWithText("Close").performClick()
-        compose.onNodeWithText("Mood").performScrollTo().performClick()
+        compose.onNodeWithText("Mood").performScrollTo()
         assertTrue(compose.onAllNodesWithContentDescription("1 mood intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
         assertTrue(compose.onAllNodesWithContentDescription("2 mood intensity", substring = true).fetchSemanticsNodes().isNotEmpty())
         assertTrue(compose.onAllNodesWithContentDescription("3 mood intensity", substring = true).fetchSemanticsNodes().isNotEmpty())

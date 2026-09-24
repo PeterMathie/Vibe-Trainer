@@ -44,6 +44,6 @@ class ApplicationIdentityTest {
             }
             parser.next()
         }
-        assertEquals(listOf("#E53935", "#43A047"), strokes)
+        assertEquals(listOf("#ffe53935", "#ff43a047"), strokes)
     }
 }
