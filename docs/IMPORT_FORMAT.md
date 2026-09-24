@@ -4,7 +4,7 @@ This format currently targets database schema 12. Historical notes must be conve
 
 ## Envelope and merge rules
 
-The root object contains `format: "vibe-trainer"`, numeric `version: 1`, and a `tables` object. Optional `preferences` contains the supported profile/palette settings. Unknown root fields, table names or preference keys are rejected.
+The root object contains `format: "vibe-trainer"`, numeric `version: 1`, and a `tables` object. The legacy format identifier is intentionally unchanged so Vibe Check can import Vibe Trainer backups after the Android identity change. Optional `preferences` contains the supported profile/palette settings. Unknown root fields, table names or preference keys are rejected.
 
 Each supplied table is an array of row objects. A table can be omitted to leave it untouched. Every included row must supply exactly its database columns, including explicit `null` for optional values. Export a backup from the app for the complete schema and field names; definitions also live in `data/local/Entities.kt`. Exported schema JSON is included in CI's validation artifact.
 

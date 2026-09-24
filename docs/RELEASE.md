@@ -1,13 +1,14 @@
 # Release readiness
 
-Vibe Trainer is currently a pre-release Android application. This document
+Vibe Check is currently a pre-release Android application. This document
 defines the release gates; it does not authorise signing, publishing or merging.
 
 ## Current version
 
-- Application ID: `com.petermathie.vibetrainer`
-- Version name: `0.3.0`
-- Version code: `2`
+- Application ID: `com.petermathie.vibecheck`
+- Release identity: **Vibe Check 0.4.0 Beta 1**
+- Version name: `0.4.0-beta.1`
+- Version code: `3`
 - Room schema version: `12`
 - Minimum Android SDK: `23`
 - Target Android SDK: `36`
@@ -47,6 +48,16 @@ it snapshots definitions present at migration/import time.
 
 Users should make a JSON backup before an upgrade. Structured backups exclude
 progress photographs, which must be exported separately.
+
+## Identity transition
+
+Version 0.4.0 Beta 1 changes the Android application ID from
+`com.petermathie.vibetrainer` to `com.petermathie.vibecheck`. Android therefore
+installs Vibe Check as a distinct app; app-private database, photo and video
+files from Vibe Trainer do not update or transfer automatically. Export
+structured JSON and photos from the old app before moving. Vibe Check continues
+to import version-1 backups whose envelope is `format: "vibe-trainer"`; that
+legacy value is intentionally stable compatibility data, not current branding.
 
 ## Build readiness
 

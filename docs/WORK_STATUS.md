@@ -2,6 +2,8 @@
 
 Updated: 24 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
+Current implementation task: **ID-01 Vibe Check identity migration is in progress** on `pmathie-cicpilot-persist-workout-drafts`. Checkpoint `0703a1d` changes the display name to Vibe Check, Android namespace/application ID to `com.petermathie.vibecheck`, Kotlin source/test package trees, Room schema FQCN path, launcher/workflow component names and app-owned filenames. The release identity is Vibe Check 0.4.0 Beta 1 (`versionName 0.4.0-beta.1`, `versionCode 3`). Vibe Check is intentionally a distinct Android install; Vibe Trainer app-private data does not transfer automatically. Legacy JSON `format: "vibe-trainer"` and catalogue source marker `vibe-trainer` remain stable compatibility identifiers. Focused identity, legacy-import and Room migration validation passed after a clean build.
+
 Current documentation task: **DOC-01 reviewer-facing app showcase is complete** in [`APP_REVIEW.md`](APP_REVIEW.md). It covers product intent, a 12-image visual tour, complete feature areas, local storage/privacy, architecture/quality, honest external gates, installation and reviewer checklists. All screenshots are controlled generated demo data from source `762b96b`, 1080 × 2424, visually inspected, and total 1.9 MB. The exact APK SHA-256 is `603954816717f5c60304edcd04c0f5ab337b3a7e8b8a2b1edf2ab4e71605a61d`. The complete unit/build gate and all 67 API 35 instrumentation tests passed.
 
 Current implementation task: **UX-29 archived content access is complete** on `pmathie-cicpilot-persist-workout-drafts`. More now exposes a dedicated Archive screen listing archived plans, custom exercises and habits with direct Restore actions. Focused `NavigationUiTest` passed both tests on API 35.
@@ -12,7 +14,7 @@ Room schema 12 gives every variation its own tracking type, enabled inputs, targ
 
 Migration, import, editor, logging, recovery, no-duplicate-set, stopwatch, seeded-configuration and video-lifecycle regressions are included. At local source `e8c7d13`, `gradle testDebugUnitTest assembleDebug connectedDebugAndroidTest --no-daemon` passed with all 66 API 35 instrumentation tests. APK SHA-256 is `3c7362fe19ef0470dc2a83bce63e2c35482e13d55d80d15c12edc7370b171af4`. That exact APK installed and cold-launched on `vibe-log01-api35`; visible inspection confirmed the Handstand Primary/Secondary lines, its grouped Wall/Freestanding variations, and Wall settings enabling both Time Under Tension and Total Time.
 
-Residual limits: reference videos are intentionally excluded from JSON backup and no hard attachment-count cap is enforced; explicit deletion provides user curation. Initial workout row count and its header rest action use the first-ranked variation. `97d3028` is pushed, but GitHub rejected the `e8c7d13` checkpoint push with HTTP 403 (`Permission to PeterMathie/Vibe-Trainer.git denied to pmathie_cicpilot`), so the gate fix and this status update are preserved locally and must be pushed when writable authentication returns. Nothing was merged and auto-merge remains disabled.
+Residual limits: reference videos are intentionally excluded from JSON backup and no hard attachment-count cap is enforced; explicit deletion provides user curation. Initial workout row count and its header rest action use the first-ranked variation. `97d3028` is pushed, but GitHub rejected the `e8c7d13` checkpoint push with HTTP 403 (`Permission to PeterMathie/vibe-check.git denied to pmathie_cicpilot`), so the gate fix and this status update are preserved locally and must be pushed when writable authentication returns. Nothing was merged and auto-merge remains disabled.
 
 Current implementation task: **DEMO-01 complete demo-personal-data removal is complete** at `873a37c` and `27b8064` on `pmathie-cicpilot-persist-workout-drafts`.
 
@@ -166,15 +168,15 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 
 ## Start here
 
-- Repository: PeterMathie/Vibe-Trainer.
+- Repository: PeterMathie/vibe-check.
 - Long-lived working branch: `pmathie-cicpilot-persist-workout-drafts`. Keep all continuation work on this branch.
-- Historical draft PR: https://github.com/PeterMathie/Vibe-Trainer/pull/1 (targets `develop`). Do not merge it or enable auto-merge. A future PR may be draft/status-only unless the user explicitly authorises merging.
+- Historical draft PR: https://github.com/PeterMathie/vibe-check/pull/1 (targets `develop`). Do not merge it or enable auto-merge. A future PR may be draft/status-only unless the user explicitly authorises merging.
 - Product contract: `docs/PRODUCT_REQUIREMENTS.md`; tester walkthrough: `docs/BETA_TESTING.md`.
 - Native Kotlin / Compose / Room / Hilt app. This branch has no runnable web version.
 - User has authorised replacing the old implementation and completing the beta. No further approval is needed for ordinary implementation or tests.
 - Latest locally verified implementation commit: `562bb0b`.
-- Latest successful branch run: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35749861428 at final architecture/repository-readiness checkpoint `cf2c8ba`.
-- APK artifact: `vibe-trainer-debug`; reports and generated Room schemas: `validation-reports`.
+- Latest successful branch run: https://github.com/PeterMathie/vibe-check/actions/runs/35749861428 at final architecture/repository-readiness checkpoint `cf2c8ba`.
+- APK artifact: `vibe-check-debug`; reports and generated Room schemas: `validation-reports`.
 
 ## What is implemented
 
@@ -263,8 +265,8 @@ Run `35705645513` at commit `39739ff` passed unit tests, debug assembly, API 35 
 Earlier run `35639647804` at commit `c071717` passed compilation, unit tests and instrumentation tests, then failed the added launch command because the test runner had uninstalled the target APK. The verified revision explicitly installs the built APK before launching it. That launch-harness failure is resolved.
 
 Downloads for the verified build:
-- APK ZIP: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513/artifacts/10684382510
-- Reports, schema and launch screenshot: https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513/artifacts/10684731891
+- APK ZIP: https://github.com/PeterMathie/vibe-check/actions/runs/35705645513/artifacts/10684382510
+- Reports, schema and launch screenshot: https://github.com/PeterMathie/vibe-check/actions/runs/35705645513/artifacts/10684731891
 
 The documentation-only handoff update after this verified commit does not alter application code.
 
@@ -280,8 +282,8 @@ The repository-controlled beta implementation and readiness work is complete. Th
 
 Future architecture work is not an active task. Splitting `WorkoutEditor` exercise-card orchestration or the remaining cross-aggregate `EditorViewModel` operations would alter lifecycle/transaction boundaries and should begin only with a new bounded claim and purpose-built regression coverage.
 | DATA-03 | Medium | Review history immutability for variation ordering/band definitions and habit-target edits. Exercise names/types/muscle mappings are snapshotted, but some derived history still reads live definitions. Decide and test historical policy before widening editors. | `data/local/*`, `domain/progress/SessionProgress.kt` |
-| STYLE-01 | Medium | Expand custom palette controls beyond accent/background/surface if desired. Verify contrast and make restored/custom palette changes refresh immediately. Reduced motion currently disables ripples; review other Material animations. | `ui/theme/VibeDesignSystem.kt`, `ui/VibeTrainerApp.kt` |
-| ARCH-01 | Medium | Refactor dense editor composables into smaller screens/state holders and move persistence/validation out of UI-facing code. Remove superseded private screens in `VibeTrainerApp.kt`. Preserve behaviour and avoid a new visual redesign. | `ui/*`, `ui/EditorViewModel.kt` |
+| STYLE-01 | Medium | Expand custom palette controls beyond accent/background/surface if desired. Verify contrast and make restored/custom palette changes refresh immediately. Reduced motion currently disables ripples; review other Material animations. | `ui/theme/VibeDesignSystem.kt`, `ui/VibeCheckApp.kt` |
+| ARCH-01 | Medium | Refactor dense editor composables into smaller screens/state holders and move persistence/validation out of UI-facing code. Remove superseded private screens in `VibeCheckApp.kt`. Preserve behaviour and avoid a new visual redesign. | `ui/*`, `ui/EditorViewModel.kt` |
 | RELEASE-01 | Later | Release signing/versioning, complete dependency-license inventory, migration policy and store preparation. Asset notices are bundled; that is not a complete release/legal audit. | Gradle, manifest, notices |
 
 Cloud provider selection/sync and detailed habit metric charts are deliberately deferred by the user. Do not choose a provider or build those charts as an incidental change.

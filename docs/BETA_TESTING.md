@@ -1,6 +1,6 @@
 # Beta testing
 
-Use the `vibe-trainer-debug` artifact from the latest successful Android Actions run on PR #1. Unzip it and install `app-debug.apk` on Android. This is a debug beta, not a signed store release.
+Use the `vibe-check-debug` artifact from the latest successful Android Actions run on PR #1. Unzip it and install `app-debug.apk` on Android. This is a debug beta, not a signed store release.
 
 Release versioning, migration gates and unsigned build checks are documented in
 [RELEASE.md](RELEASE.md).

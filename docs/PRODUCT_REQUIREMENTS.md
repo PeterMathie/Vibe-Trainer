@@ -1,8 +1,8 @@
-# Vibe Trainer product requirements
+# Vibe Check product requirements
 
 ## Product truth
 
-Vibe Trainer is a local-first native Android training log. It records objective history and derives explainable views from that history. Version one must not claim to know muscle fatigue or recovery. The strength SVG displays **training recency**; set-equivalents describe recent training dose. A future, separately labelled fatigue estimate may use RPE, subjective readiness and wearable data.
+Vibe Check is a local-first native Android training log. It records objective history and derives explainable views from that history. Version one must not claim to know muscle fatigue or recovery. The strength SVG displays **training recency**; set-equivalents describe recent training dose. A future, separately labelled fatigue estimate may use RPE, subjective readiness and wearable data.
 
 ## Installation and test data
 

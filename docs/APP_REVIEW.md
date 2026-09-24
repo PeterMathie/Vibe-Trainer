@@ -1,11 +1,11 @@
-# Vibe Trainer reviewer showcase
+# Vibe Check reviewer showcase
 
-> **Status:** Android beta, not a public or signed store release  
-> **Build shown:** `0.3.0` (`versionCode 2`), Room schema 12  
+> **Status:** Vibe Check 0.4.0 Beta 1; not a signed public release yet  
+> **Screenshots shown:** pre-rename `0.3.0` UI at commit `762b96b`; the visible screens remain representative of Vibe Check 0.4.0 Beta 1  
 > **Showcase source:** commit `762b96b3e59cd51f1567c0b1482b2a1826e20aee`  
 > **Debug APK SHA-256:** `603954816717f5c60304edcd04c0f5ab337b3a7e8b8a2b1edf2ab4e71605a61d`
 
-Vibe Trainer is a local-first native Android training log for people who want one coherent place for strength work, stretching, skill progressions, habits, body measurements and historical context. It records objective history first, then derives explainable views from those records. The muscle map deliberately shows **training recency**, not a speculative claim about fatigue or recovery.
+Vibe Check is a local-first native Android training log for people who want one coherent place for strength work, stretching, skill progressions, habits, body measurements and historical context. It records objective history first, then derives explainable views from those records. The muscle map deliberately shows **training recency**, not a speculative claim about fatigue or recovery.
 
 What distinguishes the app is the connection between detailed workout logging and legible daily feedback: variation-specific set inputs feed stable history, progress scoring, personal records, activity heatmaps and reconstructable historical body maps. Draft workouts remain editable and recoverable without contaminating any derived view.
 
@@ -124,9 +124,9 @@ Settings use switches for binary preferences and direct actions for operations. 
 
 ## Data, storage and privacy
 
-Vibe Trainer has no account, advertising SDK, cloud database or cloud sync. Personal records live on-device in a Room database. Progress photos and exercise reference videos are copied into the app's private files directory.
+Vibe Check has no account, advertising SDK, cloud database or cloud sync. Personal records live on-device in a Room database. Progress photos and exercise reference videos are copied into the app's private files directory.
 
-The database, photos and copied videos survive app restart, process recreation and a normal update installed over the same application ID with the same signing identity. Uninstalling the app or clearing its data removes them.
+The database, photos and copied videos survive app restart, process recreation and a normal update installed over the same application ID with the same signing identity. The 0.4.0 rename changes that identity to `com.petermathie.vibecheck`, so Vibe Trainer app-private data does not transfer automatically; structured JSON remains import-compatible. Uninstalling the app or clearing its data removes app-private records.
 
 Structured JSON backup/import covers the Room records and relevant preferences with strict validation. CSV export provides inspectable structured training data. Progress photos are intentionally excluded from JSON and exported as a separate ZIP. Exercise reference videos are currently app-private only and are not part of either JSON or photo export.
 

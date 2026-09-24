@@ -14,13 +14,24 @@ Owner: ChatGPT coding agent. Status: completed successfully.
 - [x] Inspect launch screenshot and runtime-error log.
 - [x] Record the run, commit, artifact links and any failures here and in WORK_STATUS.md.
 
-Evidence: commit `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433`, [run 35701312673](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673). MainActivity reported `Status: ok`; the runtime-error log was empty. Screenshot shows the seeded home screen and confirms the existing status-bar contrast issue remains. No application source changes were made in this rerun.
+Evidence: commit `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433`, [run 35701312673](https://github.com/PeterMathie/vibe-check/actions/runs/35701312673). MainActivity reported `Status: ok`; the runtime-error log was empty. Screenshot shows the seeded home screen and confirms the existing status-bar contrast issue remains. No application source changes were made in this rerun.
 
-[APK ZIP](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673/artifacts/10682633925) · [Reports and screenshot](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35701312673/artifacts/10682594156).
+[APK ZIP](https://github.com/PeterMathie/vibe-check/actions/runs/35701312673/artifacts/10682633925) · [Reports and screenshot](https://github.com/PeterMathie/vibe-check/actions/runs/35701312673/artifacts/10682594156).
 
 ## High-priority work
 
 Tasks are unclaimed unless an owner is recorded below. Before starting, add your agent name, branch and date to the relevant task. Mark completion only with verification evidence.
+
+### ID-01 — Rename product and repository to Vibe Check
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 24 September 2026.
+
+- [x] Rename Android display, namespace/application ID, source/test packages, Room schema FQCN path, workflow components and app-owned filenames.
+- [x] Set release identity to Vibe Check 0.4.0 Beta 1 (`versionName 0.4.0-beta.1`, `versionCode 3`).
+- [x] Preserve version-1 Vibe Trainer JSON import compatibility.
+- [ ] Complete current-facing documentation and historical-evidence reconciliation.
+- [ ] Pass unit, debug/release, complete API 35, install/launch and clean-demo validation.
+- [ ] Rename the remote repository to `PeterMathie/vibe-check` only after the green branch is pushed.
 
 ### DOC-01 — Reviewer-facing app showcase
 
@@ -92,7 +103,7 @@ Status: **COMPLETED**. Owner: ChatGPT coding agent. Branch: `codex/greenfield-fo
 
 Evidence: validation is implemented in `ImportValidation.kt` and integrated transactionally in `DataTransfer.kt`. `ImportValidationTest.kt` covers invalid numeric/enumerated values, seeded records, relationships, habit fields, duplicate keys, multiple drafts, rollback and valid imports. `IMPORT_FORMAT.md` and `examples/historical-workout.json` document and exercise the versioned format.
 
-Verification: commit `39739ff69ae4c081771f9eb5b31ab9f1e473a812`, [run 35705645513](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513). Unit tests, debug assembly, API 35 instrumentation tests, APK install and MainActivity launch passed. The import instrumentation report includes all seven `ImportValidationTest` cases. This establishes the scoped DATA-02 validation; it does not supply the authentic v1 fixture required by DATA-01.
+Verification: commit `39739ff69ae4c081771f9eb5b31ab9f1e473a812`, [run 35705645513](https://github.com/PeterMathie/vibe-check/actions/runs/35705645513). Unit tests, debug assembly, API 35 instrumentation tests, APK install and MainActivity launch passed. The import instrumentation report includes all seven `ImportValidationTest` cases. This establishes the scoped DATA-02 validation; it does not supply the authentic v1 fixture required by DATA-01.
 
 - [x] Validate enums and reject non-finite or invalid numerical values.
 - [x] Validate exercise/variation ownership and band references.
@@ -102,7 +113,7 @@ Verification: commit `39739ff69ae4c081771f9eb5b31ab9f1e473a812`, [run 3570564551
 
 ### UI-01 — Full interaction and accessibility checks
 
-UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/greenfield-foundation`, 22 September 2026. Commit `8ddccb5` selects light system icons; the launch screenshot from successful [run 35705645513](https://github.com/PeterMathie/Vibe-Trainer/actions/runs/35705645513) shows them readable on the dark home screen.
+UI-01a (status-bar contrast only): **COMPLETED**, ChatGPT coding agent, `codex/greenfield-foundation`, 22 September 2026. Commit `8ddccb5` selects light system icons; the launch screenshot from successful [run 35705645513](https://github.com/PeterMathie/vibe-check/actions/runs/35705645513) shows them readable on the dark home screen.
 
 UI-01b (programme controls): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `708129e` drives programme create, rename, duplicate, reorder and archive through API 35 Compose UI and asserts Room state after each operation. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 26 instrumentation tests; Gradle XML/HTML interaction reports are retained as generated build artifacts and CI will publish its standard test artifacts. This bounded slice does not claim compact logging, history/SVG accessibility or real-phone QA.
 
@@ -440,13 +451,13 @@ Final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndro
   Evidence: commit `94cb902` observes palette preferences as Compose state, so custom edits and structured preference restores immediately replace semantic colours without reopening. Editable accent/background/surface combinations are checked at WCAG AA 4.5:1 against their fixed text tokens; invalid edits and restored custom palettes are rejected. Reduced motion is exposed as a semantic composition-local and disables Material ripple; no app-owned animated transition APIs are currently present. Existing three controls remain sufficient because all other semantic tokens intentionally inherit the established base palette. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 25 API 35 instrumentation tests. `StyleUiTest` proves immediate edit/restore refresh, contrast feedback and live reduced-motion propagation.
 - [x] **ARCH-01:** Split dense editors into maintainable components/state holders, centralise validation and remove superseded private screens without changing the agreed navigation.
 
-  ARCH-01a (superseded private screens): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `dd1beb9` removes 226 lines comprising the unreachable private `ProgrammeScreen`, `WorkoutScreen`, `ExerciseLogger` and their exclusive compact-entry helpers from `VibeTrainerApp.kt`; current navigation continues to use `ProgrammeEditor` and `WorkoutEditor`. Focused programme/logging/history Compose suites passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` validation with 17 unit tests and 32 instrumentation tests.
+  ARCH-01a (superseded private screens): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `dd1beb9` removes 226 lines comprising the unreachable private `ProgrammeScreen`, `WorkoutScreen`, `ExerciseLogger` and their exclusive compact-entry helpers from `VibeCheckApp.kt`; current navigation continues to use `ProgrammeEditor` and `WorkoutEditor`. Focused programme/logging/history Compose suites passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` validation with 17 unit tests and 32 instrumentation tests.
 
   ARCH-01b (programme-target state/validation): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `41fef6c` extracts the programme exercise target form’s string state and entity conversion from `EntryDialog` into pure `ProgrammeEntryForm`, preserving the existing parsing, 120-second malformed-rest default, non-negative rest coercion, 0–10 RPE clamp, optional group and notes behavior. Two unit tests pin round-trip and malformed/boundary conversion, focused `ProgrammeUiTest` passed, and full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` validation passed with 19 unit tests and 32 instrumentation tests.
 
   ARCH-01c (historical-day screen extraction): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `8fe0eb6` moves the tested `HistoryDayScreen` from the app/navigation monolith into `HistoryDayScreen.kt`, retaining its parameters, state ownership, shared design components and rendering. Focused `HistoryUiTest` and `MuscleMapUiTest` passed, followed by full validation with 19 unit tests and 32 instrumentation tests.
 
-  ARCH-01d (style screen extraction): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `adec0d0` moves the tested `StyleScreen` and private palette card from `VibeTrainerApp.kt` into `StyleScreen.kt`, retaining preference ownership, semantic tokens, contrast validation and rendering. Focused `PaletteContrastTest` and `StyleUiTest` passed, followed by full validation with 19 unit tests and 32 instrumentation tests.
+  ARCH-01d (style screen extraction): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `adec0d0` moves the tested `StyleScreen` and private palette card from `VibeCheckApp.kt` into `StyleScreen.kt`, retaining preference ownership, semantic tokens, contrast validation and rendering. Focused `PaletteContrastTest` and `StyleUiTest` passed, followed by full validation with 19 unit tests and 32 instrumentation tests.
 
   ARCH-01e (editor ordering): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `a92bb2c` extracts the repeated item lookup, boundary check and swap algorithm used by programme, day, programme-exercise, tracker-field and variation moves into pure `moveItem`, while retaining each operation’s filtering, rank offset and Room transaction. Two unit tests pin up/down/input-immutability/boundary/missing-ID behavior; focused `ProgrammeUiTest` and `HabitFieldTest` passed, followed by full validation with 21 unit tests and 32 instrumentation tests.
 

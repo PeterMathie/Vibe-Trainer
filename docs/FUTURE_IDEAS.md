@@ -1,12 +1,12 @@
 # Future personality and product ideas
 
-> **Status:** Exploratory and deferred. These are not committed requirements or an implementation backlog. They are intended primarily to help Vibe Trainer develop more personality and emotional reward after the current phone beta has been used in real life.
+> **Status:** Exploratory and deferred. These are not committed requirements or an implementation backlog. They are intended primarily to help Vibe Check develop more personality and emotional reward after the current phone beta has been used in real life.
 
 [Product requirements](PRODUCT_REQUIREMENTS.md) remains authoritative for current behavior. In particular, trackers currently have no schedules or missed-day penalties. Any idea below that changes that model requires an explicit future product decision before implementation. See the [reviewer showcase](APP_REVIEW.md) for the current product.
 
 ## Direction and safeguards
 
-Vibe Trainer should feel **calm, observant, precise and quietly satisfying**. It should reward evidence rather than hype.
+Vibe Check should feel **calm, observant, precise and quietly satisfying**. It should reward evidence rather than hype.
 
 | Prefer | Avoid |
 |---|---|

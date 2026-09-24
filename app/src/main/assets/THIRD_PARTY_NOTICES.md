@@ -2,7 +2,7 @@
 
 ## MuscleMap anatomy vectors
 
-Vibe Trainer includes adapted SVG muscle path data from **MuscleMap**:
+Vibe Check includes adapted SVG muscle path data from **MuscleMap**:
 https://github.com/Jsplice/MuscleMap
 
 The male/female front/back vector anatomy data is used to render the interactive recovery and stretching-recency diagrams natively in Jetpack Compose.
@@ -46,12 +46,12 @@ Scope of this license:
 
 ## Free Exercise DB
 
-Vibe Trainer includes exercise definitions derived from **Free Exercise DB**:
+Vibe Check includes exercise definitions derived from **Free Exercise DB**:
 https://github.com/yuhonas/free-exercise-db
 
 The dataset is released under the Unlicense/public-domain dedication. A copy of
 the licence is bundled at `app/src/main/assets/FREE_EXERCISE_DB_LICENSE.md`.
-Mappings are normalised into Vibe Trainer's canonical muscle taxonomy, with
+Mappings are normalised into Vibe Check's canonical muscle taxonomy, with
 curated overrides for the core programme and calisthenics exercises.
 
 ---

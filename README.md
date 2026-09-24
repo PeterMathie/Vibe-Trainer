@@ -1,4 +1,6 @@
-# Vibe Trainer
+# Vibe Check
+
+**Vibe Check 0.4.0 Beta 1**
 
 Native, local-first Android strength, flexibility and open-ended activity tracking.
 
@@ -9,6 +11,9 @@ The greenfield architecture uses Kotlin, Jetpack Compose, Room, Hilt and an expl
 Visual styling is isolated behind semantic tokens and interchangeable palettes. Production builds seed application knowledge but no personal programmes or history; debug builds add removable representative data.
 
 See [`docs/PRODUCT_REQUIREMENTS.md`](docs/PRODUCT_REQUIREMENTS.md) for the product contract.
+The current Android identity is `com.petermathie.vibecheck`, version `0.4.0-beta.1`
+(`versionCode 3`). This is a distinct install from the former Vibe Trainer
+package; use its JSON export/import flow to move structured records.
 
 For the current implementation, verified builds and agent-ready tasks, start with
 [`docs/WORK_STATUS.md`](docs/WORK_STATUS.md). See
