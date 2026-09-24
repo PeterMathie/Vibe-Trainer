@@ -1,0 +1,68 @@
+name: Signed beta release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Beta tag, for example v0.4.0-beta.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android 16 SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Build and verify signed beta APK
+        env:
+          EXPECTED_TAG: ${{ inputs.tag }}
+          VIBE_CHECK_BETA_KEYSTORE_BASE64: ${{ secrets.VIBE_CHECK_BETA_KEYSTORE_BASE64 }}
+          VIBE_CHECK_BETA_STORE_PASSWORD: ${{ secrets.VIBE_CHECK_BETA_STORE_PASSWORD }}
+          VIBE_CHECK_BETA_KEY_ALIAS: ${{ secrets.VIBE_CHECK_BETA_KEY_ALIAS }}
+          VIBE_CHECK_BETA_KEY_PASSWORD: ${{ secrets.VIBE_CHECK_BETA_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_TAG" = "v0.4.0-beta.1"
+          export VIBE_CHECK_BETA_KEYSTORE_PATH="$RUNNER_TEMP/vibe-check-beta.jks"
+          trap 'rm -f "$VIBE_CHECK_BETA_KEYSTORE_PATH"' EXIT
+          printf '%s' "$VIBE_CHECK_BETA_KEYSTORE_BASE64" | base64 --decode > "$VIBE_CHECK_BETA_KEYSTORE_PATH"
+          chmod 600 "$VIBE_CHECK_BETA_KEYSTORE_PATH"
+          gradle :app:testDebugUnitTest :app:assembleRelease --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk Vibe-Check-beta.apk
+          apksigner verify --verbose --print-certs Vibe-Check-beta.apk
+          sha256sum Vibe-Check-beta.apk > Vibe-Check-beta.apk.sha256
+
+      - name: Upload signed beta candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vibe-Check-beta
+          path: |
+            Vibe-Check-beta.apk
+            Vibe-Check-beta.apk.sha256
+          if-no-files-found: error

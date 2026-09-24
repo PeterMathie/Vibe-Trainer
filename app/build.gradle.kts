@@ -13,9 +13,36 @@ android {
         applicationId = "com.petermathie.vibecheck"
         minSdk = 23
         targetSdk = 36
-        versionCode = 3
+        versionCode = 4
         versionName = "0.4.0-beta.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    val signingEnvironment = listOf(
+        "VIBE_CHECK_BETA_KEYSTORE_PATH",
+        "VIBE_CHECK_BETA_STORE_PASSWORD",
+        "VIBE_CHECK_BETA_KEY_ALIAS",
+        "VIBE_CHECK_BETA_KEY_PASSWORD",
+    ).associateWith { providers.environmentVariable(it).orNull }
+    val betaSigningConfig = if (signingEnvironment.values.all { !it.isNullOrBlank() }) {
+        signingConfigs.create("beta") {
+            storeFile = file(signingEnvironment.getValue("VIBE_CHECK_BETA_KEYSTORE_PATH")!!)
+            storePassword = signingEnvironment.getValue("VIBE_CHECK_BETA_STORE_PASSWORD")
+            keyAlias = signingEnvironment.getValue("VIBE_CHECK_BETA_KEY_ALIAS")
+            keyPassword = signingEnvironment.getValue("VIBE_CHECK_BETA_KEY_PASSWORD")
+        }
+    } else {
+        null
+    }
+
+    buildTypes {
+        debug {
+            buildConfigField("boolean", "SEED_DEMO_DATA", "true")
+        }
+        release {
+            buildConfigField("boolean", "SEED_DEMO_DATA", "false")
+            betaSigningConfig?.let { signingConfig = it }
+        }
     }
 
     compileOptions {

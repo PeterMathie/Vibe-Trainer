@@ -60,18 +60,18 @@ class DatabaseSeeder @Inject constructor(
                 database.openHelper.writableDatabase.execSQL("UPDATE workouts SET notes = '' WHERE isDemo = 1")
                 database.metadataDao().put(SeedMetadataEntity(CURATED_ONLY_KEY, CURATED_ONLY_VERSION))
             }
-            if (BuildConfig.DEBUG && (database.metadataDao().version(DEMO_KEY) ?: 0) < DEMO_VERSION) {
+            if (BuildConfig.SEED_DEMO_DATA && (database.metadataDao().version(DEMO_KEY) ?: 0) < DEMO_VERSION) {
                 seedDemo()
                 database.metadataDao().put(SeedMetadataEntity(DEMO_KEY, DEMO_VERSION))
             }
-            if (BuildConfig.DEBUG && (database.metadataDao().version(SCHEDULE_FREE_DEMO_KEY) ?: 0) < SCHEDULE_FREE_DEMO_VERSION) {
+            if (BuildConfig.SEED_DEMO_DATA && (database.metadataDao().version(SCHEDULE_FREE_DEMO_KEY) ?: 0) < SCHEDULE_FREE_DEMO_VERSION) {
                 val sql = database.openHelper.writableDatabase
                 sql.execSQL("UPDATE programme_days SET name='Planche + Push' WHERE id='demo-day-push' AND name='Monday — Planche + Push'")
                 sql.execSQL("UPDATE programme_days SET name='Legs + Mobility' WHERE id='demo-day-legs' AND name='Wednesday — Legs + Mobility'")
                 sql.execSQL("UPDATE programme_days SET name='Muscle-up + Pull' WHERE id='demo-day-pull' AND name='Saturday — Muscle-up + Pull'")
                 database.metadataDao().put(SeedMetadataEntity(SCHEDULE_FREE_DEMO_KEY, SCHEDULE_FREE_DEMO_VERSION))
             }
-            if (BuildConfig.DEBUG && (database.metadataDao().version(PROGRESS_DEMO_KEY) ?: 0) < PROGRESS_DEMO_VERSION) {
+            if (BuildConfig.SEED_DEMO_DATA && (database.metadataDao().version(PROGRESS_DEMO_KEY) ?: 0) < PROGRESS_DEMO_VERSION) {
                 if(database.workoutDao().demoCount() > 0) seedProgressDemo()
                 database.metadataDao().put(SeedMetadataEntity(PROGRESS_DEMO_KEY,PROGRESS_DEMO_VERSION))
             }
@@ -80,7 +80,7 @@ class DatabaseSeeder @Inject constructor(
             sql.execSQL("INSERT OR IGNORE INTO workout_muscles SELECT we.id,em.muscleId,em.role FROM workout_exercises we JOIN exercise_muscles em ON em.exerciseId=we.actualExerciseId")
             sql.execSQL("UPDATE workout_exercises SET exerciseName=(SELECT canonicalName FROM exercises WHERE id=actualExerciseId),trackingType=(SELECT trackingType FROM exercises WHERE id=actualExerciseId) WHERE exerciseName=''")
         }
-        if (BuildConfig.DEBUG) DemoProgressPhotos.claimLegacyPhotos(context, database)
+        if (BuildConfig.SEED_DEMO_DATA) DemoProgressPhotos.claimLegacyPhotos(context, database)
     }
 
     private suspend fun seedCatalogue() {

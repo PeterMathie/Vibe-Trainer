@@ -24,14 +24,17 @@ Tasks are unclaimed unless an owner is recorded below. Before starting, add your
 
 ### ID-01 — Rename product and repository to Vibe Check
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 24 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 24 September 2026.
 
 - [x] Rename Android display, namespace/application ID, source/test packages, Room schema FQCN path, workflow components and app-owned filenames.
-- [x] Set release identity to Vibe Check 0.4.0 Beta 1 (`versionName 0.4.0-beta.1`, `versionCode 3`).
+- [x] Set release identity to Vibe Check 0.4.0 Beta 1 (`versionName 0.4.0-beta.1`, `versionCode 4`).
 - [x] Preserve version-1 Vibe Trainer JSON import compatibility.
-- [ ] Complete current-facing documentation and historical-evidence reconciliation.
-- [ ] Pass unit, debug/release, complete API 35, install/launch and clean-demo validation.
-- [ ] Rename the remote repository to `PeterMathie/vibe-check` only after the green branch is pushed.
+- [x] Complete current-facing documentation and historical-evidence reconciliation.
+- [x] Pass 39 unit tests, 69 API 35 tests, debug/signed-release assembly, install/launch and clean-demo validation.
+- [x] Use canonical repository `PeterMathie/vibe-check` and update this worktree's origin.
+- [x] Create the persistent beta key, Keychain entries, protected GitHub secrets and guarded signed-build workflow.
+- [x] Prove a fresh signed release seeds catalogue definitions but no demo personal data.
+- [x] Prove same-key build-3 to build-4 update retention for programme, workout, habit and body records.
 
 ### DOC-01 — Reviewer-facing app showcase
 

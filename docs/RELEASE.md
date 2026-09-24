@@ -8,7 +8,7 @@ defines the release gates; it does not authorise signing, publishing or merging.
 - Application ID: `com.petermathie.vibecheck`
 - Release identity: **Vibe Check 0.4.0 Beta 1**
 - Version name: `0.4.0-beta.1`
-- Version code: `3`
+- Version code: `4`
 - Room schema version: `12`
 - Minimum Android SDK: `23`
 - Target Android SDK: `36`
@@ -68,14 +68,14 @@ gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest
 gradle :app:assembleRelease
 ```
 
-`assembleRelease` is a compilation, shrinking/packaging and manifest check only.
-Without an explicit release signing configuration it produces an unsigned
-artifact under `app/build/outputs/apk/release/`; it must not be distributed as a
-store release.
+`assembleRelease` is a compilation, shrinking/packaging and manifest check. It
+produces an unsigned artifact unless all four beta-signing environment
+variables documented in [`SIGNING.md`](SIGNING.md) are present. A distributable
+APK must pass `apksigner verify` and match the recorded beta certificate.
 
 Before a signed release:
 
-- Configure signing outside the repository using protected CI/store secrets.
+- Load signing only from the protected Keychain or GitHub Actions secrets.
 - Build and verify the signed App Bundle or APK in the release environment.
 - Regenerate the dependency inventory, reconcile the bundled
   `THIRD_PARTY_NOTICES.md` with the exact resolved release runtime graph, and
