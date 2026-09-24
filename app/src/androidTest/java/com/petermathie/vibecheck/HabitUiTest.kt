@@ -60,6 +60,10 @@ class HabitUiTest {
         compose.onNodeWithText("Date (YYYY-MM-DD)").assertDoesNotExist()
         compose.onNodeWithContentDescription("Wellbeing colour").assertDoesNotExist()
         compose.onNodeWithContentDescription("Set Wellbeing colour 2").assertDoesNotExist()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true).performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Change colour").fetchSemanticsNodes().isNotEmpty()
@@ -151,6 +155,10 @@ class HabitUiTest {
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeCheckTheme { TrackerScreen(viewModel) } }
 
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithContentDescription("Edit Disposable settings", useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithContentDescription("Edit Disposable settings", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Delete habit permanently").assertDoesNotExist()
         compose.onNodeWithText("Archive").performClick()
