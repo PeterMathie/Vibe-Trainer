@@ -337,3 +337,77 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_reference_videos_exerciseId ON exercise_reference_videos(exerciseId)")
     }
 }
+
+val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE workout_exercises ADD COLUMN targetSets INTEGER")
+            db.execSQL("ALTER TABLE workout_exercises ADD COLUMN targetRepsMin INTEGER")
+            db.execSQL("ALTER TABLE workout_exercises ADD COLUMN targetRepsMax INTEGER")
+            db.execSQL("ALTER TABLE workout_exercises ADD COLUMN targetHoldSeconds INTEGER")
+            db.execSQL("ALTER TABLE workout_exercises ADD COLUMN targetRpe REAL")
+            db.execSQL(
+                """
+                UPDATE programme_exercises
+                SET targetSets = (SELECT targetSets FROM exercises WHERE id = exerciseId),
+                    targetRepsMin = (SELECT targetRepsMin FROM exercises WHERE id = exerciseId),
+                    targetRepsMax = (SELECT targetRepsMax FROM exercises WHERE id = exerciseId),
+                    targetRpe = (SELECT targetRpe FROM exercises WHERE id = exerciseId)
+                WHERE targetSets IS NULL
+                  AND targetRepsMin IS NULL
+                  AND targetRepsMax IS NULL
+                  AND targetHoldSeconds IS NULL
+                  AND targetRpe IS NULL
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                UPDATE workout_exercises
+                SET targetSets = (
+                        SELECT pe.targetSets
+                        FROM workouts w
+                        JOIN programme_exercises pe ON pe.programmeDayId = w.programmeDayId
+                        WHERE w.id = workout_exercises.workoutId
+                          AND pe.exerciseId = workout_exercises.plannedExerciseId
+                          AND pe.position = workout_exercises.position
+                        LIMIT 1
+                    ),
+                    targetRepsMin = (
+                        SELECT pe.targetRepsMin
+                        FROM workouts w
+                        JOIN programme_exercises pe ON pe.programmeDayId = w.programmeDayId
+                        WHERE w.id = workout_exercises.workoutId
+                          AND pe.exerciseId = workout_exercises.plannedExerciseId
+                          AND pe.position = workout_exercises.position
+                        LIMIT 1
+                    ),
+                    targetRepsMax = (
+                        SELECT pe.targetRepsMax
+                        FROM workouts w
+                        JOIN programme_exercises pe ON pe.programmeDayId = w.programmeDayId
+                        WHERE w.id = workout_exercises.workoutId
+                          AND pe.exerciseId = workout_exercises.plannedExerciseId
+                          AND pe.position = workout_exercises.position
+                        LIMIT 1
+                    ),
+                    targetHoldSeconds = (
+                        SELECT pe.targetHoldSeconds
+                        FROM workouts w
+                        JOIN programme_exercises pe ON pe.programmeDayId = w.programmeDayId
+                        WHERE w.id = workout_exercises.workoutId
+                          AND pe.exerciseId = workout_exercises.plannedExerciseId
+                          AND pe.position = workout_exercises.position
+                        LIMIT 1
+                    ),
+                    targetRpe = (
+                        SELECT pe.targetRpe
+                        FROM workouts w
+                        JOIN programme_exercises pe ON pe.programmeDayId = w.programmeDayId
+                        WHERE w.id = workout_exercises.workoutId
+                          AND pe.exerciseId = workout_exercises.plannedExerciseId
+                          AND pe.position = workout_exercises.position
+                        LIMIT 1
+                    )
+                """.trimIndent(),
+            )
+    }
+}

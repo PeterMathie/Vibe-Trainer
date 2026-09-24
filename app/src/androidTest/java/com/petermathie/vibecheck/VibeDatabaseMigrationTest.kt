@@ -13,6 +13,7 @@ import com.petermathie.vibecheck.data.local.MIGRATION_8_9
 import com.petermathie.vibecheck.data.local.MIGRATION_9_10
 import com.petermathie.vibecheck.data.local.MIGRATION_10_11
 import com.petermathie.vibecheck.data.local.MIGRATION_11_12
+import com.petermathie.vibecheck.data.local.MIGRATION_12_13
 import com.petermathie.vibecheck.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -29,6 +30,67 @@ class VibeDatabaseMigrationTest {
         InstrumentationRegistry.getInstrumentation(),
         VibeDatabase::class.java,
     )
+
+    @Test
+    fun migrate12To13PreservesAssignmentsBackfillsEmptyOnesAndSnapshotsWorkouts() {
+        helper.createDatabase(databaseName, 12).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id,canonicalName,tag,trackingType,equipment,instructions,source,isCustom,isArchived,inputConfig,
+                     targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds)
+                VALUES ('exercise','Exercise','STRENGTH','WEIGHT_REPS',NULL,NULL,'user',1,0,
+                        'weightUnit=kg;bandResistance=false;timeHeld=false;timeUnderTension=false;reps=true',
+                        4,5,8,7.5,90)
+                """.trimIndent(),
+            )
+            execSQL("INSERT INTO programmes (id,name,mode,isDemo,isArchived,position) VALUES ('p1','One','STRENGTH',0,0,0),('p2','Two','STRENGTH',0,0,1)")
+            execSQL("INSERT INTO programme_days (id,programmeId,name,position) VALUES ('d1','p1','One',0),('d2','p2','Two',0)")
+            execSQL(
+                """
+                INSERT INTO programme_exercises
+                    (id,programmeDayId,exerciseId,position,targetSets,targetRepsMin,targetRepsMax,targetHoldSeconds,restSeconds,targetRpe,notes,supersetGroup,inputConfig)
+                VALUES ('preserved','d1','exercise',0,2,10,12,NULL,45,8.0,'',NULL,''),
+                       ('empty','d2','exercise',0,NULL,NULL,NULL,NULL,120,NULL,'',NULL,'')
+                """.trimIndent(),
+            )
+            execSQL("INSERT INTO workouts (id,programmeDayId,name,mode,status,startedAt,finishedAt,notes,bodyweightKg,isDemo) VALUES ('workout','d1','One','STRENGTH','DRAFT',1,NULL,'',NULL,0)")
+            execSQL(
+                """
+                INSERT INTO workout_exercises
+                    (id,workoutId,plannedExerciseId,actualExerciseId,position,notes,restSeconds,supersetGroup,exerciseName,trackingType,targets,inputConfig)
+                VALUES ('snapshot','workout','exercise','exercise',0,'',45,NULL,'Exercise','WEIGHT_REPS','2 sets · 10–12 reps · RPE 8','')
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(databaseName, 13, true, MIGRATION_12_13).use { migrated ->
+            migrated.query("SELECT targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds FROM programme_exercises WHERE id='preserved'").use {
+                assertTrue(it.moveToFirst())
+                assertEquals(2, it.getInt(0))
+                assertEquals(10, it.getInt(1))
+                assertEquals(12, it.getInt(2))
+                assertEquals(8.0, it.getDouble(3), 0.0)
+                assertEquals(45, it.getInt(4))
+            }
+            migrated.query("SELECT targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds FROM programme_exercises WHERE id='empty'").use {
+                assertTrue(it.moveToFirst())
+                assertEquals(4, it.getInt(0))
+                assertEquals(5, it.getInt(1))
+                assertEquals(8, it.getInt(2))
+                assertEquals(7.5, it.getDouble(3), 0.0)
+                assertEquals(120, it.getInt(4))
+            }
+            migrated.query("SELECT targetSets,targetRepsMin,targetRepsMax,targetRpe FROM workout_exercises WHERE id='snapshot'").use {
+                assertTrue(it.moveToFirst())
+                assertEquals(2, it.getInt(0))
+                assertEquals(10, it.getInt(1))
+                assertEquals(12, it.getInt(2))
+                assertEquals(8.0, it.getDouble(3), 0.0)
+            }
+        }
+    }
 
     @Test
     fun migrate11To12CopiesParentSettingsIntoIndependentVariations() {

@@ -61,6 +61,7 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Bench press").assertIsDisplayed()
         compose.onNodeWithText("3 sets · 5–8 reps · 120s rest").assertIsDisplayed()
         compose.onNodeWithContentDescription("Edit targets for Bench press").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Edit prescription for Bench press").assertDoesNotExist()
         compose.onNodeWithContentDescription("Edit programme Alpha").performClick()
 
         compose.onNodeWithContentDescription("Back").assertIsDisplayed()
@@ -81,6 +82,7 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Add exercise").assertDoesNotExist()
         compose.onNodeWithContentDescription("Add exercise").assertIsDisplayed()
         compose.onNodeWithContentDescription("Edit targets for Bench press").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Edit prescription for Bench press").assertIsDisplayed()
         compose.onNodeWithContentDescription("Reorder Bench press").assertDoesNotExist()
         compose.onNodeWithText("Exercise settings").assertDoesNotExist()
 
@@ -153,6 +155,37 @@ class ProgrammeUiTest {
                     .sortedBy { it.position }
                     .map { it.id }
             } == listOf("entry-fold", "entry-split")
+        }
+    }
+
+    @Test
+    fun programmePrescriptionEditorPersistsAssignmentTargets() {
+        seedProgramme()
+        setProgrammeContent { _, _ -> }
+        compose.onNodeWithContentDescription("Edit programme Alpha").performClick()
+        compose.onNodeWithContentDescription("Edit prescription for Bench press").performClick()
+
+        compose.onNodeWithContentDescription("Sets").performTextClearance()
+        compose.onNodeWithContentDescription("Sets").performTextInput("4")
+        compose.onNodeWithContentDescription("Minimum reps").performTextClearance()
+        compose.onNodeWithContentDescription("Minimum reps").performTextInput("6")
+        compose.onNodeWithContentDescription("Maximum reps").performTextClearance()
+        compose.onNodeWithContentDescription("Maximum reps").performTextInput("10")
+        compose.onNodeWithContentDescription("Target RPE").performTextInput("8")
+        compose.onNodeWithContentDescription("Rest seconds").performTextClearance()
+        compose.onNodeWithContentDescription("Rest seconds").performTextInput("90")
+        compose.onNodeWithText("Save").performClick()
+
+        compose.waitUntil(15_000) {
+            runBlocking {
+                database.editorDao().entries().first().single { it.id == "entry-a" }.let {
+                    it.targetSets == 4 &&
+                        it.targetRepsMin == 6 &&
+                        it.targetRepsMax == 10 &&
+                        it.targetRpe == 8.0 &&
+                        it.restSeconds == 90
+                }
+            }
         }
     }
 

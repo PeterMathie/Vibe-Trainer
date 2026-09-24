@@ -27,7 +27,7 @@ class ApplicationIdentityTest {
 
         val schemaPath = "com.petermathie.vibecheck.data.local.VibeDatabase"
         val schemas = InstrumentationRegistry.getInstrumentation().context.assets.list(schemaPath).orEmpty().toSet()
-        assertTrue((2..12).all { "$it.json" in schemas })
+        assertTrue((2..13).all { "$it.json" in schemas })
     }
 
     @Test

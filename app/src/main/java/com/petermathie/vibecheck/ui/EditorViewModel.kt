@@ -110,7 +110,6 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
                     exerciseName=definition?.canonicalName.orEmpty(),
                     trackingType=definition?.trackingType.orEmpty(),
                     inputConfig=definition?.inputConfig.orEmpty(),
-                    restSeconds=definition?.restSeconds ?: row.restSeconds,
                 ) else row,
             )
             if(changed) {

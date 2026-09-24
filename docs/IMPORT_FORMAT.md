@@ -1,6 +1,6 @@
 # Structured import — format version 1
 
-This format currently targets database schema 12. Historical notes must be converted into these structured records before import; the app does not parse prose. [historical-workout.json](examples/historical-workout.json) is an executable, fictional example tested by Android CI. It imports a custom exercise, structured variation, finished session, 10-second hold, exercise notes and a Yellow + Black + Purple band stack. Durable unfinished workout-entry drafts are included in backups. App-private exercise reference videos are deliberately separate from JSON backup data.
+This format currently targets database schema 13. Historical notes must be converted into these structured records before import; the app does not parse prose. [historical-workout.json](examples/historical-workout.json) is an executable, fictional example tested by Android CI. It imports a custom exercise, structured variation, finished session, 10-second hold, exercise notes and a Yellow + Black + Purple band stack. Durable unfinished workout-entry drafts are included in backups. App-private exercise reference videos are deliberately separate from JSON backup data.
 
 ## Envelope and merge rules
 
@@ -45,6 +45,8 @@ The app must have seeded its catalogue before import. Seeded exercises, their al
 `seed_metadata` is validated but ignored on import: it describes this installation's seeding state and must not control a different installation.
 
 For historical workouts, retain `plannedExerciseId` for the intended movement and put the performed movement in `actualExerciseId`. A set's variation must belong to that performed exercise. Exercise and per-set variation name/type/input snapshots plus `workout_muscles` preserve history independently of future definition edits. Older version-1 documents that omit variation configuration or variation snapshots inherit them during import. Referenced muscles, exercises, sets, bands and other foreign-key targets must exist in the database or the same import.
+
+Programme prescriptions (`targetSets`, rep/hold targets, `targetRpe` and `restSeconds`) belong to each `programme_exercises` assignment. Catalogue exercise and variation rows retain legacy prescription columns only so older version-1 backups round-trip without silently discarding data; current UI and workout creation ignore those legacy values. Schema 13 preserves every non-null assignment value, backfills only completely empty assignment prescriptions from legacy exercise rows, and snapshots structured assignment targets onto new workout exercises. Existing assignment rest is always preserved because older schemas cannot distinguish an intentional 120-second rest from a default.
 
 Finished workouts require `finishedAt >= startedAt`. The merged database may contain at most one DRAFT. Supplying a second active draft is rejected; finish/discard the existing one or update its ID intentionally.
 

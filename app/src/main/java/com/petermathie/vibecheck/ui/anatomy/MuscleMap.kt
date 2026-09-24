@@ -35,6 +35,8 @@ import kotlin.math.min
 
 enum class AnatomyView { FRONT, BACK }
 
+internal const val MUSCLE_COLOR_TRANSITION_MILLIS = 70
+
 private data class ParsedOutline(val def: OutlinePathDef, val path: Path)
 private data class ParsedMuscle(val def: MusclePathDef, val path: Path, val region: Region)
 
@@ -79,7 +81,7 @@ fun MuscleMap(
         }
         val color by animateColorAsState(
             targetValue = targetColor,
-            animationSpec = if (reducedMotion) snap() else tween(durationMillis = 160),
+            animationSpec = if (reducedMotion) snap() else tween(durationMillis = MUSCLE_COLOR_TRANSITION_MILLIS),
             label = "muscle recency $group",
         )
         color

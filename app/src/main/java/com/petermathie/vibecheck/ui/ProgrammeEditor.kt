@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibecheck.data.local.*
 import com.petermathie.vibecheck.domain.model.TrainingMode
+import com.petermathie.vibecheck.domain.programme.ExerciseInputConfig
+import com.petermathie.vibecheck.domain.programme.prescriptionSummary
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
 
 @Composable
@@ -49,6 +51,7 @@ fun ProgrammeEditor(
     var expandedProgrammeId by rememberSaveable { mutableStateOf<String?>(null) }
     var rename by remember { mutableStateOf<ProgrammeEntity?>(null) }
     var addExerciseDayId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editPrescription by remember { mutableStateOf<ProgrammeExerciseEntity?>(null) }
     var pendingStartDayId by rememberSaveable { mutableStateOf<String?>(null) }
     val programmeRows = programmes.filter { it.mode == mode.name }.sortedBy { it.position }
     val selectedProgramme = programmes.find { it.id == selected }
@@ -151,7 +154,7 @@ fun ProgrammeEditor(
                                             .orEmpty()
                                         Column {
                                             Text(exerciseName, style = MaterialTheme.typography.bodyLarge)
-                                            Text(targetSummary(exercises.find { it.id == entry.exerciseId }), style = MaterialTheme.typography.bodySmall)
+                                            Text(prescriptionSummary(entry), style = MaterialTheme.typography.bodySmall)
                                         }
                                     }
                                 }
@@ -244,8 +247,14 @@ fun ProgrammeEditor(
                                         }
                                         Column(Modifier.weight(1f)) {
                                             Text(exerciseName, style = MaterialTheme.typography.titleMedium)
-                                            Text(targetSummary(exercises.find { it.id == entry.exerciseId }), style = MaterialTheme.typography.bodySmall)
+                                            Text(prescriptionSummary(entry), style = MaterialTheme.typography.bodySmall)
                                             entry.supersetGroup?.let { Text("Circuit: $it", style = MaterialTheme.typography.bodySmall) }
+                                        }
+                                        IconButton(onClick = {
+                                            haptics.perform(VibeHapticEvent.EDIT)
+                                            editPrescription = entry
+                                        }) {
+                                            Icon(Icons.Outlined.Edit, contentDescription = "Edit prescription for $exerciseName")
                                         }
                                         IconButton(onClick = { vm.removeEntry(entry.id) }) {
                                             Icon(Icons.Outlined.Delete, contentDescription = "Remove $exerciseName")
@@ -320,16 +329,96 @@ fun ProgrammeEditor(
             addExerciseDayId = null
         }
     }
+    editPrescription?.let { assignment ->
+        ProgrammePrescriptionDialog(
+            assignment = assignment,
+            exercise = exercises.find { it.id == assignment.exerciseId },
+            onDismiss = { editPrescription = null },
+            onSave = {
+                vm.save(it)
+                editPrescription = null
+            },
+        )
+    }
 }
 
-private fun targetSummary(exercise: ExerciseEntity?): String {
-    if (exercise == null) return "Exercise settings unavailable"
-    val target = when {
-        exercise.targetRepsMin != null && exercise.targetRepsMax != null -> "${exercise.targetRepsMin}–${exercise.targetRepsMax} reps"
-        exercise.targetRepsMin != null -> "${exercise.targetRepsMin} reps"
-        else -> "targets not set"
-    }
-    return "${exercise.targetSets ?: 3} sets · $target · ${exercise.restSeconds}s rest"
+private fun prescriptionSummary(assignment: ProgrammeExerciseEntity): String =
+    prescriptionSummary(
+        assignment.targetSets,
+        assignment.targetRepsMin,
+        assignment.targetRepsMax,
+        assignment.targetHoldSeconds,
+        assignment.targetRpe,
+    ) + " · ${assignment.restSeconds}s rest"
+
+@Composable
+internal fun ProgrammePrescriptionDialog(
+    assignment: ProgrammeExerciseEntity,
+    exercise: ExerciseEntity?,
+    onDismiss: () -> Unit,
+    onSave: (ProgrammeExerciseEntity) -> Unit,
+) {
+    val config = ExerciseInputConfig.decode(exercise?.inputConfig.orEmpty(), exercise?.trackingType.orEmpty())
+    val tracksReps = config.reps
+    val tracksDuration = config.timeHeld || config.timeUnderTension ||
+        exercise?.trackingType in setOf("HOLD", "SKILL_HOLD")
+    var sets by remember(assignment.id) { mutableStateOf(assignment.targetSets?.toString().orEmpty()) }
+    var minimum by remember(assignment.id) { mutableStateOf(assignment.targetRepsMin?.toString().orEmpty()) }
+    var maximum by remember(assignment.id) { mutableStateOf(assignment.targetRepsMax?.toString().orEmpty()) }
+    var holdSeconds by remember(assignment.id) { mutableStateOf(assignment.targetHoldSeconds?.toString().orEmpty()) }
+    var rpe by remember(assignment.id) { mutableStateOf(assignment.targetRpe?.toString().orEmpty()) }
+    var rest by remember(assignment.id) { mutableStateOf(assignment.restSeconds.toString()) }
+    val parsedSets = sets.toIntOrNull()
+    val parsedMinimum = minimum.toIntOrNull()
+    val parsedMaximum = maximum.toIntOrNull()
+    val parsedHold = holdSeconds.toIntOrNull()
+    val parsedRpe = rpe.toDoubleOrNull()
+    val parsedRest = rest.toIntOrNull()
+    val valid = (sets.isBlank() || parsedSets?.let { it > 0 } == true) &&
+        (minimum.isBlank() || parsedMinimum?.let { it >= 0 } == true) &&
+        (maximum.isBlank() || parsedMaximum?.let { it >= 0 } == true) &&
+        (parsedMinimum == null || parsedMaximum == null || parsedMaximum >= parsedMinimum) &&
+        (holdSeconds.isBlank() || parsedHold?.let { it >= 0 } == true) &&
+        (rpe.isBlank() || parsedRpe?.let { it in 0.0..10.0 } == true) &&
+        parsedRest?.let { it >= 0 } == true
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Programme prescription") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(exercise?.canonicalName.orEmpty(), style = MaterialTheme.typography.titleMedium)
+                EditField("Sets", sets) { sets = it }
+                if (tracksReps) {
+                    EditField("Minimum reps", minimum) { minimum = it }
+                    EditField("Maximum reps", maximum) { maximum = it }
+                }
+                if (tracksDuration) {
+                    EditField("Target seconds", holdSeconds) { holdSeconds = it }
+                }
+                EditField("Target RPE", rpe) { rpe = it }
+                EditField("Rest seconds", rest) { rest = it }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = valid,
+                onClick = {
+                    onSave(
+                        assignment.copy(
+                            targetSets = parsedSets,
+                            targetRepsMin = if (tracksReps) parsedMinimum else assignment.targetRepsMin,
+                            targetRepsMax = if (tracksReps) parsedMaximum else assignment.targetRepsMax,
+                            targetHoldSeconds = if (tracksDuration) parsedHold else assignment.targetHoldSeconds,
+                            targetRpe = parsedRpe,
+                            restSeconds = requireNotNull(parsedRest),
+                        ),
+                    )
+                },
+            ) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable

@@ -117,7 +117,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
         )
     }
     var stopwatchOrdinal by remember { mutableStateOf<Int?>(null) }
-    val targetSets = defaultVariation?.targetSets
+    val targetSets = row.targetSets
         ?: row.targets.substringBefore(" sets").toIntOrNull()?.coerceAtLeast(1)
         ?: 3
     LaunchedEffect(row.id) {
@@ -197,9 +197,8 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(exercise?.canonicalName.orEmpty(), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-            val configuredRest = defaultVariation?.restSeconds ?: restSeconds
-            IconButton(onClick = { RestTimer.start(context, configuredRest) }) {
-                Icon(Icons.Outlined.Timer, contentDescription = "Start ${configuredRest} second rest for ${exercise?.canonicalName.orEmpty()}")
+            IconButton(onClick = { RestTimer.start(context, restSeconds) }) {
+                Icon(Icons.Outlined.Timer, contentDescription = "Start ${restSeconds} second rest for ${exercise?.canonicalName.orEmpty()}")
             }
         }
         if(row.targets.isNotBlank())Text(row.targets,style=MaterialTheme.typography.bodySmall)

@@ -82,33 +82,37 @@ class WorkoutWorkflowTest {
     }
 
     @Test(timeout = 120_000)
-    fun everyProgrammeUsageSnapshotsCanonicalExerciseSettings() = runBlocking {
+    fun programmeAssignmentsSnapshotIndependentPrescriptions() = runBlocking {
         val dao = database.editorDao()
         val handstand = dao.exercises().first().first { it.id == "core:handstand" }
         val canonicalConfig = "weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=true;reps=false"
         dao.exercise(
             handstand.copy(
                 inputConfig = canonicalConfig,
-                targetSets = 4,
-                restSeconds = 77,
+                targetSets = 9,
+                targetRpe = 10.0,
+                restSeconds = 15,
             ),
         )
         val pushEntry = dao.entries().first().first { it.exerciseId == handstand.id }
-        dao.entry(pushEntry.copy(inputConfig = "legacy-programme-config", restSeconds = 999))
+        val legsEntry = dao.entries().first().first {
+            it.programmeDayId == "demo-day-legs" && it.exerciseId == handstand.id
+        }
         dao.entry(
-            ProgrammeExerciseEntity(
-                id = "legs-handstand",
-                programmeDayId = "demo-day-legs",
-                exerciseId = handstand.id,
-                position = 99,
-                targetSets = 1,
-                targetRepsMin = null,
-                targetRepsMax = null,
-                targetHoldSeconds = null,
-                restSeconds = 999,
-                targetRpe = null,
-                notes = "",
-                supersetGroup = null,
+            pushEntry.copy(
+                targetSets = 2,
+                targetHoldSeconds = 20,
+                targetRpe = 7.0,
+                restSeconds = 60,
+                inputConfig = "legacy-programme-config",
+            ),
+        )
+        dao.entry(
+            legsEntry.copy(
+                targetSets = 5,
+                targetHoldSeconds = 45,
+                targetRpe = 9.0,
+                restSeconds = 150,
                 inputConfig = "another-legacy-config",
             ),
         )
@@ -117,15 +121,21 @@ class WorkoutWorkflowTest {
         val pushSnapshot = dao.workoutExercises().first()
             .first { it.workoutId == pushWorkoutId && it.plannedExerciseId == handstand.id }
         assertEquals(canonicalConfig, pushSnapshot.inputConfig)
-        assertEquals(77, pushSnapshot.restSeconds)
-        assertTrue(pushSnapshot.targets.startsWith("4 sets"))
+        assertEquals(60, pushSnapshot.restSeconds)
+        assertEquals(2, pushSnapshot.targetSets)
+        assertEquals(20, pushSnapshot.targetHoldSeconds)
+        assertEquals(7.0, pushSnapshot.targetRpe)
+        assertEquals("2 sets · 20 seconds · RPE 7", pushSnapshot.targets)
 
         val legsWorkoutId = repository.startWorkout("demo-day-legs", replaceExisting = true)
         val legsSnapshot = dao.workoutExercises().first()
             .first { it.workoutId == legsWorkoutId && it.plannedExerciseId == handstand.id }
         assertEquals(canonicalConfig, legsSnapshot.inputConfig)
-        assertEquals(77, legsSnapshot.restSeconds)
-        assertTrue(legsSnapshot.targets.startsWith("4 sets"))
+        assertEquals(150, legsSnapshot.restSeconds)
+        assertEquals(5, legsSnapshot.targetSets)
+        assertEquals(45, legsSnapshot.targetHoldSeconds)
+        assertEquals(9.0, legsSnapshot.targetRpe)
+        assertEquals("5 sets · 45 seconds · RPE 9", legsSnapshot.targets)
     }
 
     @Test(timeout = 120_000)

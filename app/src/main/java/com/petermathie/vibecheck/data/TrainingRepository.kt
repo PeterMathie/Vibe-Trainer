@@ -20,6 +20,7 @@ import com.petermathie.vibecheck.domain.model.SetDraft
 import com.petermathie.vibecheck.domain.model.TrackingType
 import com.petermathie.vibecheck.domain.model.TrainingMode
 import com.petermathie.vibecheck.domain.model.WorkoutExerciseLog
+import com.petermathie.vibecheck.domain.programme.prescriptionSummary
 import com.petermathie.vibecheck.domain.model.WorkoutSetLog
 import com.petermathie.vibecheck.domain.model.WorkoutStatus
 import com.petermathie.vibecheck.domain.recency.RecencyCalculator
@@ -95,8 +96,19 @@ class TrainingRepository @Inject constructor(
                 supersetGroup = row.supersetGroup,
                 exerciseName = row.canonicalName,
                 trackingType = row.trackingType,
-                targets = "${row.targetSets ?: 3} sets · ${row.targetRepsMin ?: 0} reps · RPE ${row.targetRpe ?: "—"}",
+                targets = prescriptionSummary(
+                    row.targetSets,
+                    row.targetRepsMin,
+                    row.targetRepsMax,
+                    row.targetHoldSeconds,
+                    row.targetRpe,
+                ),
                 inputConfig = row.inputConfig,
+                targetSets = row.targetSets,
+                targetRepsMin = row.targetRepsMin,
+                targetRepsMax = row.targetRepsMax,
+                targetHoldSeconds = row.targetHoldSeconds,
+                targetRpe = row.targetRpe,
             )
             workoutDao.insertWorkoutExercises(listOf(snapshot))
             database.editorDao().workoutMuscles(database.editorDao().muscleMappings(row.exerciseId).map { com.petermathie.vibecheck.data.local.WorkoutMuscleEntity(snapshot.id,it.muscleId,it.role) })
