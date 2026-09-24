@@ -55,8 +55,9 @@ jobs:
           chmod 600 "$VIBE_CHECK_BETA_KEYSTORE_PATH"
           gradle :app:testDebugUnitTest :app:assembleRelease --stacktrace
           cp app/build/outputs/apk/release/app-release.apk Vibe-Check-beta.apk
-          apksigner verify --verbose --print-certs Vibe-Check-beta.apk
-          actual_certificate="$(apksigner verify --print-certs Vibe-Check-beta.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$apksigner" verify --verbose --print-certs Vibe-Check-beta.apk
+          actual_certificate="$("$apksigner" verify --print-certs Vibe-Check-beta.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
           test "$actual_certificate" = "fe115398a3323fcfa54476e0c4714bea8807423fd1d2a3cf411c61bbf72f860a"
           sha256sum Vibe-Check-beta.apk > Vibe-Check-beta.apk.sha256
 
