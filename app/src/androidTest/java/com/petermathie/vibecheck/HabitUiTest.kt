@@ -60,7 +60,7 @@ class HabitUiTest {
         compose.onNodeWithText("Date (YYYY-MM-DD)").assertDoesNotExist()
         compose.onNodeWithContentDescription("Wellbeing colour").assertDoesNotExist()
         compose.onNodeWithContentDescription("Set Wellbeing colour 2").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
+        compose.onNodeWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true).performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Change colour").fetchSemanticsNodes().isNotEmpty()
         }
@@ -77,7 +77,7 @@ class HabitUiTest {
                 }
             }
         }
-        compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
+        compose.onNodeWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Choose from a list").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Choice shade scale").assertDoesNotExist()
         compose.onNodeWithText("Drag a choice across either line to change its shade.").assertDoesNotExist()
@@ -98,7 +98,7 @@ class HabitUiTest {
         assertEquals("Sad\nOkay\nHappy", field.choiceOptions)
         assertEquals(0, field.choiceLightThrough)
         assertEquals(2, field.choiceDarkFrom)
-        compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
+        compose.onNodeWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Choose from a list").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Choice 3").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("What would you like to track?").assertDoesNotExist()
@@ -129,7 +129,7 @@ class HabitUiTest {
                 }
             }
         }
-        compose.onNodeWithContentDescription("Edit Wellbeing settings").performClick()
+        compose.onNodeWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Delete habit permanently").assertDoesNotExist()
         compose.onNodeWithText("Archive").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Archived habits").fetchSemanticsNodes().isNotEmpty() }
@@ -151,7 +151,7 @@ class HabitUiTest {
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeCheckTheme { TrackerScreen(viewModel) } }
 
-        compose.onNodeWithContentDescription("Edit Disposable settings").performClick()
+        compose.onNodeWithContentDescription("Edit Disposable settings", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Delete habit permanently").assertDoesNotExist()
         compose.onNodeWithText("Archive").performClick()
         compose.waitUntil(15_000) {
