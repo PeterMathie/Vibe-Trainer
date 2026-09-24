@@ -1,10 +1,14 @@
 # Work status and agent handoff
 
-Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
+Updated: 24 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
-Current implementation task: **UX-28 variation-specific exercise settings and in-app Total Time stopwatch is claimed** by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, 24 September 2026.
+Current implementation task: **UX-28 variation-specific exercise settings and in-app Total Time stopwatch is complete** at `97d3028` and `e8c7d13` on `pmathie-cicpilot-persist-workout-drafts`.
 
-Acceptance plan: migrate existing variation rows by copying their parent exercise configuration; make each variation independently editable while remaining grouped under the parent; switch workout inputs from the selected variation without duplicate sets; configure Wall handstand for Time Under Tension plus Total Time and Freestanding handstand for Total Time only; cover assisted/bodyweight/weighted pull-up input combinations; snapshot enough variation configuration to keep history stable; and provide a start/stop/reset/apply stopwatch beside every enabled Total Time field. Exercise database entries will also support a deliberately small user-curated collection of app-private reference videos with playback and confirmed metadata/file deletion; they are not workout-history attachments. Migration, editor, logging, recovery, stopwatch, video lifecycle and full API 35 validation are required before completion.
+Room schema 12 gives every variation its own tracking type, enabled inputs, targets, target RPE and rest duration. Migration 11→12 copies parent settings into existing variations, then applies the bespoke Wall/Freestanding handstand and assisted/bodyweight/weighted pull-up configurations. Workout rows switch inputs from the selected variation, reuse their durable set ID, and snapshot variation identity and configuration so later edits do not reinterpret history. Enabled Total Time fields provide a start/stop/reset/apply stopwatch. Exercise cards show concise bold Primary/Secondary muscle lines and support copied app-private reference videos with in-app playback and confirmed file-plus-metadata deletion.
+
+Migration, import, editor, logging, recovery, no-duplicate-set, stopwatch, seeded-configuration and video-lifecycle regressions are included. At local source `e8c7d13`, `gradle testDebugUnitTest assembleDebug connectedDebugAndroidTest --no-daemon` passed with all 66 API 35 instrumentation tests. APK SHA-256 is `3c7362fe19ef0470dc2a83bce63e2c35482e13d55d80d15c12edc7370b171af4`. That exact APK installed and cold-launched on `vibe-log01-api35`; visible inspection confirmed the Handstand Primary/Secondary lines, its grouped Wall/Freestanding variations, and Wall settings enabling both Time Under Tension and Total Time.
+
+Residual limits: reference videos are intentionally excluded from JSON backup and no hard attachment-count cap is enforced; explicit deletion provides user curation. Initial workout row count and its header rest action use the first-ranked variation. `97d3028` is pushed, but GitHub rejected the `e8c7d13` checkpoint push with HTTP 403 (`Permission to PeterMathie/Vibe-Trainer.git denied to pmathie_cicpilot`), so the gate fix and this status update are preserved locally and must be pushed when writable authentication returns. Nothing was merged and auto-merge remains disabled.
 
 Current implementation task: **DEMO-01 complete demo-personal-data removal is complete** at `873a37c` and `27b8064` on `pmathie-cicpilot-persist-workout-drafts`.
 
@@ -298,6 +302,6 @@ gradle :app:testDebugUnitTest :app:assembleDebug
 gradle :app:connectedDebugAndroidTest
 ```
 
-The current chat workspace has no local Android SDK/adb; execution has used GitHub Actions. There is no live interactive emulator preview in this workspace. CI saves a launch screenshot under the validation artifact after the follow-up above.
+This workspace currently has Android SDK/adb and the `vibe-log01-api35` emulator available. Run the local gate above before relying on older GitHub Actions evidence.
 
 Update this document after each task: owner, commit, actual verification result and remaining limits. Do not mark a feature complete merely because a button exists or a unit test passes.

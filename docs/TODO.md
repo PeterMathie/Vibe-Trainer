@@ -24,19 +24,23 @@ Tasks are unclaimed unless an owner is recorded below. Before starting, add your
 
 ### UX-28 — Variation-specific exercise settings and stopwatch
 
-Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 24 September 2026.
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 24 September 2026.
 
-- [ ] Give every exercise variation its own tracking type, enabled inputs, targets, target RPE and rest duration while keeping variations grouped under their parent exercise.
-- [ ] Preserve existing databases by migrating every existing variation from its parent exercise settings.
-- [ ] Let workout entry select a variation and immediately render only that variation's inputs without duplicating saved sets.
-- [ ] Seed Wall handstand with Time Under Tension plus Total Time and Freestanding handstand with Total Time only.
-- [ ] Support assisted, bodyweight and weighted pull-up variations with band, bodyweight and added-weight-appropriate inputs.
-- [ ] Add an in-app stopwatch for any enabled Total Time input, with start, stop, reset and apply behavior.
-- [ ] Let each exercise database entry attach, play and explicitly delete a small curated set of app-private reference videos, without treating them as workout history.
-- [ ] Remove both video metadata and its copied app-private file on confirmed deletion; report file failures instead of claiming success.
-- [ ] Present catalogue muscle roles as a bold Primary line and bold Secondary line with concise muscle lists.
-- [ ] Snapshot variation identity/configuration into recorded history so later settings edits do not reinterpret old sets.
-- [ ] Add migration, editor, logging, recovery, stopwatch and video-lifecycle regression coverage; run the full unit/build/API 35 gate and inspect the exact APK.
+- [x] Give every exercise variation its own tracking type, enabled inputs, targets, target RPE and rest duration while keeping variations grouped under their parent exercise.
+- [x] Preserve existing databases by migrating every existing variation from its parent exercise settings.
+- [x] Let workout entry select a variation and immediately render only that variation's inputs without duplicating saved sets.
+- [x] Seed Wall handstand with Time Under Tension plus Total Time and Freestanding handstand with Total Time only.
+- [x] Support assisted, bodyweight and weighted pull-up variations with band, bodyweight and added-weight-appropriate inputs.
+- [x] Add an in-app stopwatch for any enabled Total Time input, with start, stop, reset and apply behavior.
+- [x] Let each exercise database entry attach, play and explicitly delete a small curated set of app-private reference videos, without treating them as workout history.
+- [x] Remove both video metadata and its copied app-private file on confirmed deletion; report file failures instead of claiming success.
+- [x] Present catalogue muscle roles as a bold Primary line and bold Secondary line with concise muscle lists.
+- [x] Snapshot variation identity/configuration into recorded history so later settings edits do not reinterpret old sets.
+- [x] Add migration, editor, logging, recovery, stopwatch and video-lifecycle regression coverage; run the full unit/build/API 35 gate and inspect the exact APK.
+
+Evidence: implementation commit `97d3028` adds Room schema 12, migration 11→12, independently editable variation settings, variation-driven workout rows and snapshots, the Total Time stopwatch, reference-video lifecycle, and Primary/Secondary presentation. Gate repair commit `e8c7d13` restores backward-compatible strict import validation and makes the variation UI test await its StateFlow fixture. `gradle testDebugUnitTest assembleDebug connectedDebugAndroidTest --no-daemon` passed with all 66 API 35 instrumentation tests. The exact APK (`3c7362fe19ef0470dc2a83bce63e2c35482e13d55d80d15c12edc7370b171af4`) installed and cold-launched on `vibe-log01-api35`; visible inspection confirmed the Handstand card's role lines, grouped Wall/Freestanding variations, and Wall settings with both Time Under Tension and Total Time.
+
+Residual limits: reference-video files remain intentionally outside JSON backup and there is no enforced attachment-count cap; users curate the best examples with explicit deletion. Workout row count and header rest action currently use the first-ranked variation until a row selection is made. Commit `e8c7d13` and this completion update are local because GitHub rejected the checkpoint push with HTTP 403; the earlier implementation commit `97d3028` is on the remote branch.
 
 ### DEMO-01 — Remove demo personal data
 
