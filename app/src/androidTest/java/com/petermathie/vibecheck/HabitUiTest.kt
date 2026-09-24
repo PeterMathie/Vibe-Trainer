@@ -28,7 +28,7 @@ class HabitUiTest {
     @After
     fun close() = database.close()
 
-    @Test
+    @Test(timeout = 120_000)
     fun configureAndRecordChoiceField() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(),
@@ -141,7 +141,7 @@ class HabitUiTest {
         compose.onNodeWithText("Wellbeing").assertIsDisplayed()
     }
 
-    @Test
+    @Test(timeout = 120_000)
     fun permanentlyDeletesEmptyHabit() {
         database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(),
