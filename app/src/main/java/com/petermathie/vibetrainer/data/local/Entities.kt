@@ -19,7 +19,7 @@ data class ExerciseEntity(
     val id: String,
     val canonicalName: String,
     val tag: String,
-    val trackingType: String,
+    val trackingType: String = "",
     val equipment: String?,
     val instructions: String?,
     val source: String,
@@ -92,6 +92,32 @@ data class ExerciseVariationEntity(
     val name: String,
     val progressionRank: Int,
     val isSeeded: Boolean,
+    val trackingType: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "''") val inputConfig: String = "",
+    val targetSets: Int? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null,
+    val targetRpe: Double? = null,
+    @androidx.room.ColumnInfo(defaultValue = "120") val restSeconds: Int = 120,
+)
+
+@Entity(
+    tableName = "exercise_reference_videos",
+    primaryKeys = ["id"],
+    foreignKeys = [ForeignKey(
+        entity = ExerciseEntity::class,
+        parentColumns = ["id"],
+        childColumns = ["exerciseId"],
+        onDelete = ForeignKey.CASCADE,
+    )],
+    indices = [Index("exerciseId")],
+)
+data class ExerciseReferenceVideoEntity(
+    val id: String,
+    val exerciseId: String,
+    val displayName: String,
+    val fileName: String,
+    val createdAt: Long,
 )
 
 @Entity(tableName = "bands", primaryKeys = ["id"])
@@ -262,6 +288,9 @@ data class WorkoutSetEntity(
     val variationRankSnapshot: Int? = null,
     val timeUnderTensionMillis: Long? = null,
     @androidx.room.ColumnInfo(defaultValue = "0") val bandResistance: Boolean = false,
+    @androidx.room.ColumnInfo(defaultValue = "''") val variationNameSnapshot: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "''") val variationTrackingTypeSnapshot: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "''") val variationInputConfigSnapshot: String = "",
 )
 
 @Entity(

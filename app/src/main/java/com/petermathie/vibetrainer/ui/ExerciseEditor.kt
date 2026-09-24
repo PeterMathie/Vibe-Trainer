@@ -7,12 +7,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.viewinterop.AndroidView
+import android.widget.VideoView
+import java.io.File
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibetrainer.data.local.*
 import com.petermathie.vibetrainer.domain.model.TrackingType
@@ -25,11 +36,25 @@ fun ExerciseEditor(vm: EditorViewModel) {
     val mappings by vm.mappings.collectAsStateWithLifecycle()
     val aliases by vm.aliases.collectAsStateWithLifecycle()
     val variations by vm.variations.collectAsStateWithLifecycle()
+    val videos by vm.referenceVideos.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var query by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf<ExerciseEntity?>(null) }
     var configuring by remember { mutableStateOf<ExerciseEntity?>(null) }
+    var configuringVariation by remember { mutableStateOf<ExerciseVariationEntity?>(null) }
+    var videoExerciseId by remember { mutableStateOf<String?>(null) }
+    var playingVideo by remember { mutableStateOf<ExerciseReferenceVideoEntity?>(null) }
+    var deletingVideo by remember { mutableStateOf<ExerciseReferenceVideoEntity?>(null) }
     var variation by remember { mutableStateOf<String?>(null) }
     var exerciseType by remember { mutableStateOf("STRENGTH") }
+    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val exerciseId = videoExerciseId
+        if (uri != null && exerciseId != null) {
+            val name = uri.lastPathSegment?.substringAfterLast('/').orEmpty()
+            vm.attachReferenceVideo(context, exerciseId, uri, name)
+        }
+        videoExerciseId = null
+    }
     val matchingMuscles=muscles.filter { it.displayName.contains(query,true) }.map { it.id }.toSet()
     val matchingIds=mappings.filter { it.muscleId in matchingMuscles }.map { it.exerciseId }.toSet()+aliases.filter { it.alias.contains(query,true) }.map { it.exerciseId }
     val filteredExercises = exercises.filter {
@@ -71,7 +96,19 @@ fun ExerciseEditor(vm: EditorViewModel) {
         items(visibleExercises,key={it.id}) { e ->
             VibeCard {
                 Text(e.canonicalName,style=MaterialTheme.typography.titleMedium)
-                Text(mappings.filter { it.exerciseId==e.id }.joinToString { m -> "${muscles.find { it.id==m.muscleId }?.displayName} (${m.role.lowercase()})" },style=MaterialTheme.typography.bodySmall)
+                listOf("PRIMARY" to "Primary", "SECONDARY" to "Secondary").forEach { (role, label) ->
+                    val names = mappings.filter { it.exerciseId == e.id && it.role == role }
+                        .mapNotNull { mapping -> muscles.find { it.id == mapping.muscleId }?.displayName }
+                    if (names.isNotEmpty()) Text(
+                        buildAnnotatedString {
+                            pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                            append("$label  ")
+                            pop()
+                            append(names.joinToString())
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     VibeActionButton("Settings", { configuring=e }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
                     VibeActionButton(if(e.isCustom)"Edit" else "Duplicate", { selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id) }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
@@ -87,12 +124,53 @@ fun ExerciseEditor(vm: EditorViewModel) {
                     Row(Modifier.animateContentSize()) {
                         if (!v.isSeeded && customVariations.size > 1) ReorderHandle(variationOrder, v.id, v.name)
                         Text(v.name,Modifier.weight(1f))
+                        IconButton(onClick = { configuringVariation = v }) {
+                            Icon(Icons.Outlined.Settings, contentDescription = "Settings for ${v.name}")
+                        }
                     }
                 }
+                videos.filter { it.exerciseId == e.id }.forEach { video ->
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(video.displayName, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                        IconButton(onClick = { playingVideo = video }) {
+                            Icon(Icons.Outlined.PlayArrow, contentDescription = "Play ${video.displayName}")
+                        }
+                        IconButton(onClick = { deletingVideo = video }) {
+                            Icon(Icons.Outlined.Delete, contentDescription = "Delete ${video.displayName}")
+                        }
+                    }
+                }
+                VibeActionButton(
+                    "Attach reference video",
+                    { videoExerciseId = e.id; videoPicker.launch(arrayOf("video/*")) },
+                    Modifier.fillMaxWidth(),
+                    ActionImportance.SECONDARY,
+                )
             }
         }
     }
-    variation?.let { id -> NameDialog("Variation name","",{variation=null}) { vm.save(ExerciseVariationEntity(newId(),id,it,(variations.filter { it.exerciseId==id }.maxOfOrNull { it.progressionRank } ?: 0)+1,false));variation=null } }
+    variation?.let { id ->
+        val parent = exercises.find { it.id == id }
+        NameDialog("Variation name","",{variation=null}) {
+            vm.save(
+                ExerciseVariationEntity(
+                    id = newId(),
+                    exerciseId = id,
+                    name = it,
+                    progressionRank = (variations.filter { row -> row.exerciseId == id }.maxOfOrNull { row -> row.progressionRank } ?: 0) + 1,
+                    isSeeded = false,
+                    trackingType = parent?.trackingType.orEmpty(),
+                    inputConfig = parent?.inputConfig.orEmpty(),
+                    targetSets = parent?.targetSets,
+                    targetRepsMin = parent?.targetRepsMin,
+                    targetRepsMax = parent?.targetRepsMax,
+                    targetRpe = parent?.targetRpe,
+                    restSeconds = parent?.restSeconds ?: 120,
+                ),
+            )
+            variation=null
+        }
+    }
     configuring?.let { exercise ->
         ExerciseSettingsDialog(
             exercise = exercise,
@@ -101,6 +179,45 @@ fun ExerciseEditor(vm: EditorViewModel) {
                 vm.saveExerciseSettings(it)
                 configuring = null
             },
+        )
+    }
+    configuringVariation?.let { row ->
+        val parent = exercises.find { it.id == row.exerciseId }
+        VariationSettingsDialog(row, parent, { configuringVariation = null }) {
+            vm.save(it)
+            configuringVariation = null
+        }
+    }
+    playingVideo?.let { row ->
+        AlertDialog(
+            onDismissRequest = { playingVideo = null },
+            title = { Text(row.displayName) },
+            text = {
+                AndroidView(
+                    factory = { viewContext ->
+                        VideoView(viewContext).apply {
+                            setVideoPath(File(File(context.filesDir, "exercise-reference-videos"), row.fileName).path)
+                            setOnPreparedListener { it.isLooping = true; start() }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(320.dp),
+                )
+            },
+            confirmButton = { TextButton(onClick = { playingVideo = null }) { Text("Close") } },
+        )
+    }
+    deletingVideo?.let { row ->
+        AlertDialog(
+            onDismissRequest = { deletingVideo = null },
+            title = { Text("Delete reference video?") },
+            text = { Text(row.displayName) },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.deleteReferenceVideo(context, row)
+                    deletingVideo = null
+                }) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { deletingVideo = null }) { Text("Cancel") } },
         )
     }
     selected?.let { e ->
@@ -117,6 +234,44 @@ fun ExerciseEditor(vm: EditorViewModel) {
             Text("Tap muscle to cycle: none → primary → secondary")
             muscles.forEach { m -> TextButton(onClick={roles=when(roles[m.id]) { null -> roles+(m.id to "PRIMARY");"PRIMARY"->roles+(m.id to "SECONDARY");else->roles-m.id }}){Text("${m.displayName}: ${roles[m.id] ?: "none"}")} }
         } }},confirmButton={TextButton(enabled=name.isNotBlank()&&roles.isNotEmpty(),onClick={vm.saveExercise(e.copy(canonicalName=name,tag=tag,trackingType=tracking),alias.split(','),roles);selected=null}){Text("Save")}},dismissButton={TextButton(onClick={selected=null}){Text("Cancel")}})
+    }
+}
+
+@Composable
+private fun VariationSettingsDialog(
+        variation: ExerciseVariationEntity,
+        parent: ExerciseEntity?,
+        onDismiss: () -> Unit,
+        onSave: (ExerciseVariationEntity) -> Unit,
+    ) {
+        val effective = ExerciseEntity(
+            id = variation.id,
+            canonicalName = variation.name,
+            tag = parent?.tag ?: "STRENGTH",
+            trackingType = variation.trackingType.ifBlank { parent?.trackingType.orEmpty() },
+            equipment = null,
+            instructions = null,
+            source = "variation",
+            isCustom = !variation.isSeeded,
+            inputConfig = variation.inputConfig.ifBlank { parent?.inputConfig.orEmpty() },
+            targetSets = variation.targetSets,
+            targetRepsMin = variation.targetRepsMin,
+            targetRepsMax = variation.targetRepsMax,
+            targetRpe = variation.targetRpe,
+            restSeconds = variation.restSeconds,
+        )
+        ExerciseSettingsDialog(effective, onDismiss) { settings ->
+            onSave(
+                variation.copy(
+                    trackingType = settings.trackingType,
+                    inputConfig = settings.inputConfig,
+                    targetSets = settings.targetSets,
+                    targetRepsMin = settings.targetRepsMin,
+                    targetRepsMax = settings.targetRepsMax,
+                    targetRpe = settings.targetRpe,
+                    restSeconds = settings.restSeconds,
+                ),
+            )
     }
 }
 
@@ -147,6 +302,12 @@ internal fun ExerciseSettingsDialog(
                         Text("Resistance", style = MaterialTheme.typography.titleMedium)
                         ExerciseSettingCheckbox("Weight ($weightUnit)", config.weightUnit == weightUnit) {
                             config = config.copy(weightUnit = if (it) weightUnit else null)
+                        }
+                        ExerciseSettingCheckbox("Bodyweight", config.bodyweight) {
+                            config = config.copy(bodyweight = it)
+                        }
+                        ExerciseSettingCheckbox("Added weight", config.addedWeight) {
+                            config = config.copy(addedWeight = it)
                         }
                         ExerciseSettingCheckbox("Band resistance", config.bandResistance) {
                             config = config.copy(bandResistance = it)

@@ -110,8 +110,15 @@ class WorkoutLoggingUiTest {
 
         compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").performTextInput("12")
         compose.onNodeWithContentDescription("Total Time for Handstand set 1").performTextInput("30")
-        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").assertTextContains("Freestanding s")
-        compose.onNodeWithContentDescription("Total Time for Handstand set 1").assertTextContains("Total wall s")
+        compose.onNodeWithContentDescription("Open Total Time stopwatch for set 1").performClick()
+        compose.onNodeWithText("Total Time stopwatch").assertExists()
+        compose.onNodeWithText("Reset").performClick()
+        compose.onNodeWithText("Start").performClick()
+        Thread.sleep(150)
+        compose.onNodeWithText("Stop").performClick()
+        compose.onNodeWithText("Apply").performClick()
+        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").assertTextContains("TUT s")
+        compose.onNodeWithContentDescription("Total Time for Handstand set 1").assertTextContains("Total s")
         compose.onNodeWithText("Freestanding sec").assertDoesNotExist()
         compose.onNodeWithText("Total wall sec").assertDoesNotExist()
         compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("99")
@@ -131,11 +138,47 @@ class WorkoutLoggingUiTest {
                 database.editorDao().sets().first().any {
                     it.workoutExerciseId == handstandId &&
                         it.holdMillis == 12_000L &&
-                    it.timeUnderTensionMillis == 30_000L &&
-                    it.rpe == 8.0
+                        it.timeUnderTensionMillis != null &&
+                        it.timeUnderTensionMillis!! >= 100L &&
+                        it.rpe == 8.0
                 }
             }
         }
+    }
+
+    @Test
+    fun handstandVariationSwitchesInputsAndSnapshotsItsConfiguration() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
+        runBlocking {
+            DatabaseSeeder(context, database).seedIfNeeded()
+            database.editorDao().variations().first()
+                .filter { it.exerciseId == "core:handstand" }
+                .forEach { database.editorDao().variation(it.copy(targetSets = 1)) }
+        }
+        val workoutId = startPushWorkout(context)
+        val viewModel = EditorViewModel(database)
+        compose.setContent { VibeTrainerTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
+
+        compose.onNodeWithText("Wall handstand").performClick()
+        compose.onNodeWithText("Freestanding handstand", useUnmergedTree = true).performClick()
+        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Total Time for Handstand set 1").performTextInput("15")
+
+        compose.waitUntil(15_000) {
+            runBlocking {
+                database.editorDao().sets().first().singleOrNull {
+                    it.variationId == "handstand-free" &&
+                        it.timeUnderTensionMillis == 15_000L &&
+                        it.variationNameSnapshot == "Freestanding handstand" &&
+                        it.variationInputConfigSnapshot.contains("timeHeld=false")
+                } != null
+            }
+        }
+        assertEquals(
+            1,
+            runBlocking { database.editorDao().sets().first().count { it.variationId == "handstand-free" } },
+        )
     }
 
     @Test

@@ -12,6 +12,7 @@ import com.petermathie.vibetrainer.data.local.MIGRATION_7_8
 import com.petermathie.vibetrainer.data.local.MIGRATION_8_9
 import com.petermathie.vibetrainer.data.local.MIGRATION_9_10
 import com.petermathie.vibetrainer.data.local.MIGRATION_10_11
+import com.petermathie.vibetrainer.data.local.MIGRATION_11_12
 import com.petermathie.vibetrainer.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -28,6 +29,51 @@ class VibeDatabaseMigrationTest {
         InstrumentationRegistry.getInstrumentation(),
         VibeDatabase::class.java,
     )
+
+    @Test
+    fun migrate11To12CopiesParentSettingsIntoIndependentVariations() {
+        helper.createDatabase(databaseName, 11).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id,canonicalName,tag,trackingType,equipment,instructions,source,isCustom,isArchived,inputConfig,
+                     targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds)
+                VALUES ('exercise','Exercise','STRENGTH','REPS',NULL,NULL,'user',1,0,
+                        'weightUnit=;bandResistance=false;timeHeld=false;timeUnderTension=false;reps=true',
+                        4,5,8,7.5,90)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO exercise_variations (id,exerciseId,name,progressionRank,isSeeded)
+                VALUES ('variation','exercise','Variation',10,0)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(databaseName, 12, true, MIGRATION_11_12).use { migrated ->
+            migrated.query(
+                """
+                SELECT trackingType,inputConfig,targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds
+                FROM exercise_variations WHERE id='variation'
+                """.trimIndent(),
+            ).use {
+                assertTrue(it.moveToFirst())
+                assertEquals("REPS", it.getString(0))
+                assertTrue(it.getString(1).contains("reps=true"))
+                assertEquals(4, it.getInt(2))
+                assertEquals(5, it.getInt(3))
+                assertEquals(8, it.getInt(4))
+                assertEquals(7.5, it.getDouble(5), 0.0)
+                assertEquals(90, it.getInt(6))
+            }
+            migrated.query("SELECT COUNT(*) FROM exercise_reference_videos").use {
+                assertTrue(it.moveToFirst())
+                assertEquals(0, it.getInt(0))
+            }
+        }
+    }
 
     @Test
     fun migrate2To3PreservesWorkoutAndCreatesEntryDraftStorage() {

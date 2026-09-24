@@ -18,12 +18,15 @@ interface EditorDao {
     @Query("SELECT * FROM exercise_muscles") fun mappings(): Flow<List<ExerciseMuscleEntity>>
     @Query("SELECT * FROM exercise_aliases") fun aliases(): Flow<List<ExerciseAliasEntity>>
     @Query("SELECT * FROM exercise_variations ORDER BY progressionRank") fun variations(): Flow<List<ExerciseVariationEntity>>
+    @Query("SELECT * FROM exercise_reference_videos ORDER BY createdAt") fun referenceVideos(): Flow<List<ExerciseReferenceVideoEntity>>
     @Query("SELECT * FROM exercise_variations WHERE id=:id") suspend fun variationById(id: String): ExerciseVariationEntity?
     @Upsert suspend fun programme(row: ProgrammeEntity)
     @Upsert suspend fun day(row: ProgrammeDayEntity)
     @Upsert suspend fun entry(row: ProgrammeExerciseEntity)
     @Upsert suspend fun exercise(row: ExerciseEntity)
     @Upsert suspend fun variation(row: ExerciseVariationEntity)
+    @Upsert suspend fun referenceVideo(row: ExerciseReferenceVideoEntity)
+    @Query("DELETE FROM exercise_reference_videos WHERE id = :id") suspend fun deleteReferenceVideo(id: String)
     @Query("DELETE FROM programmes WHERE id = :id") suspend fun deleteProgramme(id: String)
     @Query("DELETE FROM programme_days WHERE id = :id") suspend fun deleteDay(id: String)
     @Query("DELETE FROM programme_exercises WHERE id = :id") suspend fun deleteEntry(id: String)
@@ -69,7 +72,13 @@ interface EditorDao {
     }
     @Transaction
     suspend fun saveSetWithSnapshots(row: WorkoutSetEntity, bandIds: List<String>, consumeDraft: Boolean) {
-        val saved = row.copy(variationRankSnapshot = row.variationId?.let { variationById(it)?.progressionRank })
+        val variation = row.variationId?.let { variationById(it) }
+        val saved = row.copy(
+            variationRankSnapshot = variation?.progressionRank,
+            variationNameSnapshot = variation?.name.orEmpty(),
+            variationTrackingTypeSnapshot = variation?.trackingType.orEmpty(),
+            variationInputConfigSnapshot = variation?.inputConfig.orEmpty(),
+        )
         set(saved)
         clearBands(saved.id)
         setBands(bandIds.mapIndexedNotNull { index, id ->

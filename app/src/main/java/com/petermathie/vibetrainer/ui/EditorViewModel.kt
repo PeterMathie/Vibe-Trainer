@@ -14,6 +14,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
+import android.content.Context
+import android.net.Uri
+import java.io.File
 
 fun newId(): String = UUID.randomUUID().toString()
 
@@ -33,6 +36,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     val mappings = dao.mappings().live()
     val aliases = dao.aliases().live()
     val variations = dao.variations().live()
+    val referenceVideos = dao.referenceVideos().live()
     val workouts = dao.workouts().live()
     val workoutExercises = dao.workoutExercises().live()
     val sets = dao.sets().live()
@@ -104,6 +108,27 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun save(row: TrackerDailyValueEntity) = write { trackerStore.saveValue(row) }
     fun save(row: BodyMeasurementEntity) = write { dao.measurement(row) }
     fun save(row: ExerciseVariationEntity) = write { dao.variation(row) }
+    fun attachReferenceVideo(context: Context, exerciseId: String, uri: Uri, displayName: String) = write {
+        val id = newId()
+        val directory = File(context.filesDir, "exercise-reference-videos")
+        check(directory.exists() || directory.mkdirs()) { "Could not create reference video storage" }
+        val file = File(directory, "$id.mp4")
+        try {
+            requireNotNull(context.contentResolver.openInputStream(uri)) { "Could not open selected video" }
+                .use { input -> file.outputStream().use(input::copyTo) }
+            dao.referenceVideo(
+                ExerciseReferenceVideoEntity(id, exerciseId, displayName.ifBlank { "Reference video" }, file.name, System.currentTimeMillis()),
+            )
+        } catch (error: Exception) {
+            if (file.exists() && !file.delete()) error.addSuppressed(IllegalStateException("Could not remove incomplete video"))
+            throw error
+        }
+    }
+    fun deleteReferenceVideo(context: Context, row: ExerciseReferenceVideoEntity) = write {
+        val file = File(File(context.filesDir, "exercise-reference-videos"), row.fileName)
+        if (file.exists()) check(file.delete()) { "Could not delete ${row.displayName}" }
+        dao.deleteReferenceVideo(row.id)
+    }
     suspend fun entryDraft(workoutExerciseId: String) = dao.entryDraft(workoutExerciseId)
     suspend fun entryDrafts(workoutExerciseId: String) = dao.entryDrafts(workoutExerciseId)
     fun saveEntryDraft(row: WorkoutEntryDraftEntity) = write {

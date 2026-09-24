@@ -590,12 +590,35 @@ class DatabaseSeeder @Inject constructor(
         )
 
         private val SKILL_VARIATIONS = listOf(
-            ExerciseVariationEntity("handstand-wall", "core:handstand", "Wall handstand", 10, true),
-            ExerciseVariationEntity("handstand-free", "core:handstand", "Freestanding handstand", 20, true),
-            ExerciseVariationEntity("planche-tuck", "core:planche", "Tuck planche", 10, true),
-            ExerciseVariationEntity("planche-advanced-tuck", "core:planche", "Advanced tuck planche", 20, true),
-            ExerciseVariationEntity("planche-straddle", "core:planche", "Straddle planche", 30, true),
-            ExerciseVariationEntity("planche-full", "core:planche", "Full planche", 40, true),
+            ExerciseVariationEntity(
+                "handstand-wall", "core:handstand", "Wall handstand", 10, true,
+                TrackingType.SKILL_HOLD.name,
+                "weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=true;reps=false;bodyweight=false;addedWeight=false",
+            ),
+            ExerciseVariationEntity(
+                "handstand-free", "core:handstand", "Freestanding handstand", 20, true,
+                TrackingType.SKILL_HOLD.name,
+                "weightUnit=;bandResistance=false;timeHeld=false;timeUnderTension=true;reps=false;bodyweight=false;addedWeight=false",
+            ),
+            ExerciseVariationEntity("planche-tuck", "core:planche", "Tuck planche", 10, true, TrackingType.SKILL_HOLD.name, "weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=false;reps=false"),
+            ExerciseVariationEntity("planche-advanced-tuck", "core:planche", "Advanced tuck planche", 20, true, TrackingType.SKILL_HOLD.name, "weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=false;reps=false"),
+            ExerciseVariationEntity("planche-straddle", "core:planche", "Straddle planche", 30, true, TrackingType.SKILL_HOLD.name, "weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=false;reps=false"),
+            ExerciseVariationEntity("planche-full", "core:planche", "Full planche", 40, true, TrackingType.SKILL_HOLD.name, "weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=false;reps=false"),
+            ExerciseVariationEntity(
+                "pull-up-assisted", "core:pull-up", "Band-assisted pull-up", 10, true,
+                TrackingType.ASSISTED_REPS.name,
+                "weightUnit=;bandResistance=true;timeHeld=false;timeUnderTension=false;reps=true;bodyweight=true;addedWeight=false",
+            ),
+            ExerciseVariationEntity(
+                "pull-up-bodyweight", "core:pull-up", "Bodyweight pull-up", 20, true,
+                TrackingType.BODYWEIGHT_REPS.name,
+                "weightUnit=;bandResistance=false;timeHeld=false;timeUnderTension=false;reps=true;bodyweight=true;addedWeight=false",
+            ),
+            ExerciseVariationEntity(
+                "pull-up-weighted", "core:pull-up", "Weighted pull-up", 30, true,
+                TrackingType.WEIGHT_REPS.name,
+                "weightUnit=;bandResistance=false;timeHeld=false;timeUnderTension=false;reps=true;bodyweight=true;addedWeight=true",
+            ),
         )
 
         private val DEMO_PROGRAMMES = listOf(

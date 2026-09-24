@@ -6,6 +6,8 @@ data class ExerciseInputConfig(
     val timeHeld: Boolean = false,
     val timeUnderTension: Boolean = false,
     val reps: Boolean = false,
+    val bodyweight: Boolean = false,
+    val addedWeight: Boolean = false,
 ) {
     fun encode(): String = listOf(
         "weightUnit=${weightUnit.orEmpty()}",
@@ -13,6 +15,8 @@ data class ExerciseInputConfig(
         "timeHeld=$timeHeld",
         "timeUnderTension=$timeUnderTension",
         "reps=$reps",
+        "bodyweight=$bodyweight",
+        "addedWeight=$addedWeight",
     ).joinToString(";")
 
     companion object {
@@ -31,11 +35,15 @@ data class ExerciseInputConfig(
                 timeHeld = fields["timeHeld"]?.toBooleanStrictOrNull() ?: defaults.timeHeld,
                 timeUnderTension = fields["timeUnderTension"]?.toBooleanStrictOrNull() ?: defaults.timeUnderTension,
                 reps = fields["reps"]?.toBooleanStrictOrNull() ?: defaults.reps,
+                bodyweight = fields["bodyweight"]?.toBooleanStrictOrNull() ?: defaults.bodyweight,
+                addedWeight = fields["addedWeight"]?.toBooleanStrictOrNull() ?: defaults.addedWeight,
             )
         }
 
         fun defaults(trackingType: String) = when (trackingType) {
             "WEIGHT_REPS" -> ExerciseInputConfig(weightUnit = "kg", reps = true)
+            "BODYWEIGHT_REPS" -> ExerciseInputConfig(reps = true, bodyweight = true)
+            "ASSISTED_REPS" -> ExerciseInputConfig(reps = true, bodyweight = true, bandResistance = true)
             "HOLD", "SKILL_HOLD" -> ExerciseInputConfig(timeHeld = true)
             else -> ExerciseInputConfig(reps = true)
         }

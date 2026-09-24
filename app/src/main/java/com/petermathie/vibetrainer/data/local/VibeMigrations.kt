@@ -243,3 +243,97 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
         db.execSQL("ALTER TABLE trackers ADD COLUMN iconName TEXT NOT NULL DEFAULT 'habit'")
     }
 }
+
+val MIGRATION_11_12 = object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE exercise_variations ADD COLUMN trackingType TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE exercise_variations ADD COLUMN inputConfig TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE exercise_variations ADD COLUMN targetSets INTEGER")
+            db.execSQL("ALTER TABLE exercise_variations ADD COLUMN targetRepsMin INTEGER")
+            db.execSQL("ALTER TABLE exercise_variations ADD COLUMN targetRepsMax INTEGER")
+            db.execSQL("ALTER TABLE exercise_variations ADD COLUMN targetRpe REAL")
+            db.execSQL("ALTER TABLE exercise_variations ADD COLUMN restSeconds INTEGER NOT NULL DEFAULT 120")
+            db.execSQL("ALTER TABLE workout_sets ADD COLUMN variationNameSnapshot TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE workout_sets ADD COLUMN variationTrackingTypeSnapshot TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE workout_sets ADD COLUMN variationInputConfigSnapshot TEXT NOT NULL DEFAULT ''")
+            db.execSQL(
+                """
+                UPDATE exercise_variations
+                SET trackingType = (SELECT trackingType FROM exercises WHERE id = exerciseId),
+                    inputConfig = (SELECT inputConfig FROM exercises WHERE id = exerciseId),
+                    targetSets = (SELECT targetSets FROM exercises WHERE id = exerciseId),
+                    targetRepsMin = (SELECT targetRepsMin FROM exercises WHERE id = exerciseId),
+                    targetRepsMax = (SELECT targetRepsMax FROM exercises WHERE id = exerciseId),
+                    targetRpe = (SELECT targetRpe FROM exercises WHERE id = exerciseId),
+                    restSeconds = (SELECT restSeconds FROM exercises WHERE id = exerciseId)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                INSERT OR IGNORE INTO exercise_variations
+                    (id,exerciseId,name,progressionRank,isSeeded,trackingType,inputConfig,targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds)
+                SELECT 'pull-up-assisted','core:pull-up','Band-assisted pull-up',10,1,'ASSISTED_REPS',
+                    'weightUnit=;bandResistance=true;timeHeld=false;timeUnderTension=false;reps=true;bodyweight=true;addedWeight=false',
+                    targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds
+                FROM exercises WHERE id='core:pull-up'
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                INSERT OR IGNORE INTO exercise_variations
+                    (id,exerciseId,name,progressionRank,isSeeded,trackingType,inputConfig,targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds)
+                SELECT 'pull-up-bodyweight','core:pull-up','Bodyweight pull-up',20,1,'BODYWEIGHT_REPS',
+                    'weightUnit=;bandResistance=false;timeHeld=false;timeUnderTension=false;reps=true;bodyweight=true;addedWeight=false',
+                    targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds
+                FROM exercises WHERE id='core:pull-up'
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                INSERT OR IGNORE INTO exercise_variations
+                    (id,exerciseId,name,progressionRank,isSeeded,trackingType,inputConfig,targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds)
+                SELECT 'pull-up-weighted','core:pull-up','Weighted pull-up',30,1,'WEIGHT_REPS',
+                    'weightUnit=;bandResistance=false;timeHeld=false;timeUnderTension=false;reps=true;bodyweight=true;addedWeight=true',
+                    targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds
+                FROM exercises WHERE id='core:pull-up'
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                UPDATE workout_sets
+                SET variationNameSnapshot = COALESCE((SELECT name FROM exercise_variations WHERE id = variationId), ''),
+                    variationTrackingTypeSnapshot = COALESCE((SELECT trackingType FROM exercise_variations WHERE id = variationId), ''),
+                    variationInputConfigSnapshot = COALESCE((SELECT inputConfig FROM exercise_variations WHERE id = variationId), '')
+                WHERE variationId IS NOT NULL
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                UPDATE exercise_variations
+                SET inputConfig = 'weightUnit=;bandResistance=false;timeHeld=true;timeUnderTension=true;reps=false;bodyweight=false;addedWeight=false'
+                WHERE id = 'handstand-wall'
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                UPDATE exercise_variations
+                SET inputConfig = 'weightUnit=;bandResistance=false;timeHeld=false;timeUnderTension=true;reps=false;bodyweight=false;addedWeight=false'
+                WHERE id = 'handstand-free'
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS exercise_reference_videos (
+                    id TEXT NOT NULL,
+                    exerciseId TEXT NOT NULL,
+                    displayName TEXT NOT NULL,
+                    fileName TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    PRIMARY KEY(id),
+                    FOREIGN KEY(exerciseId) REFERENCES exercises(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_exercise_reference_videos_exerciseId ON exercise_reference_videos(exerciseId)")
+    }
+}

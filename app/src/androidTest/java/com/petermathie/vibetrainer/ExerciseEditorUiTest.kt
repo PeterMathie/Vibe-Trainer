@@ -3,8 +3,15 @@ package com.petermathie.vibetrainer
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import android.content.Context
 import com.petermathie.vibetrainer.data.local.ExerciseEntity
+import com.petermathie.vibetrainer.data.local.VibeDatabase
+import com.petermathie.vibetrainer.data.seed.DatabaseSeeder
 import com.petermathie.vibetrainer.domain.programme.ExerciseInputConfig
+import com.petermathie.vibetrainer.ui.EditorViewModel
+import com.petermathie.vibetrainer.ui.ExerciseEditor
 import com.petermathie.vibetrainer.ui.ExerciseSettingsDialog
 import com.petermathie.vibetrainer.ui.theme.VibeTrainerTheme
 import org.junit.Assert.assertEquals
@@ -12,6 +19,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.coroutines.runBlocking
 
 @RunWith(AndroidJUnit4::class)
 class ExerciseEditorUiTest {
@@ -55,5 +63,27 @@ class ExerciseEditorUiTest {
         assertEquals(4, result.targetSets)
         assertEquals(90, result.restSeconds)
         preferences.edit().putBoolean("lb", false).commit()
+    }
+
+    @Test
+    fun catalogueGroupsMusclesAndExposesVariationSettingsAndVideos() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
+        runBlocking { DatabaseSeeder(context, database).seedIfNeeded() }
+        compose.setContent { VibeTrainerTheme { ExerciseEditor(EditorViewModel(database)) } }
+
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Handstand"))
+        assertTrue(compose.onAllNodesWithText("Primary", substring = true).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithText("Secondary", substring = true).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithText("Attach reference video").fetchSemanticsNodes().isNotEmpty())
+        compose.onNodeWithContentDescription("Settings for Wall handstand").performClick()
+        compose.onNodeWithContentDescription("Time Under Tension (seconds)").assertIsOn()
+        compose.onNodeWithContentDescription("Total Time (seconds)").assertIsOn()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithContentDescription("Settings for Freestanding handstand").performClick()
+        compose.onNodeWithContentDescription("Time Under Tension (seconds)").assertIsOff()
+        compose.onNodeWithContentDescription("Total Time (seconds)").assertIsOn()
+
+        database.close()
     }
 }

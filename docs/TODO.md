@@ -32,8 +32,11 @@ Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-
 - [ ] Seed Wall handstand with Time Under Tension plus Total Time and Freestanding handstand with Total Time only.
 - [ ] Support assisted, bodyweight and weighted pull-up variations with band, bodyweight and added-weight-appropriate inputs.
 - [ ] Add an in-app stopwatch for any enabled Total Time input, with start, stop, reset and apply behavior.
+- [ ] Let each exercise database entry attach, play and explicitly delete a small curated set of app-private reference videos, without treating them as workout history.
+- [ ] Remove both video metadata and its copied app-private file on confirmed deletion; report file failures instead of claiming success.
+- [ ] Present catalogue muscle roles as a bold Primary line and bold Secondary line with concise muscle lists.
 - [ ] Snapshot variation identity/configuration into recorded history so later settings edits do not reinterpret old sets.
-- [ ] Add migration, editor, logging, recovery and stopwatch regression coverage; run the full unit/build/API 35 gate and inspect the exact APK.
+- [ ] Add migration, editor, logging, recovery, stopwatch and video-lifecycle regression coverage; run the full unit/build/API 35 gate and inspect the exact APK.
 
 ### DEMO-01 — Remove demo personal data
 

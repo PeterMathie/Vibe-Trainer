@@ -136,5 +136,15 @@ class WorkoutWorkflowTest {
         assertTrue(exercises.all { it.source == "vibe-trainer" })
         val usedIds = database.editorDao().entries().first().map { it.exerciseId }.toSet()
         assertEquals(exercises.map { it.id }.toSet(), usedIds)
+        val variations = database.editorDao().variations().first()
+        val wall = variations.single { it.id == "handstand-wall" }
+        val freestanding = variations.single { it.id == "handstand-free" }
+        assertTrue(wall.inputConfig.contains("timeHeld=true"))
+        assertTrue(wall.inputConfig.contains("timeUnderTension=true"))
+        assertTrue(freestanding.inputConfig.contains("timeHeld=false"))
+        assertTrue(freestanding.inputConfig.contains("timeUnderTension=true"))
+        assertTrue(variations.single { it.id == "pull-up-assisted" }.inputConfig.contains("bandResistance=true"))
+        assertTrue(variations.single { it.id == "pull-up-bodyweight" }.inputConfig.contains("bodyweight=true"))
+        assertTrue(variations.single { it.id == "pull-up-weighted" }.inputConfig.contains("addedWeight=true"))
     }
 }
