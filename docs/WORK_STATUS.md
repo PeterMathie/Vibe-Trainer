@@ -2,6 +2,8 @@
 
 Updated: 24 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
+Current documentation task: **DOC-01 reviewer-facing app showcase is complete** in [`APP_REVIEW.md`](APP_REVIEW.md). It covers product intent, a 12-image visual tour, complete feature areas, local storage/privacy, architecture/quality, honest external gates, installation and reviewer checklists. All screenshots are controlled generated demo data from source `762b96b`, 1080 × 2424, visually inspected, and total 1.9 MB. The exact APK SHA-256 is `603954816717f5c60304edcd04c0f5ab337b3a7e8b8a2b1edf2ab4e71605a61d`. The complete unit/build gate and all 67 API 35 instrumentation tests passed.
+
 Current implementation task: **UX-29 archived content access is complete** on `pmathie-cicpilot-persist-workout-drafts`. More now exposes a dedicated Archive screen listing archived plans, custom exercises and habits with direct Restore actions. Focused `NavigationUiTest` passed both tests on API 35.
 
 Current implementation task: **UX-28 variation-specific exercise settings and in-app Total Time stopwatch is complete** at `97d3028` and `e8c7d13` on `pmathie-cicpilot-persist-workout-drafts`.

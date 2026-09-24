@@ -8,7 +8,7 @@ defines the release gates; it does not authorise signing, publishing or merging.
 - Application ID: `com.petermathie.vibetrainer`
 - Version name: `0.3.0`
 - Version code: `2`
-- Room schema version: `5`
+- Room schema version: `12`
 - Minimum Android SDK: `23`
 - Target Android SDK: `36`
 
@@ -38,7 +38,7 @@ Before distributing a build:
 5. Install over the previous distributed build and verify launch and data
    access on an emulator and a real phone.
 
-The repository contains Room migrations through schema version 5 and tests for
+The repository contains Room migrations through schema version 12 and tests for
 the recent migration chain. Distribution to an authentic version-1 install is
 blocked by DATA-01 until an authentic v1 schema/database fixture is available;
 the repository must not substitute an invented fixture. The v5 historical

@@ -22,6 +22,16 @@ Evidence: commit `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433`, [run 35701312673](h
 
 Tasks are unclaimed unless an owner is recorded below. Before starting, add your agent name, branch and date to the relevant task. Mark completion only with verification evidence.
 
+### DOC-01 — Reviewer-facing app showcase
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 24 September 2026.
+
+- [x] Create a standalone reviewer guide covering product intent, major features, privacy/storage, architecture, limitations, installation and concrete review journeys.
+- [x] Capture a controlled visual tour from the exact current debug APK without personal data or transient overlays.
+- [x] Verify every relative link, screenshot dimension and committed asset.
+
+Evidence: [`APP_REVIEW.md`](APP_REVIEW.md) uses 12 inspected 1080 × 2424 screenshots totalling 1.9 MB. Source `762b96b` passed unit tests, debug assembly and all 67 API 35 instrumentation tests. APK SHA-256: `603954816717f5c60304edcd04c0f5ab337b3a7e8b8a2b1edf2ab4e71605a61d`.
+
 ### UX-29 — Archived content access
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 24 September 2026.
