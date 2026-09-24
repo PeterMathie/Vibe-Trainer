@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.LibraryBooks
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Palette
@@ -101,6 +102,7 @@ internal enum class Destination(val label: String, val icon: ImageVector) {
     MEASUREMENTS("Body", Icons.Outlined.AccessibilityNew),
     SETTINGS("Settings", Icons.Outlined.Settings),
     STYLE("Style", Icons.Outlined.Palette),
+    ARCHIVE("Archive", Icons.Outlined.Inventory2),
 }
 
 @Composable
@@ -172,6 +174,7 @@ fun VibeTrainerApp(viewModel: MainViewModel = hiltViewModel()) {
                         paletteId,
                         { paletteId = it; prefs.edit().putString("palette", it).apply() },
                     ) { result -> viewModel.removeDemoData(result) }
+                    Destination.ARCHIVE -> ArchiveScreen(editor)
                 }
             }
         }
@@ -211,6 +214,7 @@ private val moreDestinations = setOf(
     Destination.HISTORY,
     Destination.SETTINGS,
     Destination.STYLE,
+    Destination.ARCHIVE,
 )
 
 @Composable

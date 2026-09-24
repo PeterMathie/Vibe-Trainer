@@ -29,6 +29,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     private val trackerStore = TrackerEditorStore(db, ::newId)
     private fun <T> Flow<List<T>>.live() = stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val programmes = dao.programmes().live()
+    val archivedProgrammes = dao.archivedProgrammes().live()
     val days = dao.days().live()
     val entries = dao.entries().live()
     val exercises = dao.exercises().live()

@@ -22,6 +22,16 @@ Evidence: commit `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433`, [run 35701312673](h
 
 Tasks are unclaimed unless an owner is recorded below. Before starting, add your agent name, branch and date to the relevant task. Mark completion only with verification evidence.
 
+### UX-29 — Archived content access
+
+Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 24 September 2026.
+
+- [x] Add an Archive destination to More.
+- [x] List archived plans, custom exercises and habits in one place.
+- [x] Allow each archived item to be restored to its original feature.
+
+Evidence: `NavigationUiTest.moreArchiveRestoresArchivedItems` verifies navigation, all three archived item types and restoration on API 35.
+
 ### UX-28 — Variation-specific exercise settings and stopwatch
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 24 September 2026.

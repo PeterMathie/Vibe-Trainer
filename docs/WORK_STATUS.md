@@ -2,6 +2,8 @@
 
 Updated: 24 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
+Current implementation task: **UX-29 archived content access is complete** on `pmathie-cicpilot-persist-workout-drafts`. More now exposes a dedicated Archive screen listing archived plans, custom exercises and habits with direct Restore actions. Focused `NavigationUiTest` passed both tests on API 35.
+
 Current implementation task: **UX-28 variation-specific exercise settings and in-app Total Time stopwatch is complete** at `97d3028` and `e8c7d13` on `pmathie-cicpilot-persist-workout-drafts`.
 
 Room schema 12 gives every variation its own tracking type, enabled inputs, targets, target RPE and rest duration. Migration 11→12 copies parent settings into existing variations, then applies the bespoke Wall/Freestanding handstand and assisted/bodyweight/weighted pull-up configurations. Workout rows switch inputs from the selected variation, reuse their durable set ID, and snapshot variation identity and configuration so later edits do not reinterpret history. Enabled Total Time fields provide a start/stop/reset/apply stopwatch. Exercise cards show concise bold Primary/Secondary muscle lines and support copied app-private reference videos with in-app playback and confirmed file-plus-metadata deletion.
