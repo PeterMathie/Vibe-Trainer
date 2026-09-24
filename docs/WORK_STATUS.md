@@ -2,6 +2,10 @@
 
 Updated: 23 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
 
+Current implementation task: **UX-28 variation-specific exercise settings and in-app Total Time stopwatch is claimed** by GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884` on `pmathie-cicpilot-persist-workout-drafts`, 24 September 2026.
+
+Acceptance plan: migrate existing variation rows by copying their parent exercise configuration; make each variation independently editable while remaining grouped under the parent; switch workout inputs from the selected variation without duplicate sets; configure Wall handstand for Time Under Tension plus Total Time and Freestanding handstand for Total Time only; cover assisted/bodyweight/weighted pull-up input combinations; snapshot enough variation configuration to keep history stable; and provide a start/stop/reset/apply stopwatch beside every enabled Total Time field. Migration, editor, logging, recovery, stopwatch and full API 35 validation are required before completion.
+
 Current implementation task: **DEMO-01 complete demo-personal-data removal is complete** at `873a37c` and `27b8064` on `pmathie-cicpilot-persist-workout-drafts`.
 
 Cleanup now removes demo workouts, programmes, trackers, body measurements and generated progress photos while preserving every catalogue/support table, custom catalogue records and real personal data. New generated photos receive explicit ownership markers; legacy demo photos are claimed only when their demo measurement ID, timestamp name, 720×960 dimensions and sampled deterministic colours all match. File failures are explicit and leave demo database roots intact. Seed metadata remains, so `seedIfNeeded()` does not recreate deleted personal demos. Settings and Style both require confirmation and display exact success or failure results.

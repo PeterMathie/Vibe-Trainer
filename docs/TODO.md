@@ -22,6 +22,19 @@ Evidence: commit `e0a47b76aaae8d8dfaa45295c1d7a3dc710fd433`, [run 35701312673](h
 
 Tasks are unclaimed unless an owner is recorded below. Before starting, add your agent name, branch and date to the relevant task. Mark completion only with verification evidence.
 
+### UX-28 — Variation-specific exercise settings and stopwatch
+
+Status: **IN PROGRESS**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Claimed: 24 September 2026.
+
+- [ ] Give every exercise variation its own tracking type, enabled inputs, targets, target RPE and rest duration while keeping variations grouped under their parent exercise.
+- [ ] Preserve existing databases by migrating every existing variation from its parent exercise settings.
+- [ ] Let workout entry select a variation and immediately render only that variation's inputs without duplicating saved sets.
+- [ ] Seed Wall handstand with Time Under Tension plus Total Time and Freestanding handstand with Total Time only.
+- [ ] Support assisted, bodyweight and weighted pull-up variations with band, bodyweight and added-weight-appropriate inputs.
+- [ ] Add an in-app stopwatch for any enabled Total Time input, with start, stop, reset and apply behavior.
+- [ ] Snapshot variation identity/configuration into recorded history so later settings edits do not reinterpret old sets.
+- [ ] Add migration, editor, logging, recovery and stopwatch regression coverage; run the full unit/build/API 35 gate and inspect the exact APK.
+
 ### DEMO-01 — Remove demo personal data
 
 Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 23 September 2026.
