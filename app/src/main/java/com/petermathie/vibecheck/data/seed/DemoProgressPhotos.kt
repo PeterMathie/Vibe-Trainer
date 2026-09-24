@@ -20,7 +20,7 @@ internal object DemoProgressPhotos {
 
     fun markOwned(context: Context, file: File) {
         val markers = File(context.filesDir, MARKER_DIRECTORY)
-        if (!markers.exists() && !markers.mkdirs()) {
+        if (!markers.isDirectory && !markers.mkdirs() && !markers.isDirectory) {
             throw IOException("Could not create demo photo ownership directory")
         }
         val marker = File(markers, file.name)

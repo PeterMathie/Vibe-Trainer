@@ -30,7 +30,7 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 - [x] Set release identity to Vibe Check 0.4.0 Beta 1 (`versionName 0.4.0-beta.1`, `versionCode 4`).
 - [x] Preserve version-1 Vibe Trainer JSON import compatibility.
 - [x] Complete current-facing documentation and historical-evidence reconciliation.
-- [x] Pass 39 unit tests, 69 API 35 tests, debug/signed-release assembly, install/launch and clean-demo validation.
+- [x] Pass 39 unit tests, 70 API 35 tests, debug/signed-release assembly, install/launch and clean-demo validation.
 - [x] Use canonical repository `PeterMathie/vibe-check` and update this worktree's origin.
 - [x] Create the persistent beta key, Keychain entries, protected GitHub secrets and guarded signed-build workflow.
 - [x] Prove a fresh signed release seeds catalogue definitions but no demo personal data.

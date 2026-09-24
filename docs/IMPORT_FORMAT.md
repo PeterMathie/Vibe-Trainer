@@ -1,6 +1,6 @@
 # Structured import — format version 1
 
-This format currently targets database schema 12. Historical notes must be converted into these structured records before import; the app does not parse prose. [historical-workout.json](examples/historical-workout.json) is an executable, fictional example tested by Android CI. It imports a custom exercise, structured variation, finished session, 10-second hold, exercise notes and a Yellow + Black + Purple band stack. App-private exercise reference videos are deliberately separate from JSON backup data.
+This format currently targets database schema 12. Historical notes must be converted into these structured records before import; the app does not parse prose. [historical-workout.json](examples/historical-workout.json) is an executable, fictional example tested by Android CI. It imports a custom exercise, structured variation, finished session, 10-second hold, exercise notes and a Yellow + Black + Purple band stack. Durable unfinished workout-entry drafts are included in backups. App-private exercise reference videos are deliberately separate from JSON backup data.
 
 ## Envelope and merge rules
 

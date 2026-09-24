@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.petermathie.vibecheck.data.DataTransfer
 import com.petermathie.vibecheck.data.local.VibeDatabase
+import com.petermathie.vibecheck.data.local.WorkoutEntryDraftEntity
 import com.petermathie.vibecheck.data.seed.DatabaseSeeder
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -45,6 +46,39 @@ class ImportValidationTest {
         DataTransfer.import(db, legacyBackup)
 
         assertEquals("vibe-trainer", JSONObject(DataTransfer.export(db)).getString("format"))
+    }
+
+    @Test
+    fun unfinishedEntryDraftRoundTripsThroughBackup() = runBlocking {
+        val workoutExerciseId = fixture("workout_exercises").getString("id")
+        val draft = WorkoutEntryDraftEntity(
+            workoutExerciseId = workoutExerciseId,
+            setId = "backup-draft-set",
+            ordinal = 3,
+            performance = "12",
+            rpe = "8",
+            detailsOpen = true,
+            warmUp = false,
+            failed = false,
+            bandIds = "band-yellow",
+            variationId = null,
+            leftValue = "",
+            rightValue = "",
+            addedWeight = "10",
+            assistance = "",
+            romValue = "",
+            romUnit = "",
+            updatedAt = 123456L,
+            timeHeld = "15",
+            timeUnderTension = "9",
+        )
+        db.editorDao().entryDraft(draft)
+        val backup = DataTransfer.export(db)
+        db.editorDao().deleteEntryDrafts(workoutExerciseId)
+
+        DataTransfer.import(db, backup)
+
+        assertEquals(draft, db.editorDao().entryDraft(workoutExerciseId))
     }
 
     /** A valid insert comes first, proving later validation errors undo earlier writes. */

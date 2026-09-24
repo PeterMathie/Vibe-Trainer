@@ -22,9 +22,10 @@ The keystore and credentials must never be copied into the repository,
 - `VIBE_CHECK_BETA_KEY_ALIAS`
 - `VIBE_CHECK_BETA_KEY_PASSWORD`
 
-The manual `Signed beta release` workflow runs only from `main`, decodes the
-keystore into runner temporary storage, builds the non-debug APK, verifies its
-signature, removes the temporary keystore and uploads the candidate artifact.
+The manual `Signed beta release` workflow runs only from `main`, uses
+commit-pinned Actions, decodes the keystore into runner temporary storage,
+builds the non-debug APK, verifies its signature and exact beta certificate
+fingerprint, removes the temporary keystore and uploads the candidate artifact.
 Pull requests and forks cannot publish or receive signing secrets.
 
 ## Local signed build
