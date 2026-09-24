@@ -6,9 +6,9 @@ Native, local-first Android strength, flexibility and open-ended activity tracki
 
 ## Download Vibe Check Beta APK
 
-**Publication pending:** Vibe Check 0.4.0 Beta 1 is not available to
-download yet. This notice will be replaced by a verified direct APK link only
-after the matching signed GitHub release exists.
+[Download Vibe Check 0.4.0 Beta 1](https://github.com/PeterMathie/vibe-check/releases/download/v0.4.0-beta.1/Vibe-Check-beta.apk)
+
+APK SHA-256: `b2117c6e0e64e14a827d218090513f4dab3f714a04ac38fb596eab03aaea75bb`
 
 This is beta software distributed outside Google Play. Android will ask you to
 allow installation from the browser or file manager used to open the APK.
