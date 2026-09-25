@@ -61,7 +61,7 @@ class MuscleMapUiTest {
         AnatomySex.entries.forEach { sex ->
             AnatomyView.entries.forEach { view ->
                 val map = compose.onNodeWithContentDescription(
-                    "${sex.name.lowercase()} ${view.name.lowercase()} muscle recency map",
+                    "${sex.name.lowercase()} ${view.name.lowercase()} freshness map",
                 )
                 map.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "No muscle selected"))
                 val labels = map.fetchSemanticsNode().config[SemanticsActions.CustomActions]
@@ -71,13 +71,13 @@ class MuscleMapUiTest {
             }
         }
 
-        val front = compose.onNodeWithContentDescription("male front muscle recency map")
+        val front = compose.onNodeWithContentDescription("male front freshness map")
         val inspectChest = front.fetchSemanticsNode().config[SemanticsActions.CustomActions]
             .first { it.label.startsWith("Inspect CHEST") }
         compose.runOnIdle { inspectChest.action() }
         front.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Selected chest"))
 
-        val back = compose.onNodeWithContentDescription("male back muscle recency map")
+        val back = compose.onNodeWithContentDescription("male back freshness map")
         val inspectLats = back.fetchSemanticsNode().config[SemanticsActions.CustomActions]
             .first { it.label.startsWith("Inspect LATS") }
         compose.runOnIdle { inspectLats.action() }

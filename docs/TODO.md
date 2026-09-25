@@ -178,7 +178,7 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 
 - [x] Put Previous day and Next day at the far sides of the Strength/Stretch selector on one coherent historical-day row.
 - [x] Remove the historical-day slider and the “Reconstructed from records up to the end of this day” copy.
-- [x] Add a Home-only date slider directly beneath the muscle recency maps; dragging previews recency at an earlier date without opening the detailed historical-day screen.
+- [x] Add a Home-only date slider directly beneath the freshness maps; dragging previews freshness for each selectable day in the displayed heat-map month without opening the detailed historical-day screen.
 - [x] Preserve heat-map day selection, historical activities, mode switching and back behavior.
 - [x] Add focused Compose coverage, run relevant validation, push evidence and leave the exact app running on the visible emulator.
 

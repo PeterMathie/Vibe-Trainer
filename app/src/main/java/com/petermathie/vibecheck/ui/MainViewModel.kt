@@ -121,7 +121,8 @@ class MainViewModel @Inject constructor(
     fun setMode(value: TrainingMode) { mode.value = value }
     fun setSearchQuery(value: String) { searchQuery.value = value }
     fun selectHomeRecencyDay(epochDay: Long) {
-        homeRecencyDay.value = epochDay.takeUnless { it == LocalDate.now().toEpochDay() }
+        val today = LocalDate.now().toEpochDay()
+        homeRecencyDay.value = epochDay.coerceAtMost(today).takeUnless { it == today }
     }
     fun selectHistoryDay(epochDay: Long?) { selectedHistoryDay.value = epochDay }
 

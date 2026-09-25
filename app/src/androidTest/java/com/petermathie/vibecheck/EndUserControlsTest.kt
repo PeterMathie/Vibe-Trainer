@@ -1,8 +1,12 @@
 package com.petermathie.vibecheck
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.petermathie.vibecheck.ui.HomeScreen
@@ -17,6 +21,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 
 class EndUserControlsTest {
     @get:Rule
@@ -26,16 +32,27 @@ class EndUserControlsTest {
     fun homeKeepsDateControlsTogetherWithoutRemovedHeadings() {
         var previewDay: Long? = null
         var selectedMode: TrainingMode? = null
+        var state by mutableStateOf(MainUiState())
         compose.setContent {
             VibeCheckTheme {
-                HomeScreen(MainUiState(), {}, {}, { previewDay = it }, { selectedMode = it })
+                HomeScreen(
+                    state,
+                    {},
+                    {},
+                    {
+                        previewDay = it
+                        state = state.copy(homeRecencyDay = it)
+                    },
+                    { selectedMode = it },
+                )
             }
         }
 
+        compose.onNodeWithText("FRESHNESS").assertIsDisplayed()
         compose.onNodeWithText("Overview").assertDoesNotExist()
         compose.onNodeWithText("Recency, not recovery or fatigue").assertDoesNotExist()
         compose.onNodeWithText("Habits, workouts and stretching").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Activity date navigation").assertExists()
+        compose.onNodeWithContentDescription("Freshness month navigation").assertExists()
         compose.onNodeWithText("Earlier").assertExists()
         compose.onNodeWithText("Later").assertExists()
         val earlierCenter = compose.onNodeWithText("Earlier").fetchSemanticsNode().boundsInRoot.center.y
@@ -44,10 +61,28 @@ class EndUserControlsTest {
         compose.onNodeWithText("Strength").assertIsDisplayed()
         compose.onNodeWithText("Stretch").assertIsDisplayed().performClick()
         assertEquals(TrainingMode.STRETCHING, selectedMode)
-        compose.onNodeWithContentDescription("Home recency date").performSemanticsAction(SemanticsActions.SetProgress) {
-            it((LocalDate.now().toEpochDay() - 10).toFloat())
+        val today = LocalDate.now()
+        val targetDay = (today.dayOfMonth - 1).coerceAtLeast(1)
+        val slider = compose.onNodeWithContentDescription("Freshness date")
+        val range = slider.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(1f, range.range.start)
+        assertEquals(today.dayOfMonth.toFloat(), range.range.endInclusive)
+        assertEquals((today.dayOfMonth - 2).coerceAtLeast(0), range.steps)
+        slider.performSemanticsAction(SemanticsActions.SetProgress) {
+            it(targetDay.toFloat())
         }
-        compose.waitUntil(15_000) { previewDay != null }
+        compose.waitUntil(15_000) { previewDay == today.withDayOfMonth(targetDay).toEpochDay() }
+        assertEquals(today.withDayOfMonth(targetDay).toEpochDay(), previewDay)
+
+        compose.onNodeWithText("Earlier").performClick()
+        val previousMonth = YearMonth.from(today).minusMonths(1)
+        compose.waitUntil(15_000) {
+            previewDay?.let(LocalDate::ofEpochDay)?.let(YearMonth::from) == previousMonth
+        }
+        compose.onNodeWithText(previousMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))).assertIsDisplayed()
+        val previousRange = compose.onNodeWithContentDescription("Freshness date")
+            .fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
+        assertEquals(previousMonth.lengthOfMonth().toFloat(), previousRange.range.endInclusive)
         assertNotNull(previewDay)
     }
 

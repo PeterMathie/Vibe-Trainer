@@ -54,9 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -88,7 +86,9 @@ import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 internal enum class Destination(val label: String, val icon: ImageVector) {
     HOME("Home", Icons.Outlined.Home),
@@ -306,13 +306,13 @@ internal fun HomeScreen(
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     var selectedMuscle by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = state.recency.firstOrNull { it.muscleId == selectedMuscle }
-    val today = LocalDate.now().toEpochDay()
-    val selectedRecencyDay = state.homeRecencyDay ?: today
-    var recencySliderDay by rememberSaveable { mutableFloatStateOf(selectedRecencyDay.toFloat()) }
-    LaunchedEffect(selectedRecencyDay) { recencySliderDay = selectedRecencyDay.toFloat() }
+    val today = LocalDate.now()
+    val selectedRecencyDate = LocalDate.ofEpochDay(state.homeRecencyDay ?: today.toEpochDay())
+        .coerceAtMost(today)
+    val monthRange = freshnessMonthRange(YearMonth.from(selectedRecencyDate), today)
     val palette = LocalVibePalette.current
     val haptics = rememberVibeHaptics()
-    var lastHapticDay by remember { mutableStateOf(selectedRecencyDay) }
+    var lastHapticDay by remember { mutableStateOf(selectedRecencyDate.toEpochDay()) }
     Column(
         Modifier.fillMaxSize().padding(VibeSpacing.medium),
         verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
@@ -335,7 +335,7 @@ internal fun HomeScreen(
         VibeCard(Modifier.weight(1f), fillHeight = true) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    if (state.mode == TrainingMode.STRENGTH) "MUSCLE RECENCY" else "STRETCH RECENCY",
+                    "FRESHNESS",
                     modifier = Modifier.weight(1f),
                     color = palette.accent,
                     style = MaterialTheme.typography.labelLarge,
@@ -364,22 +364,21 @@ internal fun HomeScreen(
                 )
             }
             Text(
-                "Recency through ${LocalDate.ofEpochDay(recencySliderDay.toLong()).format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
+                "Freshness through ${selectedRecencyDate.format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
                 color = palette.textSecondary,
             )
             Slider(
-                value = recencySliderDay,
+                value = selectedRecencyDate.dayOfMonth.toFloat(),
                 onValueChange = {
-                    recencySliderDay = it
-                    val day = it.toLong()
+                    val day = monthRange.month.atDay(it.roundToInt().coerceIn(1, monthRange.dayCount)).toEpochDay()
                     if (day != lastHapticDay) {
                         lastHapticDay = day
                         haptics.perform(VibeHapticEvent.SELECTION)
                     }
                     onRecencyDayChange(day)
                 },
-                valueRange = (today - 365).toFloat()..today.toFloat(),
-                steps = 364,
+                valueRange = 1f..monthRange.dayCount.toFloat(),
+                steps = (monthRange.dayCount - 2).coerceAtLeast(0),
                 colors = SliderDefaults.colors(
                     thumbColor = palette.accent,
                     activeTrackColor = palette.border,
@@ -387,7 +386,7 @@ internal fun HomeScreen(
                     activeTickColor = Color.Transparent,
                     inactiveTickColor = Color.Transparent,
                 ),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Home recency date" },
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Freshness date" },
             )
             selectedMuscle?.let { muscle ->
                 Text(muscle.replace('_', ' '), fontWeight = FontWeight.Bold)
@@ -402,8 +401,83 @@ internal fun HomeScreen(
         }
         VibeCard {
             Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelLarge)
-            ActivityHeatmap(state.activityDays, onDayClick, compact = true)
+            MonthlyActivityHeatmap(
+                days = state.activityDays,
+                selectedDate = selectedRecencyDate,
+                today = today,
+                onDayClick = { date ->
+                    onRecencyDayChange(date.toEpochDay())
+                    onDayClick(date.toEpochDay())
+                },
+                onMonthChange = { month ->
+                    onRecencyDayChange(freshnessDateInMonth(selectedRecencyDate, month, today).toEpochDay())
+                },
+            )
             Text("0 neutral · 1 light · 2 medium · 3+ dark", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun MonthlyActivityHeatmap(
+    days: List<ActivityDay>,
+    selectedDate: LocalDate,
+    today: LocalDate,
+    onDayClick: (LocalDate) -> Unit,
+    onMonthChange: (YearMonth) -> Unit,
+) {
+    val palette = LocalVibePalette.current
+    val range = freshnessMonthRange(YearMonth.from(selectedDate), today)
+    val counts = days.associate { it.epochDay to it.activityCount }
+    val leadingDays = range.firstDate.dayOfWeek.value % 7
+    val weekCount = (leadingDays + range.dayCount + 6) / 7
+    Row(
+        Modifier.fillMaxWidth().semantics { contentDescription = "Freshness month navigation" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        VibeActionButton("Earlier", { onMonthChange(range.month.minusMonths(1)) }, importance = ActionImportance.COMPACT)
+        Text(
+            range.month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+            Modifier.weight(1f),
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        VibeActionButton(
+            "Later",
+            { onMonthChange(range.month.plusMonths(1)) },
+            importance = ActionImportance.COMPACT,
+            enabled = range.month < YearMonth.from(today),
+        )
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        repeat(weekCount) { week ->
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(7) { weekday ->
+                    val dayOfMonth = week * 7 + weekday - leadingDays + 1
+                    if (dayOfMonth in 1..range.dayCount) {
+                        val date = range.month.atDay(dayOfMonth)
+                        val count = counts[date.toEpochDay()] ?: 0
+                        val color = when {
+                            count >= 3 -> palette.heatmapThreePlus
+                            count == 2 -> palette.heatmapTwo
+                            count == 1 -> palette.heatmapOne
+                            else -> palette.heatmapNeutral
+                        }
+                        Box(
+                            Modifier.fillMaxWidth().height(14.dp)
+                                .semantics {
+                                    contentDescription = "$date: $count activities" +
+                                        if (date == selectedDate) ", selected freshness date" else ""
+                                }
+                                .background(color, RoundedCornerShape(5.dp))
+                                .clickable { onDayClick(date) },
+                        )
+                    } else {
+                        Spacer(Modifier.fillMaxWidth().height(14.dp))
+                    }
+                }
+            }
         }
     }
 }

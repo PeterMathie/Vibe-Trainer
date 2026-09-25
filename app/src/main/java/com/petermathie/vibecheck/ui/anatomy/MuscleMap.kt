@@ -35,7 +35,7 @@ import kotlin.math.min
 
 enum class AnatomyView { FRONT, BACK }
 
-internal const val MUSCLE_COLOR_TRANSITION_MILLIS = 70
+internal const val MUSCLE_COLOR_TRANSITION_MILLIS = 35
 internal const val RENDER_NEUTRAL_BODY_OUTLINE = false
 
 private data class ParsedOutline(val def: OutlinePathDef, val path: Path)
@@ -83,7 +83,7 @@ fun MuscleMap(
         val color by animateColorAsState(
             targetValue = targetColor,
             animationSpec = if (reducedMotion) snap() else tween(durationMillis = MUSCLE_COLOR_TRANSITION_MILLIS),
-            label = "muscle recency $group",
+            label = "freshness $group",
         )
         color
     }
@@ -93,7 +93,7 @@ fun MuscleMap(
             .fillMaxWidth()
             .aspectRatio(diagram.viewBoxWidth / diagram.viewBoxHeight)
             .semantics {
-                contentDescription = "${sex.name.lowercase()} ${view.name.lowercase()} muscle recency map"
+                contentDescription = "${sex.name.lowercase()} ${view.name.lowercase()} freshness map"
                 stateDescription = selectedGroup?.let { "Selected ${it.replace('_', ' ').lowercase()}" }
                     ?: "No muscle selected"
                 customActions = groups.map { group ->

@@ -7,7 +7,7 @@ import org.junit.Test
 class MuscleMapMotionTest {
     @Test
     fun colourTransitionIsVisibleButFastEnoughForScrubbing() {
-        assertTrue(MUSCLE_COLOR_TRANSITION_MILLIS in 40..80)
+        assertTrue(MUSCLE_COLOR_TRANSITION_MILLIS in 30..40)
     }
 
     @Test

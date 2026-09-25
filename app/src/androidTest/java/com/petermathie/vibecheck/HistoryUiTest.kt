@@ -80,7 +80,7 @@ class HistoryUiTest {
         compose.onNodeWithText(firstDay.format(DATE_FORMAT), useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Reconstructed from records up to the end of this day").assertDoesNotExist()
         compose.onNodeWithContentDescription("Historical day controls").assertExists()
-        compose.onNodeWithContentDescription("Home recency date").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Freshness date").assertDoesNotExist()
         compose.onNodeWithText("Strength").assertDoesNotExist()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText("Planche + Push").fetchSemanticsNodes().isNotEmpty()

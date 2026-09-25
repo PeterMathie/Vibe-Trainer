@@ -2,7 +2,7 @@
 
 ## Product truth
 
-Vibe Check is a local-first native Android training log. It records objective history and derives explainable views from that history. Version one must not claim to know muscle fatigue or recovery. The strength SVG displays **training recency**; set-equivalents describe recent training dose. A future, separately labelled fatigue estimate may use RPE, subjective readiness and wearable data.
+Vibe Check is a local-first native Android training log. It records objective history and derives explainable views from that history. Version one must not claim to know muscle fatigue or recovery. The strength SVG displays **freshness** derived from training recency; set-equivalents describe recent training dose. A future, separately labelled fatigue estimate may use RPE, subjective readiness and wearable data.
 
 ## Installation and test data
 
@@ -52,7 +52,7 @@ Each set is logged in one compact row: one performance field, an optional RPE co
 
 ## Muscle maps
 
-Male/female front/back anatomy is a changeable profile setting. Left/right set results remain separate, but muscle recency is bilateral. Every relevant path is tappable.
+Male/female front/back anatomy is a changeable profile setting. Left/right set results remain separate, but muscle freshness is bilateral. Every relevant path is tappable.
 
 Strength and stretching maintain separate histories. A completed non-zero working set updates every mapped primary and secondary muscle. Warm-ups, zero attempts and drafts do not.
 
@@ -63,7 +63,7 @@ Strength and stretching maintain separate histories. A completed non-zero workin
 - Blue: over 7 days.
 - Neutral: never recorded.
 
-Primary sets contribute 1 set-equivalent and secondary sets 0.5. Set-equivalents describe dose only; they do not gate recency.
+Primary sets contribute 1 set-equivalent and secondary sets 0.5. Set-equivalents describe dose only; they do not gate freshness.
 
 The daily historical scrubber reconstructs maps from records at the end of the selected day and never stores screenshots.
 
@@ -77,11 +77,11 @@ The daily historical scrubber reconstructs maps from records at the end of the s
 - Rolling three-session line plus Rising/Flat/Falling label.
 - Graph points expose raw performance, RPE and the exercise note recorded for that session.
 - PRs for weight, reps, estimated 1RM, holds and calculated performance.
-- ROM measurements live inside relevant stretches and remain separate from stretch recency.
+- ROM measurements live inside relevant stretches and remain separate from stretch freshness.
 
 ## Homepage and history
 
-The homepage contains the recency SVG and a GitHub-style five-week activity heatmap:
+The homepage contains the freshness SVG and a calendar-month activity heatmap. The selected freshness date is authoritative: the slider exposes one step per selectable day in that displayed month, past months include every day, and the current month stops at today.
 
 - 0 activities: neutral.
 - 1: light green.
