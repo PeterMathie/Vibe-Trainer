@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DragIndicator
@@ -33,6 +34,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -43,12 +46,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -58,13 +63,16 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.isActive
+import kotlin.math.roundToInt
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
 import com.petermathie.vibecheck.ui.theme.LocalVibeMotion
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
+import com.petermathie.vibecheck.ui.theme.VibeShapes
 
 enum class ActionImportance {
     PRIMARY,
@@ -101,9 +109,9 @@ fun VibeActionButton(
         Text(label)
     }
     when (importance) {
-        ActionImportance.PRIMARY -> Button(click, buttonModifier, enabled, interactionSource = interactionSource, content = content)
-        ActionImportance.SECONDARY -> OutlinedButton(click, buttonModifier, enabled, interactionSource = interactionSource, content = content)
-        ActionImportance.COMPACT -> FilledTonalButton(click, buttonModifier, enabled, interactionSource = interactionSource, content = content)
+        ActionImportance.PRIMARY -> Button(click, buttonModifier, enabled, shape = RoundedCornerShape(VibeShapes.control), interactionSource = interactionSource, content = content)
+        ActionImportance.SECONDARY -> OutlinedButton(click, buttonModifier, enabled, shape = RoundedCornerShape(VibeShapes.control), interactionSource = interactionSource, content = content)
+        ActionImportance.COMPACT -> FilledTonalButton(click, buttonModifier, enabled, shape = RoundedCornerShape(VibeShapes.control), interactionSource = interactionSource, content = content)
     }
 }
 
@@ -121,10 +129,12 @@ class ReorderState internal constructor(
     private var grabOffsetY by mutableFloatStateOf(0f)
     private var fallbackDragDistance by mutableFloatStateOf(0f)
     private var lastMoveDirection by mutableIntStateOf(0)
+    private var dragSessionToken by mutableLongStateOf(0L)
+    private var dragStartBounds: Rect? = null
     private val itemBounds = mutableMapOf<Any, ItemBounds>()
     private var geometryRevision by mutableIntStateOf(0)
 
-    private data class ItemBounds(val top: Float, val bottom: Float) {
+    private data class ItemBounds(val left: Float, val top: Float, val right: Float, val bottom: Float) {
         val height get() = bottom - top
         val center get() = (top + bottom) / 2f
     }
@@ -148,10 +158,12 @@ class ReorderState internal constructor(
 
     fun begin(key: Any, pointerRootY: Float = Float.NaN) {
         draggingKey = key
+        dragSessionToken++
         dragSourceKeys = sourceKeys
         startIndex = orderedKeys.indexOf(key)
         pointerY = pointerRootY
-        grabOffsetY = itemBounds[key]?.let { pointerRootY - it.top } ?: 0f
+        dragStartBounds = itemBounds[key]?.let { Rect(it.left, it.top, it.right, it.bottom) }
+        grabOffsetY = dragStartBounds?.let { pointerRootY - it.top } ?: 0f
         fallbackDragDistance = 0f
         lastMoveDirection = 0
     }
@@ -240,6 +252,7 @@ class ReorderState internal constructor(
         val endIndex = orderedKeys.indexOf(key)
         val initialIndex = startIndex
         draggingKey = null
+        dragStartBounds = null
         pointerY = Float.NaN
         fallbackDragDistance = 0f
         startIndex = -1
@@ -254,6 +267,7 @@ class ReorderState internal constructor(
 
     fun cancel() {
         draggingKey = null
+        dragStartBounds = null
         pointerY = Float.NaN
         fallbackDragDistance = 0f
         startIndex = -1
@@ -280,8 +294,8 @@ class ReorderState internal constructor(
 
     fun isDragging(key: Any): Boolean = draggingKey == key
 
-    fun registerItemBounds(key: Any, top: Float, bottom: Float): Float {
-        val updated = ItemBounds(top, bottom)
+    fun registerItemBounds(key: Any, left: Float, top: Float, right: Float, bottom: Float): Float {
+        val updated = ItemBounds(left, top, right, bottom)
         val previousTop = itemBounds[key]?.top
         if (itemBounds[key] != updated) {
             itemBounds[key] = updated
@@ -289,6 +303,9 @@ class ReorderState internal constructor(
         }
         return previousTop?.minus(top) ?: 0f
     }
+
+    fun registerItemBounds(key: Any, top: Float, bottom: Float): Float =
+        registerItemBounds(key, 0f, top, 0f, bottom)
 
     fun reorderAfterLayout(fallbackThreshold: Float, direction: Int): Int {
         val key = draggingKey ?: return 0
@@ -303,6 +320,15 @@ class ReorderState internal constructor(
     }
 
     fun pointerRootY(): Float = pointerY
+
+    fun overlayTop(): Float = pointerY - grabOffsetY
+
+    fun dragToken(): Long = dragSessionToken
+
+    fun dragStartBounds(): Rect? = dragStartBounds
+
+    fun isDraggingSession(key: Any, token: Long): Boolean =
+        draggingKey == key && dragSessionToken == token
 }
 
 internal class ReorderScrollContext(val listState: LazyListState) {
@@ -311,6 +337,109 @@ internal class ReorderScrollContext(val listState: LazyListState) {
 }
 
 internal val LocalReorderScrollContext = compositionLocalOf<ReorderScrollContext?> { null }
+private val LocalReorderOverlayCopy = compositionLocalOf { false }
+
+private data class ReorderOverlayEntry(
+    val key: Any,
+    val token: Long,
+    val state: ReorderState,
+    val scrollContext: ReorderScrollContext?,
+    val content: @Composable () -> Unit,
+)
+
+private class ReorderOverlayRegistry {
+    var entry by mutableStateOf<ReorderOverlayEntry?>(null)
+}
+
+private val LocalReorderOverlayRegistry = compositionLocalOf<ReorderOverlayRegistry?> { null }
+
+@Composable
+fun ReorderOverlayHost(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val registry = remember { ReorderOverlayRegistry() }
+    var hostBounds by remember { mutableStateOf(Rect.Zero) }
+    val density = LocalDensity.current
+    val palette = LocalVibePalette.current
+    Box(
+        modifier.onGloballyPositioned { hostBounds = it.boundsInRoot() },
+    ) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalReorderOverlayRegistry provides registry) {
+            content()
+        }
+        val entry = registry.entry
+        val startBounds = entry?.state?.dragStartBounds()
+        if (entry != null && startBounds != null && entry.state.isDraggingSession(entry.key, entry.token)) {
+            val viewportTop = entry.scrollContext?.viewportTop?.takeIf(Float::isFinite) ?: hostBounds.top
+            val viewportBottom = entry.scrollContext?.viewportBottom?.takeIf(Float::isFinite) ?: hostBounds.bottom
+            val overlayTop = entry.state.overlayTop()
+                .coerceIn(viewportTop, (viewportBottom - startBounds.height).coerceAtLeast(viewportTop))
+            val width = with(density) { startBounds.width.toDp() }
+            val height = with(density) { startBounds.height.toDp() }
+            Box(
+                Modifier
+                    .offset {
+                        IntOffset(
+                            (startBounds.left - hostBounds.left).roundToInt(),
+                            (overlayTop - hostBounds.top).roundToInt(),
+                        )
+                    }
+                    .size(width, height)
+                    .zIndex(10f)
+                    .graphicsLayer {
+                        shadowElevation = 8.dp.toPx()
+                        shape = RoundedCornerShape(VibeShapes.card)
+                        clip = true
+                        ambientShadowColor = Color.Black.copy(alpha = if (palette.isDark) 0.24f else 0.20f)
+                        spotShadowColor = Color.Black.copy(alpha = if (palette.isDark) 0.36f else 0.28f)
+                    }
+                    .background(palette.surfaceFloating)
+                    .border(1.dp, palette.accent.copy(alpha = 0.55f), RoundedCornerShape(VibeShapes.card))
+                    .semantics { contentDescription = "Dragged ${entry.key}" },
+            ) {
+                androidx.compose.runtime.CompositionLocalProvider(LocalReorderOverlayCopy provides true) {
+                    entry.content()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReorderItem(
+    state: ReorderState,
+    itemKey: Any,
+    index: Int,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val registry = LocalReorderOverlayRegistry.current
+    val scrollContext = LocalReorderScrollContext.current
+    val dragging = state.isDragging(itemKey)
+    val token = state.dragToken()
+    SideEffect {
+        if (dragging && registry != null) {
+            registry.entry = ReorderOverlayEntry(itemKey, token, state, scrollContext, content)
+        } else if (registry?.entry?.key == itemKey) {
+            val entry = registry.entry
+            if (entry != null && !state.isDraggingSession(itemKey, entry.token)) {
+                registry.entry = null
+            }
+        }
+    }
+    DisposableEffect(registry, state, itemKey) {
+        onDispose {
+            val entry = registry?.entry
+            if (entry?.key == itemKey && !state.isDraggingSession(itemKey, entry.token)) {
+                registry.entry = null
+            }
+        }
+    }
+    Box(modifier.reorderItemFeedback(state, itemKey, index)) {
+        content()
+    }
+}
 
 @Composable
 internal fun rememberReorderScrollContext(listState: LazyListState): ReorderScrollContext =
@@ -361,7 +490,8 @@ fun ReorderHandle(
     val haptics = rememberVibeHaptics()
     val scrollContext = LocalReorderScrollContext.current
     val dragging = state.isDragging(itemKey)
-    BackHandler(enabled = dragging) { state.cancel() }
+    val overlayCopy = LocalReorderOverlayCopy.current
+    BackHandler(enabled = dragging && !overlayCopy) { state.cancel() }
     var handleTop by remember { mutableFloatStateOf(Float.NaN) }
     val dragInteractions = remember { MutableInteractionSource() }
     val highlight by animateColorAsState(
@@ -383,7 +513,7 @@ fun ReorderHandle(
         }
     }
     LaunchedEffect(dragging, scrollContext) {
-        if (!dragging || scrollContext == null) return@LaunchedEffect
+        if (!dragging || scrollContext == null || overlayCopy) return@LaunchedEffect
         var previousFrame = withFrameNanos { it }
         while (isActive && state.isDragging(itemKey)) {
             val frame = withFrameNanos { it }
@@ -433,7 +563,7 @@ fun ReorderHandle(
             .draggable(
                 state = dragState,
                 orientation = Orientation.Vertical,
-                enabled = enabled,
+                enabled = enabled && !overlayCopy,
                 interactionSource = dragInteractions,
                 onDragStarted = {
                     state.begin(itemKey, handleTop + it.y)
@@ -472,6 +602,7 @@ fun Modifier.reorderItemFeedback(
 ): Modifier {
     val reducedMotion = LocalVibeReducedMotion.current
     val palette = LocalVibePalette.current
+    val hasOverlay = LocalReorderOverlayRegistry.current != null
     val placementOffset = remember(itemKey) { Animatable(0f) }
     var placementRequest by remember(itemKey) { mutableFloatStateOf(0f) }
     LaunchedEffect(placementRequest, reducedMotion) {
@@ -484,32 +615,32 @@ fun Modifier.reorderItemFeedback(
     }
     val dragging = state.isDragging(itemKey)
     val background by animateColorAsState(
-        if (dragging) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent,
+        if (dragging && !hasOverlay) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent,
         if (reducedMotion) snap() else tween(120),
         label = "dragged item background",
     )
     return this
         .onGloballyPositioned {
             val bounds = it.boundsInRoot()
-            val displacement = state.registerItemBounds(itemKey, bounds.top, bounds.bottom)
+            val displacement = state.registerItemBounds(itemKey, bounds.left, bounds.top, bounds.right, bounds.bottom)
             if (displacement != 0f && !state.isDragging(itemKey)) placementRequest = displacement
         }
         .zIndex(if (dragging) 1f else 0f)
         .graphicsLayer {
-            translationY = state.dragOffset(itemKey) + placementOffset.value
-            scaleX = if (dragging && !reducedMotion) 1.015f else 1f
-            scaleY = if (dragging && !reducedMotion) 1.015f else 1f
-            shadowElevation = if (dragging) 8.dp.toPx() else 0f
-            shape = RoundedCornerShape(12.dp)
+            translationY = (if (dragging && hasOverlay) 0f else state.dragOffset(itemKey)) + placementOffset.value
+            scaleX = if (dragging && !hasOverlay && !reducedMotion) 1.015f else 1f
+            scaleY = if (dragging && !hasOverlay && !reducedMotion) 1.015f else 1f
+            shadowElevation = if (dragging && !hasOverlay) 8.dp.toPx() else 0f
+            shape = RoundedCornerShape(VibeShapes.card)
             ambientShadowColor = Color.Black.copy(alpha = if (palette.isDark) 0.24f else 0.20f)
             spotShadowColor = Color.Black.copy(alpha = if (palette.isDark) 0.36f else 0.28f)
         }
-        .clip(RoundedCornerShape(12.dp))
+        .clip(RoundedCornerShape(VibeShapes.card))
         .background(background)
         .then(
-            if (dragging) {
+            if (dragging && !hasOverlay) {
                 Modifier
-                    .border(1.dp, palette.accent.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                    .border(1.dp, palette.accent.copy(alpha = 0.55f), RoundedCornerShape(VibeShapes.card))
                     .drawBehind {
                         val y = if (state.dragOffset(itemKey) >= 0f) size.height else 0f
                         drawLine(palette.accent, Offset(6.dp.toPx(), y), Offset(size.width - 6.dp.toPx(), y), 2.dp.toPx())
@@ -518,4 +649,12 @@ fun Modifier.reorderItemFeedback(
                 Modifier
             },
         )
+        .drawWithContent {
+            if (!dragging || !hasOverlay) {
+                drawContent()
+            } else {
+                val y = if (state.dragOffset(itemKey) >= 0f) size.height else 0f
+                drawLine(palette.accent, Offset(6.dp.toPx(), y), Offset(size.width - 6.dp.toPx(), y), 2.dp.toPx())
+            }
+        }
 }

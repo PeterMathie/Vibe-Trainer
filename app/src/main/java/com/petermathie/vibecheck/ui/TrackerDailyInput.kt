@@ -37,6 +37,7 @@ import com.petermathie.vibecheck.data.local.TrackerDailyValueEntity
 import com.petermathie.vibecheck.data.local.TrackerFieldEntity
 import com.petermathie.vibecheck.domain.tracker.HabitChoiceOption
 import com.petermathie.vibecheck.domain.tracker.decodeHabitChoices
+import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 
 @Composable
@@ -138,7 +139,11 @@ private fun ChoiceInput(
     var expanded by remember { mutableStateOf(false) }
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium)
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        ) {
             Text(selectedLabel.ifBlank { "Choose…" })
         }
     }
@@ -174,7 +179,7 @@ private fun ChoiceInput(
                             color = container,
                             contentColor = if (displayed.luminance() > 0.5f) Color.Black else Color.White,
                             border = if (option.id == selectedId || selectedId == null && option.label == selectedLabel) BorderStroke(2.dp, palette.textPrimary) else null,
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(VibeShapes.control),
                         ) {
                             Text(
                                 option.label,

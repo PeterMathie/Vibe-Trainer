@@ -13,6 +13,10 @@ import com.petermathie.vibecheck.ui.TrackerScreen
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import com.petermathie.vibecheck.domain.tracker.HabitChoiceIntensity
 import com.petermathie.vibecheck.domain.tracker.decodeHabitChoices
+import com.petermathie.vibecheck.domain.tracker.encodeHabitChoices
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceOption
+import com.petermathie.vibecheck.ui.HabitFieldDialog
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -150,6 +154,7 @@ class HabitUiTest {
                 listOf(TrackerEntity("disposable", "Disposable", false)),
             )
         }
+
         val viewModel = EditorViewModel(database)
         compose.setContent { VibeCheckTheme { TrackerScreen(viewModel) } }
 
@@ -169,5 +174,61 @@ class HabitUiTest {
             runBlocking { database.editorDao().trackers().first().isEmpty() }
         }
         compose.onNodeWithText("Disposable").assertDoesNotExist()
+    }
+
+    @Test(timeout = 120_000)
+    fun deletingChoicesAcrossBucketsAllowsEmptyGroupsWithoutStaleKeys() {
+        database = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext<Context>(),
+            VibeDatabase::class.java,
+        ).build()
+        val options = listOf(
+            HabitChoiceOption("light-only", "Light only", HabitChoiceIntensity.LIGHT, 0),
+            HabitChoiceOption("medium-only", "Medium only", HabitChoiceIntensity.MEDIUM, 0),
+            HabitChoiceOption("dark-a", "Dark A", HabitChoiceIntensity.DARK, 0),
+            HabitChoiceOption("dark-b", "Dark B", HabitChoiceIntensity.DARK, 1),
+            HabitChoiceOption("dark-c", "Dark C", HabitChoiceIntensity.DARK, 2),
+        )
+        val field = com.petermathie.vibecheck.data.local.TrackerFieldEntity(
+            id = "choices",
+            trackerId = "tracker",
+            name = "Feeling",
+            valueType = "CHOICE",
+            unit = null,
+            targetComparison = null,
+            targetValue = null,
+            position = 0,
+            choiceOptions = options.joinToString("\n", transform = HabitChoiceOption::label),
+            choiceOptionsJson = encodeHabitChoices(options),
+        )
+        runBlocking {
+            database.trackerDao().insertTrackers(listOf(TrackerEntity("tracker", "Mood", false)))
+            database.trackerDao().insertFields(listOf(field))
+        }
+        val viewModel = EditorViewModel(database)
+        compose.setContent {
+            VibeCheckTheme {
+                HabitFieldDialog(viewModel, field, Color(0xFF42A5F5), {})
+            }
+        }
+
+        compose.onNodeWithContentDescription("Remove Light only").performScrollTo().performClick()
+        compose.onNodeWithText("Light · 0").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Remove Medium only").performScrollTo().performClick()
+        compose.onNodeWithText("Medium · 0").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Remove Dark A").performScrollTo().performClick()
+        compose.onNodeWithText("Dark · 2").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Save").performClick()
+
+        compose.waitUntil(15_000) {
+            runBlocking {
+                decodeHabitChoices(database.editorDao().fields().first().single()).map {
+                    Triple(it.id, it.intensity, it.position)
+                }
+            } == listOf(
+                Triple("dark-b", HabitChoiceIntensity.DARK, 0),
+                Triple("dark-c", HabitChoiceIntensity.DARK, 1),
+            )
+        }
     }
 }

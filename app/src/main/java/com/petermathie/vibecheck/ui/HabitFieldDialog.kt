@@ -73,8 +73,9 @@ internal fun HabitFieldDialog(
         onDismissRequest = dismiss,
         title = { Text("What would you like to track?") },
         text = {
-            CompositionLocalProvider(LocalReorderScrollContext provides reorderContext) {
-                LazyColumn(state = listState, modifier = Modifier.reorderScrollViewport(reorderContext)) {
+            ReorderOverlayHost(Modifier.fillMaxWidth()) {
+                CompositionLocalProvider(LocalReorderScrollContext provides reorderContext) {
+                    LazyColumn(state = listState, modifier = Modifier.reorderScrollViewport(reorderContext)) {
                     item {
                     Text("Add one thing you want to record for this habit.")
                     EditField("Name, for example Minutes or Protein", form.name) {
@@ -120,6 +121,7 @@ internal fun HabitFieldDialog(
                             EditField("Maximum goal", form.targetMaximum) {
                                 form = form.copy(targetMaximum = it)
                             }
+                        }
                         }
                     }
                     }
@@ -220,7 +222,9 @@ internal fun ChoiceScaleEditor(
     }
     val heatmapColors = LocalVibePalette.current.habitHeatmapColors(habitColour)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        val displayedKeys = choiceOrder.keysSnapshot()
+        val markerKeys = HabitChoiceIntensity.entries.map(::marker).toSet()
+        val choiceIds = choices.mapTo(mutableSetOf(), ChoiceDraft::id)
+        val displayedKeys = choiceOrder.keysSnapshot().filter { it in markerKeys || it in choiceIds }
         displayedKeys.forEachIndexed { orderIndex, orderedKey ->
             key(orderedKey) {
                 val intensity = HabitChoiceIntensity.entries.firstOrNull { marker(it) == orderedKey }
@@ -246,39 +250,41 @@ internal fun ChoiceScaleEditor(
                             },
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        ReorderItem(choiceOrder, orderedKey, orderIndex) {
+                            Surface(
+                                color = shadeColor.copy(alpha = 0.18f),
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(if (count == 0) 48.dp else 1.dp)
+                                    .semantics { contentDescription = "${intensity.name.lowercase()} choice drop target" },
+                            ) {}
+                        }
+                    }
+                } else {
+                    choices.firstOrNull { it.id == orderedKey }?.let { choice ->
+                        ReorderItem(choiceOrder, choice.id, orderIndex) {
                         Surface(
-                            color = shadeColor.copy(alpha = 0.18f),
+                            color = shadeColor,
                             shape = MaterialTheme.shapes.medium,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(if (count == 0) 48.dp else 1.dp)
-                                .reorderItemFeedback(choiceOrder, orderedKey, orderIndex)
-                                .semantics { contentDescription = "${intensity.name.lowercase()} choice drop target" },
-                        ) {}
-                    }
-                } else {
-                    val choice = choices.first { it.id == orderedKey }
-                    Surface(
-                        color = shadeColor,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .reorderItemFeedback(choiceOrder, choice.id, orderIndex)
-                            .semantics {
-                                contentDescription = "${choice.value.ifBlank { "Unnamed choice" }} intensity controls"
-                                customActions = HabitChoiceIntensity.entries
-                                    .filter { it != choice.intensity }
-                                    .map { target ->
-                                        CustomAccessibilityAction("Move to ${target.name.lowercase().replaceFirstChar(Char::uppercase)}") {
-                                            val targetPosition = choices.count { it.intensity == target }
-                                            val itemIndex = choices.indexOfFirst { it.id == choice.id }
-                                            choices[itemIndex] = choice.copy(intensity = target, position = targetPosition)
-                                            syncChoices()
-                                            true
+                                .semantics {
+                                    contentDescription = "${choice.value.ifBlank { "Unnamed choice" }} intensity controls"
+                                    customActions = HabitChoiceIntensity.entries
+                                        .filter { it != choice.intensity }
+                                        .map { target ->
+                                            CustomAccessibilityAction("Move to ${target.name.lowercase().replaceFirstChar(Char::uppercase)}") {
+                                                val targetPosition = choices.count { it.intensity == target }
+                                                val itemIndex = choices.indexOfFirst { it.id == choice.id }
+                                                if (itemIndex < 0) return@CustomAccessibilityAction false
+                                                choices[itemIndex] = choice.copy(intensity = target, position = targetPosition)
+                                                syncChoices()
+                                                true
+                                            }
                                         }
-                                    }
-                            },
-                    ) {
+                                },
+                        ) {
                     Row(
                         Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -312,6 +318,7 @@ internal fun ChoiceScaleEditor(
                         IconButton(
                             enabled = choices.size > 2,
                             onClick = {
+                                choiceOrder.cancel()
                                 choices.removeAll { it.id == choice.id }
                                 syncChoices()
                             },
@@ -321,6 +328,8 @@ internal fun ChoiceScaleEditor(
                                 contentDescription = "Remove ${choice.value.ifBlank { "choice ${choice.position + 1}" }}",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            }
+                        }
                         }
                     }
                 }
@@ -340,6 +349,7 @@ internal fun ChoiceScaleEditor(
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics { contentDescription = "Add choice" },
+            shape = MaterialTheme.shapes.medium,
         ) {
             Icon(Icons.Outlined.Add, contentDescription = null)
         }

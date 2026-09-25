@@ -53,7 +53,9 @@ class MeasurementsUiTest {
             }
         }
 
-        compose.onNodeWithText(LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy"))).assertExists()
+        compose.onAllNodesWithText(
+            LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy")),
+        ).onFirst().assertIsDisplayed()
         compose.onNodeWithContentDescription("Bodyweight").performTextInput("78.126")
         compose.onNodeWithText("Save bodyweight").performClick()
         compose.waitUntil(15_000) {
@@ -70,7 +72,7 @@ class MeasurementsUiTest {
             runBlocking { database.editorDao().measurements().first().single().value == 80.0 }
         }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Bodyweight: 80.00 kg"))
-        compose.onNodeWithText("Bodyweight: 80.00 kg").assertIsDisplayed()
+        compose.onAllNodesWithText("Bodyweight: 80.00 kg").onFirst().assertIsDisplayed()
         compose.onNodeWithContentDescription("Progress chart", substring = true).assertExists()
         scrollUntilVisible("Calendar")
         scrollUntilVisible("Photos")

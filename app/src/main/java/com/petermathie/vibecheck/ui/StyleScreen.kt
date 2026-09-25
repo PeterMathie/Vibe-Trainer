@@ -81,7 +81,11 @@ internal fun StyleScreen(
             VibeCard {
                 Text("Development data", style = MaterialTheme.typography.titleLarge)
                 Text("Remove all fake personal history while keeping the complete exercise catalogue and your own data.", color = LocalVibePalette.current.textSecondary)
-                OutlinedButton(onClick = { confirmRemoveDemo = true }, modifier = Modifier.fillMaxWidth()) { Text("Remove demo data") }
+                OutlinedButton(
+                    onClick = { confirmRemoveDemo = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                ) { Text("Remove demo data") }
                 demoMessage?.let { Text(it, color = LocalVibePalette.current.textSecondary) }
             }
         }

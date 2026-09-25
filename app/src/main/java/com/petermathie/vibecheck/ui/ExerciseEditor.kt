@@ -123,19 +123,25 @@ fun ExerciseEditor(vm: EditorViewModel) {
                     vm.moveVariation(key as String, to - from)
                 }
                 (seededVariations + variationOrder.ordered(customVariations) { it.id }).forEachIndexed { index, v ->
-                    Row(
-                        Modifier
-                            .then(
-                                if (v.isSeeded) Modifier
-                                else Modifier.reorderItemFeedback(variationOrder, v.id, index - seededVariations.size)
-                            )
-                            .animateContentSize(),
-                    ) {
-                        if (!v.isSeeded && customVariations.size > 1) ReorderHandle(variationOrder, v.id, v.name)
-                        Text(v.name,Modifier.weight(1f))
-                        IconButton(onClick = { configuringVariation = v }) {
-                            Icon(Icons.Outlined.Settings, contentDescription = "Settings for ${v.name}")
+                    val variationContent: @Composable () -> Unit = {
+                        Row(Modifier.fillMaxWidth().animateContentSize()) {
+                            if (!v.isSeeded && customVariations.size > 1) ReorderHandle(variationOrder, v.id, v.name)
+                            Text(v.name,Modifier.weight(1f))
+                            IconButton(onClick = { configuringVariation = v }) {
+                                Icon(Icons.Outlined.Settings, contentDescription = "Settings for ${v.name}")
+                            }
                         }
+                    }
+                    if (v.isSeeded) {
+                        variationContent()
+                    } else {
+                        ReorderItem(
+                            variationOrder,
+                            v.id,
+                            index - seededVariations.size,
+                            Modifier.fillMaxWidth(),
+                            variationContent,
+                        )
                     }
                 }
                 videos.filter { it.exerciseId == e.id }.forEach { video ->
