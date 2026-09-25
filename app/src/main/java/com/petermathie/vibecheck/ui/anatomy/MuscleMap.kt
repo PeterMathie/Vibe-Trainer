@@ -36,6 +36,7 @@ import kotlin.math.min
 enum class AnatomyView { FRONT, BACK }
 
 internal const val MUSCLE_COLOR_TRANSITION_MILLIS = 70
+internal const val RENDER_NEUTRAL_BODY_OUTLINE = false
 
 private data class ParsedOutline(val def: OutlinePathDef, val path: Path)
 private data class ParsedMuscle(val def: MusclePathDef, val path: Path, val region: Region)
@@ -125,8 +126,10 @@ fun MuscleMap(
             translate(offsetX, offsetY)
             scale(scale, scale, Offset.Zero)
         }) {
-            outlines.forEach { item ->
-                drawPathWithMirror(item.path, item.def.side, diagram.centerX, Color.Transparent, palette.diagramLine)
+            if (RENDER_NEUTRAL_BODY_OUTLINE) {
+                outlines.forEach { item ->
+                    drawPathWithMirror(item.path, item.def.side, diagram.centerX, Color.Transparent, palette.diagramLine)
+                }
             }
             muscles.forEach { item ->
                 val color = animatedColors.getValue(item.def.group)
