@@ -70,7 +70,11 @@ object DataTransfer {
                         }
                         row.put("choiceOptionsJson", encodeHabitChoices(options))
                     }
-                    if (table == "tracker_daily_values" && (!row.has("choiceOptionId") || !row.has("choiceIntensity"))) {
+                    if (
+                        table == "tracker_daily_values" &&
+                        (!row.has("choiceOptionId") || row.isNull("choiceOptionId") ||
+                            !row.has("choiceIntensity") || row.isNull("choiceIntensity"))
+                    ) {
                         if (!row.has("choiceOptionId")) row.put("choiceOptionId", JSONObject.NULL)
                         if (!row.has("choiceIntensity")) row.put("choiceIntensity", JSONObject.NULL)
                         val text = row.optString("textValue").takeIf(String::isNotBlank)

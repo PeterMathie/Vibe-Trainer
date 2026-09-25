@@ -142,8 +142,10 @@ class ImportValidationTest {
         rejected(rows("tracker_daily_values",fixture("tracker_daily_values").put("epochDay",Long.MAX_VALUE)), "calendar range")
         val choiceField=fixture("tracker_fields").put("id","choice-field").put("valueType","CHOICE").put("unit",JSONObject.NULL)
             .put("targetComparison",JSONObject.NULL).put("targetValue",JSONObject.NULL).put("targetMaxValue",JSONObject.NULL).put("choiceOptions","Good\nBad")
+        choiceField.remove("choiceOptionsJson")
         val choiceValue=fixture("tracker_daily_values").put("fieldId","choice-field").put("numericValue",JSONObject.NULL).put("booleanValue",JSONObject.NULL).put("textValue","Unknown")
-        rejected(rows("tracker_fields",choiceField).put("tracker_daily_values",JSONArray().put(choiceValue)), "configured option")
+            .put("choiceOptionId","choice-field:bad").put("choiceIntensity","INVALID")
+        rejected(rows("tracker_fields",choiceField).put("tracker_daily_values",JSONArray().put(choiceValue)), "choiceIntensity")
     }
 
     @Test(timeout=120000) fun failedZeroAndBooleanInputAreAccepted() = runBlocking {

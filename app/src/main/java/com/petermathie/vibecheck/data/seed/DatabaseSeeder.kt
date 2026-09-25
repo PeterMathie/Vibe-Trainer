@@ -324,15 +324,23 @@ class DatabaseSeeder @Inject constructor(
                         ),
                     )
                 }
+                val moodOption = legacyHabitChoices(
+                    "demo-mood-feeling",
+                    MOOD_CHOICES.joinToString("\n"),
+                    2,
+                    6,
+                )[(week + day) % MOOD_CHOICES.size]
                 database.trackerDao().upsertValue(
                     TrackerDailyValueEntity(
                         "demo-mood-feeling",
                         weekStart + day,
                         null,
                         null,
-                        MOOD_CHOICES[(week + day) % MOOD_CHOICES.size],
+                        moodOption.label,
                         "",
                         now,
+                        moodOption.id,
+                        moodOption.intensity.name,
                     ),
                 )
                 if (day in listOf(1, 4)) {
