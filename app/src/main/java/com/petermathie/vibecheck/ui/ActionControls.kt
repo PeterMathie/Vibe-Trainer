@@ -7,6 +7,9 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -33,11 +36,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
@@ -49,6 +54,8 @@ import androidx.compose.ui.zIndex
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
+import com.petermathie.vibecheck.ui.theme.LocalVibeMotion
+import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 
 enum class ActionImportance {
     PRIMARY,
@@ -66,6 +73,16 @@ fun VibeActionButton(
     icon: ImageVector? = null,
 ) {
     val haptics = rememberVibeHaptics()
+    val reducedMotion = LocalVibeReducedMotion.current
+    val motion = LocalVibeMotion.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressOffset by animateFloatAsState(
+        if (pressed && !reducedMotion) 1f else 0f,
+        if (reducedMotion) snap() else tween(if (pressed) motion.pressInMillis else motion.pressOutMillis),
+        label = "action press depth",
+    )
+    val buttonModifier = modifier.graphicsLayer { translationY = pressOffset.dp.toPx() }
     val click = {
         if (label == "Edit") haptics.perform(VibeHapticEvent.EDIT)
         onClick()
@@ -75,9 +92,9 @@ fun VibeActionButton(
         Text(label)
     }
     when (importance) {
-        ActionImportance.PRIMARY -> Button(click, modifier, enabled, content = content)
-        ActionImportance.SECONDARY -> OutlinedButton(click, modifier, enabled, content = content)
-        ActionImportance.COMPACT -> FilledTonalButton(click, modifier, enabled, content = content)
+        ActionImportance.PRIMARY -> Button(click, buttonModifier, enabled, interactionSource = interactionSource, content = content)
+        ActionImportance.SECONDARY -> OutlinedButton(click, buttonModifier, enabled, interactionSource = interactionSource, content = content)
+        ActionImportance.COMPACT -> FilledTonalButton(click, buttonModifier, enabled, interactionSource = interactionSource, content = content)
     }
 }
 
@@ -207,7 +224,7 @@ fun ReorderHandle(
         label = "reorder handle highlight",
     )
     val scale by animateFloatAsState(
-        if (dragging) 1.05f else 1f,
+        if (dragging) 1.015f else 1f,
         if (reducedMotion) snap() else tween(120),
         label = "reorder handle scale",
     )
@@ -278,6 +295,7 @@ fun Modifier.reorderItemFeedback(
     index: Int,
 ): Modifier {
     val reducedMotion = LocalVibeReducedMotion.current
+    val palette = LocalVibePalette.current
     val rowHeight = with(LocalDensity.current) { 48.dp.toPx() }
     val placementOffset = remember(itemKey) { Animatable(0f) }
     var previousIndex by remember(itemKey) { mutableIntStateOf(index) }
@@ -301,9 +319,25 @@ fun Modifier.reorderItemFeedback(
         .zIndex(if (dragging) 1f else 0f)
         .graphicsLayer {
             translationY = state.dragOffset(itemKey) + placementOffset.value
-            scaleX = if (dragging && !reducedMotion) 1.01f else 1f
-            scaleY = if (dragging && !reducedMotion) 1.01f else 1f
+            scaleX = if (dragging && !reducedMotion) 1.015f else 1f
+            scaleY = if (dragging && !reducedMotion) 1.015f else 1f
+            shadowElevation = if (dragging) 8.dp.toPx() else 0f
+            shape = RoundedCornerShape(12.dp)
+            ambientShadowColor = Color.Black.copy(alpha = if (palette.isDark) 0.24f else 0.20f)
+            spotShadowColor = Color.Black.copy(alpha = if (palette.isDark) 0.36f else 0.28f)
         }
         .clip(RoundedCornerShape(12.dp))
         .background(background)
+        .then(
+            if (dragging) {
+                Modifier
+                    .border(1.dp, palette.accent.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                    .drawBehind {
+                        val y = if (state.dragOffset(itemKey) >= 0f) size.height else 0f
+                        drawLine(palette.accent, Offset(6.dp.toPx(), y), Offset(size.width - 6.dp.toPx(), y), 2.dp.toPx())
+                    }
+            } else {
+                Modifier
+            },
+        )
 }

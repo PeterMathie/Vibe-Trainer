@@ -56,6 +56,13 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -80,6 +87,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibecheck.domain.model.ActivityDay
@@ -103,6 +111,7 @@ import com.petermathie.vibecheck.ui.theme.VibeThemeMode
 import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
 import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
+import com.petermathie.vibecheck.ui.theme.LocalVibeMotion
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import com.petermathie.vibecheck.ui.theme.habitHeatmapColors
 import com.petermathie.vibecheck.ui.theme.heatmapOutlineColor
@@ -159,6 +168,8 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
     }
 
     VibeCheckTheme(palette) {
+        val motion = LocalVibeMotion.current
+        val travelPx = with(LocalDensity.current) { motion.travelDp.dp.roundToPx() }
         if (state.selectedHistoryDay != null) {
             BackHandler { viewModel.selectHistoryDay(null) }
             HistoryDayScreen(
@@ -178,7 +189,20 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
             BackHandler(destination in moreDestinations) { destination = Destination.MORE }
             Column(Modifier.fillMaxSize().padding(padding)) {
                 if(error != null) TextButton(onClick = { editor.error.value = null }) { Text(error.orEmpty(),color=MaterialTheme.colorScheme.error) }
-                when (destination) {
+                AnimatedContent(
+                    targetState = destination,
+                    modifier = Modifier.weight(1f),
+                    transitionSpec = {
+                        if (motion.travelDp == 0) {
+                            fadeIn(tween(motion.pageEnterMillis)) togetherWith fadeOut(tween(motion.pageExitMillis))
+                        } else {
+                            (fadeIn(tween(motion.pageEnterMillis)) + slideInHorizontally(tween(motion.pageEnterMillis)) { travelPx }) togetherWith
+                                (fadeOut(tween(motion.pageExitMillis)) + slideOutHorizontally(tween(motion.pageExitMillis)) { -travelPx })
+                        }
+                    },
+                    label = "destination content",
+                ) { visibleDestination ->
+                when (visibleDestination) {
                     Destination.HOME -> HomeScreen(
                         state,
                         viewModel::selectHistoryDay,
@@ -223,6 +247,7 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
                         { themeMode = it; prefs.edit().putString("themeMode", it.id).apply() },
                     ) { result -> viewModel.removeDemoData(result) }
                     Destination.ARCHIVE -> ArchiveScreen(editor)
+                }
                 }
             }
         }
