@@ -36,6 +36,8 @@ import com.petermathie.vibecheck.domain.progress.PersonalRecordVisibility
 import com.petermathie.vibecheck.domain.model.ActivityDay
 import com.petermathie.vibecheck.domain.tracker.HabitFieldForm
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
+import com.petermathie.vibecheck.ui.components.VibeGraph
+import com.petermathie.vibecheck.ui.components.VibeGraphStyle
 import java.time.Instant
 import java.time.ZoneId
 import java.io.File
@@ -506,88 +508,25 @@ private fun ProgressExercisePicker(
 
 @Composable
 fun MiniChart(values:List<Double>,smooth:List<Double?> = emptyList(),dates:List<Long> = emptyList(),unit:String = "",onSelect:(Int)->Unit) {
-    val color=MaterialTheme.colorScheme.primary; val secondary=MaterialTheme.colorScheme.secondary;val axis=MaterialTheme.colorScheme.outline
-    val finite=values.filter { it.isFinite() }
-    if(finite.isEmpty())return
-    val min=finite.minOrNull() ?: 0.0;val max=finite.maxOrNull() ?: 1.0
-    fun select(x:Float,width:Float) {
-        if(values.isNotEmpty())onSelect(((x/width)*(values.size-1)).toInt().coerceIn(values.indices))
-    }
-    Column(Modifier.semantics { contentDescription="Progress chart from ${formatChartDate(dates.firstOrNull())} to ${formatChartDate(dates.lastOrNull())}, $min to $max $unit" }) {
-        Text("${formatAxis(max)} $unit",style=MaterialTheme.typography.labelSmall)
-        Canvas(Modifier.fillMaxWidth().height(130.dp)
-            .pointerInput(values){detectTapGestures { select(it.x,size.width.toFloat()) }}
-            .pointerInput(values){awaitPointerEventScope { while(true) { val event=awaitPointerEvent();if(event.type==PointerEventType.Move || event.type==PointerEventType.Enter)event.changes.firstOrNull()?.position?.let { select(it.x,size.width.toFloat()) } } }}) {
-        val finite=values.filter { it.isFinite() }
-        if(finite.isEmpty())return@Canvas
-        val min=finite.minOrNull() ?: 0.0;val max=finite.maxOrNull() ?: 1.0;val span=(max-min).coerceAtLeast(1.0)
-        fun point(i:Int,v:Double)=Offset(if(values.size==1)size.width/2 else 16+(size.width-24)*i/(values.size-1),size.height-12-((v-min)/span*(size.height-20)).toFloat())
-        drawLine(axis,Offset(12f,4f),Offset(12f,size.height-10f),2f)
-        drawLine(axis,Offset(12f,size.height-10f),Offset(size.width,size.height-10f),2f)
-        values.forEachIndexed { i,v -> if(v.isFinite()) { if(i>0 && values[i-1].isFinite())drawLine(color,point(i-1,values[i-1]),point(i,v),3f);drawCircle(color,5f,point(i,v)) } }
-        smooth.forEachIndexed { i,v -> if(i>0 && v!=null && smooth[i-1]!=null)drawLine(secondary,point(i-1,smooth[i-1]!!),point(i,v),5f) }
-        }
-        Row(Modifier.fillMaxWidth()) {
-            Text(formatChartDate(dates.firstOrNull()),style=MaterialTheme.typography.labelSmall,modifier=Modifier.weight(1f))
-            Text(formatChartDate(dates.lastOrNull()),style=MaterialTheme.typography.labelSmall,textAlign=TextAlign.End,modifier=Modifier.weight(1f))
-        }
-        Text("${formatAxis(min)} $unit",style=MaterialTheme.typography.labelSmall)
-    }
+    VibeGraph(
+        values = values,
+        secondaryValues = smooth,
+        dates = dates,
+        unit = unit,
+        onSelect = onSelect,
+    )
 }
 
 @Composable
 private fun RpeBarChart(values: List<Double>, dates: List<Long>, onSelect: (Int) -> Unit) {
-    if (values.none(Double::isFinite)) return
-    val color = MaterialTheme.colorScheme.primary
-    val axis = MaterialTheme.colorScheme.outline
-    fun select(x: Float, width: Float) {
-        if (values.isNotEmpty()) onSelect(((x / width) * values.size).toInt().coerceIn(values.indices))
-    }
-    Column(
-        Modifier.semantics {
-            contentDescription =
-                "Progress chart from ${formatChartDate(dates.firstOrNull())} to ${formatChartDate(dates.lastOrNull())}, 0 to 10 RPE"
-        },
-    ) {
-        Text("10 RPE", style = MaterialTheme.typography.labelSmall)
-        Canvas(
-            Modifier.fillMaxWidth().height(130.dp)
-                .pointerInput(values) { detectTapGestures { select(it.x, size.width.toFloat()) } }
-                .pointerInput(values) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            if (event.type == PointerEventType.Move || event.type == PointerEventType.Enter) {
-                                event.changes.firstOrNull()?.position?.let { select(it.x, size.width.toFloat()) }
-                            }
-                        }
-                    }
-                },
-        ) {
-            val left = 12f
-            val bottom = size.height - 10f
-            val top = 4f
-            val slot = (size.width - left) / values.size
-            val barWidth = (slot * 0.72f).coerceAtLeast(1f)
-            drawLine(axis, Offset(left, top), Offset(left, bottom), 2f)
-            drawLine(axis, Offset(left, bottom), Offset(size.width, bottom), 2f)
-            values.forEachIndexed { index, value ->
-                if (value.isFinite()) {
-                    val height = ((value.coerceIn(0.0, 10.0) / 10.0) * (bottom - top)).toFloat()
-                    drawRect(
-                        color = color,
-                        topLeft = Offset(left + index * slot + (slot - barWidth) / 2f, bottom - height),
-                        size = androidx.compose.ui.geometry.Size(barWidth, height),
-                    )
-                }
-            }
-        }
-        Row(Modifier.fillMaxWidth()) {
-            Text(formatChartDate(dates.firstOrNull()), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            Text(formatChartDate(dates.lastOrNull()), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
-        }
-        Text("0 RPE", style = MaterialTheme.typography.labelSmall)
-    }
+    VibeGraph(
+        values = values,
+        dates = dates,
+        unit = "RPE",
+        style = VibeGraphStyle.BARS,
+        fixedRange = 0.0..10.0,
+        onSelect = onSelect,
+    )
 }
 
 private fun formatChartDate(value:Long?):String=value?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate().toString() }.orEmpty()
