@@ -13,6 +13,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -21,12 +22,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.selected
@@ -48,6 +49,7 @@ fun VibeSurface(
     state: VibeSurfaceState = VibeSurfaceState.RESTING,
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
+    shape: Shape? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val palette = LocalVibePalette.current
@@ -67,7 +69,7 @@ fun VibeSurface(
         if (reducedMotion) snap() else tween(if (pressed) motion.pressInMillis else motion.pressOutMillis),
         label = "surface shadow",
     )
-    val shape = RoundedCornerShape(
+    val resolvedShape = shape ?: RoundedCornerShape(
         when (level) {
             VibeSurfaceLevel.PAGE, VibeSurfaceLevel.INSET -> VibeShapes.control
             VibeSurfaceLevel.FLOATING, VibeSurfaceLevel.MODAL -> VibeShapes.panel
@@ -102,13 +104,13 @@ fun VibeSurface(
         modifier
             .graphicsLayer {
                 shadowElevation = shadow.toPx()
-                this.shape = shape
-                clip = false
+                this.shape = resolvedShape
+                clip = true
                 ambientShadowColor = Color.Black.copy(alpha = if (palette.isDark) 0.24f else 0.18f)
                 spotShadowColor = Color.Black.copy(alpha = if (palette.isDark) 0.38f else 0.28f)
                 translationY = if (pressed && !reducedMotion) 1.dp.toPx() else 0f
             }
-            .background(fill, shape)
+            .background(fill)
             .drawWithCache {
                 val highlight = Brush.verticalGradient(
                     0f to palette.textPrimary.copy(alpha = elevation.topEdgeAlpha),
@@ -122,16 +124,18 @@ fun VibeSurface(
                     }
                 }
             }
-            .border(BorderStroke(1.dp, borderColor), shape)
-            .then(if (focused) Modifier.border(2.dp, palette.focusRing, shape) else Modifier)
-            .clip(shape)
+            .border(BorderStroke(1.dp, borderColor), resolvedShape)
+            .then(if (focused) Modifier.border(2.dp, palette.focusRing, resolvedShape) else Modifier)
             .then(interactive)
             .semantics {
                 if (!enabled) disabled()
                 if (state == VibeSurfaceState.SELECTED) selected = true
             },
     ) {
-        CompositionLocalProvider(LocalVibeSurfaceLevel provides level) {
+        CompositionLocalProvider(
+            LocalVibeSurfaceLevel provides level,
+            LocalContentColor provides if (enabled) palette.textPrimary else palette.textSecondary,
+        ) {
             content()
         }
     }

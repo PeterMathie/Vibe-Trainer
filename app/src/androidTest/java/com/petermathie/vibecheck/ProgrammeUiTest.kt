@@ -2,8 +2,12 @@ package com.petermathie.vibecheck
 
 import android.content.Context
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.Density
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -59,6 +63,10 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Alpha").performClick()
         compose.onNodeWithContentDescription("Read-only exercises for Alpha").assertIsDisplayed()
         compose.onNodeWithText("Bench press").assertIsDisplayed()
+        assertTrue(
+            compose.onNodeWithText("Bench press").fetchSemanticsNode().boundsInRoot.top >
+                compose.onNodeWithText("Alpha").fetchSemanticsNode().boundsInRoot.bottom,
+        )
         compose.onNodeWithText("3 sets · 5–8 reps · 120s rest").assertIsDisplayed()
         compose.onNodeWithContentDescription("Edit targets for Bench press").assertDoesNotExist()
         compose.onNodeWithContentDescription("Edit prescription for Bench press").assertDoesNotExist()
@@ -89,6 +97,44 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Duplicate").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Delete").assertIsDisplayed()
         compose.onNodeWithText("Archive").assertIsDisplayed()
+    }
+
+    @Test
+    fun expandedExercisesRemainBelowLongHeaderAtLargeFontScales() {
+        seedProgramme()
+        val longName = "Long programme name that wraps without covering exercises"
+        runBlocking {
+            database.editorDao().programme(
+                database.editorDao().programmes().first().single().copy(name = longName),
+            )
+        }
+        val fontScale = mutableStateOf(1f)
+        val viewModel = EditorViewModel(database)
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale.value)) {
+                VibeCheckTheme {
+                    ProgrammeEditor(viewModel, TrainingMode.STRENGTH, {}, { _, _ -> })
+                }
+            }
+        }
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithText(longName).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(longName).performClick()
+
+        listOf(1f, 1.3f, 2f).forEach { scale ->
+            compose.runOnIdle { fontScale.value = scale }
+            compose.waitForIdle()
+            val title = compose.onNodeWithText(longName).fetchSemanticsNode().boundsInRoot
+            val edit = compose.onNodeWithContentDescription("Edit programme $longName").fetchSemanticsNode().boundsInRoot
+            val start = compose.onNodeWithContentDescription("Start $longName").fetchSemanticsNode().boundsInRoot
+            val exercise = compose.onNodeWithText("Bench press").fetchSemanticsNode().boundsInRoot
+            assertTrue(
+                "Expanded exercise overlaps header at ${scale}x: exercise=$exercise title=$title edit=$edit start=$start",
+                exercise.top > maxOf(title.bottom, edit.bottom, start.bottom),
+            )
+        }
     }
 
     @Test

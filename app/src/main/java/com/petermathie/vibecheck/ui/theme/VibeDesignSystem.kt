@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -17,6 +18,7 @@ import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -289,11 +291,21 @@ object VibeSpacing {
 }
 
 object VibeShapes {
-    val small = 8.dp
-    val control = 12.dp
-    val card = 16.dp
-    val panel = 20.dp
+    val tooltip = 4.dp
+    val small = 6.dp
+    val control = 8.dp
+    val card = 8.dp
+    val panel = 12.dp
+    val dialog = 12.dp
 }
+
+private val VibeMaterialShapes = Shapes(
+    extraSmall = RoundedCornerShape(VibeShapes.tooltip),
+    small = RoundedCornerShape(VibeShapes.small),
+    medium = RoundedCornerShape(VibeShapes.control),
+    large = RoundedCornerShape(VibeShapes.panel),
+    extraLarge = RoundedCornerShape(VibeShapes.dialog),
+)
 
 val VibeDashboardTypography = DashboardTypography(
     metricXL = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 40.sp, lineHeight = 44.sp, letterSpacing = (-0.5).sp, fontFeatureSettings = "tnum"),
@@ -421,7 +433,12 @@ fun VibeCheckTheme(
         LocalVibeMotion provides VibeMotion.resolve(reducedMotion),
         LocalRippleConfiguration provides if(reducedMotion) null else RippleConfiguration(),
     ) {
-        MaterialTheme(colorScheme = scheme, typography = VibeMaterialTypography, content = content)
+        MaterialTheme(
+            colorScheme = scheme,
+            typography = VibeMaterialTypography,
+            shapes = VibeMaterialShapes,
+            content = content,
+        )
     }
 }
 

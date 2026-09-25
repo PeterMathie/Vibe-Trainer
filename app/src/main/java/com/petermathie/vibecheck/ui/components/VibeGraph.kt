@@ -8,24 +8,29 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -37,6 +42,7 @@ import androidx.compose.ui.platform.LocalDensity
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 import com.petermathie.vibecheck.ui.theme.VibeDashboardTypography
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
+import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
 import java.time.Instant
 import java.time.ZoneId
@@ -84,6 +90,29 @@ internal fun graphPoint(
     )
 }
 
+internal data class GraphTooltipPlacement(
+    val offset: IntOffset,
+    val abovePoint: Boolean,
+)
+
+internal fun graphTooltipPlacement(
+    point: Offset,
+    viewport: IntSize,
+    tooltip: IntSize,
+    gapPx: Int,
+): GraphTooltipPlacement {
+    val maxX = (viewport.width - tooltip.width).coerceAtLeast(0)
+    val maxY = (viewport.height - tooltip.height).coerceAtLeast(0)
+    val x = (point.x - tooltip.width / 2f).roundToInt().coerceIn(0, maxX)
+    val aboveY = point.y.roundToInt() - gapPx - tooltip.height
+    val belowY = point.y.roundToInt() + gapPx
+    val above = aboveY >= 0 || belowY + tooltip.height > viewport.height
+    return GraphTooltipPlacement(
+        offset = IntOffset(x, (if (above) aboveY else belowY).coerceIn(0, maxY)),
+        abovePoint = above,
+    )
+}
+
 @Composable
 fun VibeGraph(
     values: List<Double>,
@@ -99,7 +128,10 @@ fun VibeGraph(
     val palette = LocalVibePalette.current
     val domain = remember(values, fixedRange) { graphDomain(values, fixedRange) }
     val graphPaddingPx = with(LocalDensity.current) { 12.dp.toPx() }
+    val tooltipGapPx = with(LocalDensity.current) { 6.dp.roundToPx() }
     var selectedIndex by remember(values) { mutableIntStateOf(-1) }
+    var plotSize by remember { mutableStateOf(IntSize.Zero) }
+    var tooltipSize by remember { mutableStateOf(IntSize.Zero) }
     val select: (Float, Float) -> Unit = { x, width ->
         if (values.isNotEmpty()) {
             val plotX = (x - graphPaddingPx).coerceAtLeast(0f)
@@ -137,6 +169,7 @@ fun VibeGraph(
                         Modifier
                             .fillMaxWidth()
                             .height(138.dp)
+                            .onSizeChanged { plotSize = it }
                             .pointerInput(values) {
                                 detectTapGestures { select(it.x, size.width.toFloat()) }
                             }
@@ -257,10 +290,33 @@ fun VibeGraph(
                             }
                         }
                         selectedIndex.takeIf { it in values.indices && values[it].isFinite() }?.let { index ->
+                            val linePoint = graphPoint(
+                                index,
+                                values[index],
+                                values.size,
+                                plotSize.width.toFloat(),
+                                plotSize.height.toFloat(),
+                                domain,
+                                graphPaddingPx,
+                            )
+                            val selectedPoint = if (style == VibeGraphStyle.BARS) {
+                                val slot = (plotSize.width - graphPaddingPx * 2f) / values.size.coerceAtLeast(1)
+                                linePoint.copy(x = graphPaddingPx + slot * (index + 0.5f))
+                            } else {
+                                linePoint
+                            }
+                            val placement = graphTooltipPlacement(
+                                point = selectedPoint,
+                                viewport = plotSize,
+                                tooltip = tooltipSize,
+                                gapPx = tooltipGapPx,
+                            )
                             VibeGraphTooltip(
                                 value = "${formatGraphAxis(values[index])} $unit",
                                 date = formatGraphDate(dates.getOrNull(index)),
-                                modifier = Modifier.align(Alignment.TopCenter),
+                                modifier = Modifier
+                                    .offset { placement.offset }
+                                    .onSizeChanged { tooltipSize = it },
                             )
                         }
                     }
@@ -277,9 +333,15 @@ fun VibeGraph(
 
 @Composable
 fun VibeGraphTooltip(value: String, date: String, modifier: Modifier = Modifier) {
-    VibeSurface(VibeSurfaceLevel.FLOATING, modifier.widthIn(max = 180.dp)) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Text(value, style = VibeDashboardTypography.metricCompact)
+    VibeSurface(
+        level = VibeSurfaceLevel.FLOATING,
+        modifier = modifier
+            .widthIn(max = 148.dp)
+            .semantics { contentDescription = "Graph tooltip" },
+        shape = RoundedCornerShape(VibeShapes.tooltip),
+    ) {
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+            Text(value, style = MaterialTheme.typography.titleMedium)
             Text(date, color = LocalVibePalette.current.textSecondary, style = VibeDashboardTypography.annotation)
         }
     }

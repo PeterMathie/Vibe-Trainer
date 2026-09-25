@@ -192,7 +192,7 @@ class ProgressUiTest {
                         result = "COMPLETED",
                         variationId = null,
                         weightKg = 10.0,
-                        reps = 5,
+                        reps = 5.0,
                         holdMillis = null,
                         leftReps = null,
                         rightReps = null,

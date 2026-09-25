@@ -164,7 +164,8 @@ fun ProgressScreen(vm:EditorViewModel) {
                             }
                             cardKey.startsWith("habit:") -> {
                                 activeTrackers.find { "habit:${it.id}" == cardKey }?.let { tracker ->
-                                    VibeCard(modifier = Modifier.reorderItemFeedback(progressOrder, cardKey, cardIndex)) {
+                                    ReorderItem(progressOrder, cardKey, cardIndex, Modifier.fillMaxWidth()) {
+                                        VibeCard {
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -175,6 +176,7 @@ fun ProgressScreen(vm:EditorViewModel) {
                                             Spacer(Modifier.width(8.dp))
                                             Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                                             ReorderHandle(progressOrder, cardKey, tracker.name)
+                                            }
                                         }
                                         if (expanded) {
                                             val trackerFields = fields.filter { it.trackerId == tracker.id && !it.isArchived }
@@ -288,12 +290,12 @@ private fun ProgressCardShell(
     onToggleExpanded: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    VibeCard(
-        modifier = Modifier.reorderItemFeedback(order, cardKey, cardIndex),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            ProgressCardHeader(order, cardKey, title, expanded, onToggleExpanded)
-            if (expanded) content()
+    ReorderItem(order, cardKey, cardIndex, Modifier.fillMaxWidth()) {
+        VibeCard {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                ProgressCardHeader(order, cardKey, title, expanded, onToggleExpanded)
+                if (expanded) content()
+            }
         }
     }
 }
@@ -319,6 +321,7 @@ private fun ExerciseProgressSelectors(
             onClick = onChooseExercise,
             enabled = eligible,
             modifier = Modifier.weight(1f),
+            shape = MaterialTheme.shapes.medium,
         ) {
             Text(
                 exercises.find { it.id == exerciseId }?.canonicalName ?: "Choose exercise",
@@ -332,6 +335,7 @@ private fun ExerciseProgressSelectors(
                 onClick = { onVariationMenu(true) },
                 enabled = exerciseVariations.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
             ) {
                 Text(
                     exerciseVariations.find { it.id == filter }?.name ?: "Variations",

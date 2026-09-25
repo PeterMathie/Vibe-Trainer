@@ -48,7 +48,7 @@ fun VibeStatusPill(
     Text(
         text,
         modifier
-            .background(colour.copy(alpha = 0.12f), RoundedCornerShape(VibeShapes.panel))
+            .background(colour.copy(alpha = 0.12f), RoundedCornerShape(50))
             .padding(horizontal = VibeSpacing.compact, vertical = VibeSpacing.xSmall),
         color = colour,
         style = VibeDashboardTypography.label,

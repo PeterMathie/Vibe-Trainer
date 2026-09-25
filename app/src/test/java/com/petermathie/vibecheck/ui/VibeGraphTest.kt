@@ -1,8 +1,11 @@
 package com.petermathie.vibecheck.ui
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
 import com.petermathie.vibecheck.ui.components.GraphDomain
 import com.petermathie.vibecheck.ui.components.graphDomain
 import com.petermathie.vibecheck.ui.components.graphPoint
+import com.petermathie.vibecheck.ui.components.graphTooltipPlacement
 import com.petermathie.vibecheck.ui.components.nearestGraphIndex
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -28,5 +31,32 @@ class VibeGraphTest {
     @Test
     fun fixedDomainPreservesBarChartScale() {
         assertEquals(GraphDomain(0.0, 10.0), graphDomain(listOf(4.0), 0.0..10.0))
+    }
+
+    @Test
+    fun tooltipTracksPointsAndClampsAtEveryPlotEdge() {
+        val viewport = IntSize(300, 140)
+        val tooltip = IntSize(100, 48)
+        val center = graphTooltipPlacement(Offset(150f, 70f), viewport, tooltip, 6)
+        assertEquals(100, center.offset.x)
+        assertEquals(16, center.offset.y)
+        assertTrue(center.abovePoint)
+
+        val top = graphTooltipPlacement(Offset(150f, 2f), viewport, tooltip, 6)
+        assertEquals(8, top.offset.y)
+        assertTrue(!top.abovePoint)
+
+        val left = graphTooltipPlacement(Offset(0f, 70f), viewport, tooltip, 6)
+        assertEquals(0, left.offset.x)
+        val right = graphTooltipPlacement(Offset(300f, 70f), viewport, tooltip, 6)
+        assertEquals(200, right.offset.x)
+
+        val bottom = graphTooltipPlacement(Offset(150f, 138f), viewport, tooltip, 6)
+        assertEquals(84, bottom.offset.y)
+        assertTrue(bottom.abovePoint)
+        listOf(center, top, left, right, bottom).forEach {
+            assertTrue(it.offset.x in 0..200)
+            assertTrue(it.offset.y in 0..92)
+        }
     }
 }
