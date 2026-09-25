@@ -59,6 +59,24 @@ class VibePalettePresetTest {
             assertContrast(palette.onSecondary, palette.secondary, 4.5)
             assertContrast(palette.onTertiary, palette.tertiary, 4.5)
             assertContrast(palette.onDanger, palette.danger, 4.5)
+            assertTrue(palette.surfaceInset != Color.Unspecified)
+            assertTrue(palette.surfaceFloating != Color.Unspecified)
+            assertTrue(palette.surfaceModal != Color.Unspecified)
+            assertContrast(palette.focusRing, palette.background, 3.0)
+        }
+    }
+
+    @Test
+    fun monoSurfaceLadderMatchesApprovedReference() {
+        with(VibePalettes.Mono.dark) {
+            assertEquals(Color(0xFF171819), background)
+            assertEquals(Color(0xFF141516), surfaceInset)
+            assertEquals(Color(0xFF1F2123), surface)
+            assertEquals(Color(0xFF282B2E), surfaceRaised)
+            assertEquals(Color(0xFF33373B), surfaceSelected)
+            assertEquals(Color(0xFF303337), surfaceFloating)
+            assertEquals(Color(0xFF34373B), surfaceModal)
+            assertEquals(Color(0xFF9CCFE8), accent)
         }
     }
 

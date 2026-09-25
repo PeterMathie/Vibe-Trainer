@@ -86,6 +86,7 @@ import com.petermathie.vibecheck.ui.anatomy.AnatomyView
 import com.petermathie.vibecheck.ui.anatomy.FreshnessLegend
 import com.petermathie.vibecheck.ui.anatomy.FreshnessNoDataKey
 import com.petermathie.vibecheck.ui.anatomy.MuscleMap
+import com.petermathie.vibecheck.ui.components.VibeSurface
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
 import com.petermathie.vibecheck.ui.theme.VibePalette
@@ -93,6 +94,7 @@ import com.petermathie.vibecheck.ui.theme.VibePalettes
 import com.petermathie.vibecheck.ui.theme.VibeThemeMode
 import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
+import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import com.petermathie.vibecheck.ui.theme.habitHeatmapColors
 import com.petermathie.vibecheck.ui.theme.heatmapOutlineColor
@@ -707,11 +709,8 @@ internal fun VibeCard(
    fillHeight: Boolean = false,
    content: @Composable ColumnScope.() -> Unit,
 ) {
-    val palette = LocalVibePalette.current
-    Card(
-        colors = CardDefaults.cardColors(containerColor = palette.surface),
-        border = BorderStroke(1.dp, palette.border),
-        shape = RoundedCornerShape(VibeShapes.card),
+    VibeSurface(
+        level = VibeSurfaceLevel.CARD,
         modifier = modifier.fillMaxWidth(),
     ) {
         val contentModifier = if (fillHeight) Modifier.fillMaxSize() else Modifier.fillMaxWidth()

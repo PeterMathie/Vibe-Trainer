@@ -35,8 +35,11 @@ data class VibePalette(
     val isDark: Boolean,
     val background: Color,
     val surface: Color,
+    val surfaceInset: Color,
     val surfaceRaised: Color,
     val surfaceSelected: Color,
+    val surfaceFloating: Color,
+    val surfaceModal: Color,
     val accent: Color,
     val onAccent: Color,
     val accentContainer: Color,
@@ -53,6 +56,8 @@ data class VibePalette(
     val textSecondary: Color,
     val textFaint: Color,
     val border: Color,
+    val focusRing: Color,
+    val scrim: Color,
     val diagramBackground: Color,
     val diagramBody: Color,
     val diagramLine: Color,
@@ -104,8 +109,11 @@ object VibePalettes {
         isDark: Boolean,
         background: Long,
         surface: Long,
+        inset: Long,
         raised: Long,
         selected: Long,
+        floating: Long,
+        modal: Long,
         primary: Long,
         onPrimary: Long,
         primaryContainer: Long,
@@ -137,8 +145,11 @@ object VibePalettes {
         isDark = isDark,
         background = Color(background),
         surface = Color(surface),
+        surfaceInset = Color(inset),
         surfaceRaised = Color(raised),
         surfaceSelected = Color(selected),
+        surfaceFloating = Color(floating),
+        surfaceModal = Color(modal),
         accent = Color(primary),
         onAccent = Color(onPrimary),
         accentContainer = Color(primaryContainer),
@@ -155,6 +166,8 @@ object VibePalettes {
         textSecondary = Color(textSecondary),
         textFaint = Color(textFaint),
         border = Color(outline),
+        focusRing = Color(primary),
+        scrim = Color(if (isDark) 0x70000000 else 0x52000000),
         diagramBackground = Color(surface),
         diagramBody = Color(raised),
         diagramLine = Color(outline),
@@ -197,12 +210,12 @@ object VibePalettes {
     val Ocean = VibePalettePreset(
         id = "ocean",
         displayName = "Ocean",
-        light = palette("ocean", "Ocean", false, 0xFFF5FAFD, 0xFFFFFFFF, 0xFFE5F0F6, 0xFFD4E8F2, 0xFF006782, 0xFFFFFFFF, 0xFFBCE9F8, 0xFF001F29, 0xFF426277, 0xFFFFFFFF, 0xFFCBE7F7, 0xFF001E2C, 0xFF67587A, 0xFFFFFFFF, 0xFFEDDCFF, 0xFF221534, 0xFF132027, 0xFF425E6B, 0xFF657B85, 0xFF718994, 0xFF39769A, 0xFFE5F0F6, 0xFFA8D5E8, 0xFF58A7C7, 0xFF28789A, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
+        light = palette("ocean", "Ocean", false, 0xFFF5FAFD, 0xFFFFFFFF, 0xFFF0F6F9, 0xFFE5F0F6, 0xFFD4E8F2, 0xFFFFFFFF, 0xFFFFFFFF, 0xFF006782, 0xFFFFFFFF, 0xFFBCE9F8, 0xFF001F29, 0xFF426277, 0xFFFFFFFF, 0xFFCBE7F7, 0xFF001E2C, 0xFF67587A, 0xFFFFFFFF, 0xFFEDDCFF, 0xFF221534, 0xFF132027, 0xFF425E6B, 0xFF657B85, 0xFF718994, 0xFF39769A, 0xFFE5F0F6, 0xFFA8D5E8, 0xFF58A7C7, 0xFF28789A, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
             listOf(0xFFB3261E, 0xFFC25B20, 0xFF9A7500, 0xFF287F8C, 0xFF315F9C, 0xFF6F6F6F),
             listOf(0xFFE5F0F6, 0xFFB9DCF2, 0xFF5FA9DC, 0xFF0078D4),
         ),
         // Core roles follow https://github.com/microsoft/vscode/blob/main/extensions/theme-defaults/themes/dark_modern.json (2026-09-25).
-        dark = palette("ocean", "Ocean", true, 0xFF181818, 0xFF252525, 0xFF222222, 0xFF2C3250, 0xFF0078D4, 0xFFFFFFFF, 0xFF004F8C, 0xFFFFFFFF, 0xFFC6C6C6, 0xFF181818, 0xFF303030, 0xFFD7D7D7, 0xFF8AAFD4, 0xFF152333, 0xFF29384A, 0xFFE5E5E5, 0xFFD7D7D7, 0xFFC6C6C6, 0xFF868686, 0xFF2B2B2B, 0xFF70A9D7, 0xFF222222, 0xFF294158, 0xFF3D6D94, 0xFF70A9D7, 0xFFFF3B3B, 0xFF181818, 0xFF5C1717, 0xFFFFDAD6).withScales(
+        dark = palette("ocean", "Ocean", true, 0xFF181818, 0xFF252525, 0xFF141414, 0xFF222222, 0xFF2C3250, 0xFF303030, 0xFF343434, 0xFF0078D4, 0xFFFFFFFF, 0xFF004F8C, 0xFFFFFFFF, 0xFFC6C6C6, 0xFF181818, 0xFF303030, 0xFFD7D7D7, 0xFF8AAFD4, 0xFF152333, 0xFF29384A, 0xFFE5E5E5, 0xFFD7D7D7, 0xFFC6C6C6, 0xFF868686, 0xFF2B2B2B, 0xFF70A9D7, 0xFF222222, 0xFF294158, 0xFF3D6D94, 0xFF70A9D7, 0xFFFF3B3B, 0xFF181818, 0xFF5C1717, 0xFFFFDAD6).withScales(
             listOf(0xFFFF3B3B, 0xFFF28C45, 0xFFD6B04A, 0xFF4AA7C8, 0xFF477FB8, 0xFF868686),
             listOf(0xFF222222, 0xFF24415B, 0xFF17699F, 0xFF0078D4),
         ),
@@ -211,11 +224,11 @@ object VibePalettes {
     val Sunset = VibePalettePreset(
         id = "sunset",
         displayName = "Sunset",
-        light = palette("sunset", "Sunset", false, 0xFFFFF8F6, 0xFFFFFBFF, 0xFFF8EAE5, 0xFFFFDCD2, 0xFF9B3F31, 0xFFFFFFFF, 0xFFFFDAD2, 0xFF3E0500, 0xFF765844, 0xFFFFFFFF, 0xFFFFDCC2, 0xFF2C1608, 0xFF765A00, 0xFFFFFFFF, 0xFFFFDF91, 0xFF251A00, 0xFF271814, 0xFF5D4038, 0xFF816A63, 0xFF947169, 0xFF50799A, 0xFFF8EAE5, 0xFFF3C7A5, 0xFFD98C62, 0xFFB75B43, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
+        light = palette("sunset", "Sunset", false, 0xFFFFF8F6, 0xFFFFFBFF, 0xFFF6EFEC, 0xFFF8EAE5, 0xFFFFDCD2, 0xFFFFFFFF, 0xFFFFFFFF, 0xFF9B3F31, 0xFFFFFFFF, 0xFFFFDAD2, 0xFF3E0500, 0xFF765844, 0xFFFFFFFF, 0xFFFFDCC2, 0xFF2C1608, 0xFF765A00, 0xFFFFFFFF, 0xFFFFDF91, 0xFF251A00, 0xFF271814, 0xFF5D4038, 0xFF816A63, 0xFF947169, 0xFF50799A, 0xFFF8EAE5, 0xFFF3C7A5, 0xFFD98C62, 0xFFB75B43, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
             listOf(0xFFB3261E, 0xFFB85C1E, 0xFF8A7000, 0xFF4F8270, 0xFF416B91, 0xFF6F6F6F),
             listOf(0xFFF8EAE5, 0xFFF7D1C3, 0xFFE99170, 0xFFB94F37),
         ),
-        dark = palette("sunset", "Sunset", true, 0xFF191817, 0xFF211F1E, 0xFF2A2725, 0xFF37302B, 0xFFFFB4A6, 0xFF5E160D, 0xFF7D2A1E, 0xFFFFDAD2, 0xFFE0C1AD, 0xFF432B1B, 0xFF4A3830, 0xFFFFDCC2, 0xFFE7C75C, 0xFF3E2E00, 0xFF574500, 0xFFFFDF91, 0xFFF5F1EF, 0xFFD2C8C3, 0xFF99908B, 0xFF514A46, 0xFF78AEDA, 0xFF2A2725, 0xFF5C4439, 0xFF96634E, 0xFFD8916B, 0xFFFFB4AB, 0xFF690005, 0xFF93000A, 0xFFFFDAD6).withScales(
+        dark = palette("sunset", "Sunset", true, 0xFF191817, 0xFF211F1E, 0xFF151413, 0xFF2A2725, 0xFF37302B, 0xFF302D2A, 0xFF35312E, 0xFFFFB4A6, 0xFF5E160D, 0xFF7D2A1E, 0xFFFFDAD2, 0xFFE0C1AD, 0xFF432B1B, 0xFF4A3830, 0xFFFFDCC2, 0xFFE7C75C, 0xFF3E2E00, 0xFF574500, 0xFFFFDF91, 0xFFF5F1EF, 0xFFD2C8C3, 0xFF99908B, 0xFF514A46, 0xFF78AEDA, 0xFF2A2725, 0xFF5C4439, 0xFF96634E, 0xFFD8916B, 0xFFFFB4AB, 0xFF690005, 0xFF93000A, 0xFFFFDAD6).withScales(
             listOf(0xFFFF6B63, 0xFFF39A62, 0xFFD9BA5A, 0xFF84B39A, 0xFF72A9CC, 0xFF99908B),
             listOf(0xFF2A2725, 0xFF553A31, 0xFFA86246, 0xFFF08A63),
         ),
@@ -224,11 +237,11 @@ object VibePalettes {
     val Forest = VibePalettePreset(
         id = "forest",
         displayName = "Forest",
-        light = palette("forest", "Forest", false, 0xFFF6FBF6, 0xFFFBFDF8, 0xFFE8F1E7, 0xFFD7E8D5, 0xFF356A3D, 0xFFFFFFFF, 0xFFB7F0B8, 0xFF002108, 0xFF52634F, 0xFFFFFFFF, 0xFFD5E8CF, 0xFF101F10, 0xFF5B6146, 0xFFFFFFFF, 0xFFDFE6BD, 0xFF191E08, 0xFF172018, 0xFF455D48, 0xFF6B7D6D, 0xFF758A77, 0xFF47799A, 0xFFE8F1E7, 0xFFB6D7B2, 0xFF6BA873, 0xFF397846, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
+        light = palette("forest", "Forest", false, 0xFFF6FBF6, 0xFFFBFDF8, 0xFFF0F5F0, 0xFFE8F1E7, 0xFFD7E8D5, 0xFFFFFFFF, 0xFFFFFFFF, 0xFF356A3D, 0xFFFFFFFF, 0xFFB7F0B8, 0xFF002108, 0xFF52634F, 0xFFFFFFFF, 0xFFD5E8CF, 0xFF101F10, 0xFF5B6146, 0xFFFFFFFF, 0xFFDFE6BD, 0xFF191E08, 0xFF172018, 0xFF455D48, 0xFF6B7D6D, 0xFF758A77, 0xFF47799A, 0xFFE8F1E7, 0xFFB6D7B2, 0xFF6BA873, 0xFF397846, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
             listOf(0xFFB3261E, 0xFFB26524, 0xFF817600, 0xFF3F8061, 0xFF356F86, 0xFF747474),
             listOf(0xFFE8F1E7, 0xFFCDE4CD, 0xFF80B889, 0xFF397846),
         ),
-        dark = palette("forest", "Forest", true, 0xFF151917, 0xFF1D221F, 0xFF252B27, 0xFF2E3831, 0xFF79E6B1, 0xFF003822, 0xFF005233, 0xFF9BF6CA, 0xFFBBCDBD, 0xFF29352B, 0xFF39463B, 0xFFD5E8CF, 0xFFC3CAA1, 0xFF2D321B, 0xFF444931, 0xFFDFE6BD, 0xFFF0F4F1, 0xFFC4CEC7, 0xFF8C9890, 0xFF48524B, 0xFF72B7DE, 0xFF252B27, 0xFF315643, 0xFF4F8262, 0xFF79B58A, 0xFFFFB4AB, 0xFF690005, 0xFF93000A, 0xFFFFDAD6).withScales(
+        dark = palette("forest", "Forest", true, 0xFF151917, 0xFF1D221F, 0xFF121614, 0xFF252B27, 0xFF2E3831, 0xFF2C332F, 0xFF333A36, 0xFF79E6B1, 0xFF003822, 0xFF005233, 0xFF9BF6CA, 0xFFBBCDBD, 0xFF29352B, 0xFF39463B, 0xFFD5E8CF, 0xFFC3CAA1, 0xFF2D321B, 0xFF444931, 0xFFDFE6BD, 0xFFF0F4F1, 0xFFC4CEC7, 0xFF8C9890, 0xFF48524B, 0xFF72B7DE, 0xFF252B27, 0xFF315643, 0xFF4F8262, 0xFF79B58A, 0xFFFFB4AB, 0xFF690005, 0xFF93000A, 0xFFFFDAD6).withScales(
             listOf(0xFFF27D72, 0xFFD99B62, 0xFFAFBF69, 0xFF67B889, 0xFF66AFC2, 0xFF8C9890),
             listOf(0xFF252B27, 0xFF2F4937, 0xFF477B58, 0xFF69B982),
         ),
@@ -237,11 +250,11 @@ object VibePalettes {
     val Mono = VibePalettePreset(
         id = "mono",
         displayName = "Mono",
-        light = palette("mono", "Mono", false, 0xFFF8F9FA, 0xFFFFFFFF, 0xFFECEFF1, 0xFFDDE3E7, 0xFF245C75, 0xFFFFFFFF, 0xFFCBE7F5, 0xFF001F2A, 0xFF586168, 0xFFFFFFFF, 0xFFDDE3E7, 0xFF151D21, 0xFF555F64, 0xFFFFFFFF, 0xFFDDE4E7, 0xFF121D21, 0xFF181C1E, 0xFF454B4F, 0xFF6F777B, 0xFF777F83, 0xFF557F94, 0xFFECEFF1, 0xFFCED9DE, 0xFF91A6B0, 0xFF607F8D, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
+        light = palette("mono", "Mono", false, 0xFFF8F9FA, 0xFFFFFFFF, 0xFFF1F3F4, 0xFFECEFF1, 0xFFDDE3E7, 0xFFFFFFFF, 0xFFFFFFFF, 0xFF245C75, 0xFFFFFFFF, 0xFFCBE7F5, 0xFF001F2A, 0xFF586168, 0xFFFFFFFF, 0xFFDDE3E7, 0xFF151D21, 0xFF555F64, 0xFFFFFFFF, 0xFFDDE4E7, 0xFF121D21, 0xFF181C1E, 0xFF454B4F, 0xFF6F777B, 0xFF777F83, 0xFF557F94, 0xFFECEFF1, 0xFFCED9DE, 0xFF91A6B0, 0xFF607F8D, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
             listOf(0xFF303030, 0xFF454545, 0xFF5D5D5D, 0xFF747474, 0xFF8B8B8B, 0xFFD8D8D8),
             listOf(0xFFECEFF1, 0xFFD7DCE0, 0xFF939BA1, 0xFF50565A),
         ),
-        dark = palette("mono", "Mono", true, 0xFF171819, 0xFF1F2123, 0xFF282B2E, 0xFF33373B, 0xFF9CCFE8, 0xFF17333F, 0xFF304A56, 0xFFD5EDF7, 0xFFC7C9CB, 0xFF303336, 0xFF44484B, 0xFFE0E3E5, 0xFFBBC7CC, 0xFF2B3438, 0xFF3C484D, 0xFFD7E3E8, 0xFFF0F1F2, 0xFFC8CACC, 0xFF92979B, 0xFF50555A, 0xFF73A8C1, 0xFF282B2E, 0xFF40525A, 0xFF607A86, 0xFF87A7B5, 0xFFFFB4AB, 0xFF690005, 0xFF93000A, 0xFFFFDAD6).withScales(
+        dark = palette("mono", "Mono", true, 0xFF171819, 0xFF1F2123, 0xFF141516, 0xFF282B2E, 0xFF33373B, 0xFF303337, 0xFF34373B, 0xFF9CCFE8, 0xFF17333F, 0xFF304A56, 0xFFD5EDF7, 0xFFC7C9CB, 0xFF303336, 0xFF44484B, 0xFFE0E3E5, 0xFFBBC7CC, 0xFF2B3438, 0xFF3C484D, 0xFFD7E3E8, 0xFFF0F1F2, 0xFFC8CACC, 0xFF92979B, 0xFF50555A, 0xFF73A8C1, 0xFF282B2E, 0xFF40525A, 0xFF607A86, 0xFF87A7B5, 0xFFFFB4AB, 0xFF690005, 0xFF93000A, 0xFFFFDAD6).withScales(
             listOf(0xFFF2F2F2, 0xFFD0D0D0, 0xFFAEAEAE, 0xFF8C8C8C, 0xFF6B6B6B, 0xFF3A3A3A),
             listOf(0xFF282B2E, 0xFF3C4145, 0xFF747B80, 0xFFBFC4C7),
         ),
@@ -269,17 +282,41 @@ val LocalVibeReducedMotion = staticCompositionLocalOf { false }
 object VibeSpacing {
     val xSmall = 4.dp
     val small = 8.dp
+    val compact = 12.dp
     val medium = 16.dp
     val large = 24.dp
     val xLarge = 32.dp
 }
 
 object VibeShapes {
+    val small = 8.dp
+    val control = 12.dp
     val card = 16.dp
-    val control = 14.dp
+    val panel = 20.dp
 }
 
-private val VibeTypography = Typography(
+val VibeDashboardTypography = DashboardTypography(
+    metricXL = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 40.sp, lineHeight = 44.sp, letterSpacing = (-0.5).sp, fontFeatureSettings = "tnum"),
+    metric = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 32.sp, letterSpacing = (-0.2).sp, fontFeatureSettings = "tnum"),
+    metricCompact = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 24.sp, fontFeatureSettings = "tnum"),
+    label = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 0.2.sp),
+    microLabel = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 0.7.sp),
+    body = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 22.sp),
+    annotation = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.1.sp, fontFeatureSettings = "tnum"),
+)
+
+@Immutable
+data class DashboardTypography(
+    val metricXL: TextStyle,
+    val metric: TextStyle,
+    val metricCompact: TextStyle,
+    val label: TextStyle,
+    val microLabel: TextStyle,
+    val body: TextStyle,
+    val annotation: TextStyle,
+)
+
+private val VibeMaterialTypography = Typography(
     headlineLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 38.sp),
     headlineMedium = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 32.sp),
     titleLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold, fontSize = 21.sp, lineHeight = 27.sp),
@@ -364,8 +401,13 @@ fun VibeCheckTheme(
             }
         }
     }
-    androidx.compose.runtime.CompositionLocalProvider(LocalVibePalette provides palette, LocalVibeReducedMotion provides reducedMotion, LocalRippleConfiguration provides if(reducedMotion) null else RippleConfiguration()) {
-        MaterialTheme(colorScheme = scheme, typography = VibeTypography, content = content)
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalVibePalette provides palette,
+        LocalVibeReducedMotion provides reducedMotion,
+        LocalVibeMotion provides VibeMotion.resolve(reducedMotion),
+        LocalRippleConfiguration provides if(reducedMotion) null else RippleConfiguration(),
+    ) {
+        MaterialTheme(colorScheme = scheme, typography = VibeMaterialTypography, content = content)
     }
 }
 
