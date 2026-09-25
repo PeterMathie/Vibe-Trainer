@@ -18,17 +18,11 @@ Vibe Check should feel **calm, observant, precise and quietly satisfying**. It s
 
 Every future treatment must have an accessible reduced-motion equivalent, respect sound/haptic opt-outs, and make deterministic claims from actual stored data.
 
-## Likely first experiment: workout completion
+## Workout completion experiment: implemented foundation
 
-After real-phone dogfooding, the first personality experiment should be a signature **Finish workout** moment:
+PR #8 implements the approved foundation: finishing persists first, returns Home, announces completion once, illuminates only affected mapped muscles in deterministic order, uses a brief palette-themed celebration, and removes confetti and staggered movement under reduced motion. Sessions without mapped muscles receive a generic acknowledgement. This behavior is now part of the current contract in [Product requirements](PRODUCT_REQUIREMENTS.md), not a deferred idea.
 
-1. Show the previous muscle-map state transitioning to the newly derived freshness colours.
-2. Use a restrained completion animation and light haptic.
-3. Present a concise factual summary: work recorded, duration, exercises and sets.
-4. Reserve stronger tiers for a genuine PR, newly established baseline or programme milestone.
-5. Provide an immediate reduced-motion equivalent with the same information and hierarchy.
-
-This is explicitly deferred until the existing beta has been used during real training. The experiment should validate whether the map transition feels rewarding and informative without delaying exit from the workout.
+A factual summary card, stronger evidence-based milestone tiers and broader visual refinement remain proposals. Their requirements, safeguards and implementation boundaries are defined in the [futuristic monochrome dashboard polish plan](FUTURISTIC_DASHBOARD_POLISH.md). They must preserve PR #8's persistence-first and one-shot semantics.
 
 ## Feedback and reflection ideas
 
@@ -107,7 +101,7 @@ Open integration questions include Android package availability, fallback behavi
 | Phase | Scope | Gate before continuing |
 |---|---|---|
 | 1. Dogfood | Use the current phone beta during real workouts and ordinary weeks | Identify repeated emotional/feedback gaps from actual use |
-| 2. Completion experiment | Muscle-map transition, factual summary, restrained milestone tiers, reduced-motion equivalent | Repeated-use feedback shows it remains useful and unobtrusive |
+| 2. Completion follow-up | Validate PR #8's implemented one-shot muscle illumination; consider the proposed factual summary and restrained milestone tiers | Repeated-use feedback shows it remains useful and unobtrusive |
 | 3. Everyday feedback | Saved indicator, important-edit confirmation, optional weekly reflection | Semantics and accessibility validated without missed-day pressure |
 | 4. Extensions | Widgets and carefully bounded app launches/integrations | Privacy, cadence, permission and reliability decisions recorded |
 
