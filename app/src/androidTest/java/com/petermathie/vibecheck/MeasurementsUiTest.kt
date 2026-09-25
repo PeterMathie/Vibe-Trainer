@@ -22,6 +22,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+@android.annotation.SuppressLint("ViewModelConstructorInComposable")
 class MeasurementsUiTest {
     @get:Rule
     val compose = createComposeRule()

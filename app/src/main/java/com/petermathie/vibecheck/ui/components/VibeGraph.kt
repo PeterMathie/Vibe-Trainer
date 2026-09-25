@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -32,6 +33,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 import com.petermathie.vibecheck.ui.theme.VibeDashboardTypography
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
@@ -96,10 +98,15 @@ fun VibeGraph(
 ) {
     val palette = LocalVibePalette.current
     val domain = remember(values, fixedRange) { graphDomain(values, fixedRange) }
+    val graphPaddingPx = with(LocalDensity.current) { 12.dp.toPx() }
     var selectedIndex by remember(values) { mutableIntStateOf(-1) }
     val select: (Float, Float) -> Unit = { x, width ->
         if (values.isNotEmpty()) {
-            nearestGraphIndex(x, width, values.size)
+            nearestGraphIndex(
+                x = (x - graphPaddingPx).coerceAtLeast(0f),
+                width = (width - graphPaddingPx * 2f).coerceAtLeast(1f),
+                count = values.size,
+            )
                 .let { candidate ->
                     if (values[candidate].isFinite()) candidate
                     else values.indices.minByOrNull { kotlin.math.abs(it - candidate) + if (values[it].isFinite()) 0 else values.size } ?: candidate
@@ -111,7 +118,9 @@ fun VibeGraph(
         }
     }
     val description = domain?.let {
-        "Progress chart from ${formatGraphDate(dates.firstOrNull())} to ${formatGraphDate(dates.lastOrNull())}, ${formatGraphAxis(it.minimum)} to ${formatGraphAxis(it.maximum)} $unit"
+        val minimum = if (fixedRange == null) it.minimum.toString() else formatGraphAxis(it.minimum)
+        val maximum = if (fixedRange == null) it.maximum.toString() else formatGraphAxis(it.maximum)
+        "Progress chart from ${formatGraphDate(dates.firstOrNull())} to ${formatGraphDate(dates.lastOrNull())}, $minimum to $maximum $unit"
     } ?: "Progress chart, no data"
 
     VibeSurface(VibeSurfaceLevel.INSET, modifier = modifier.fillMaxWidth()) {
@@ -126,6 +135,14 @@ fun VibeGraph(
                         Modifier
                             .fillMaxWidth()
                             .height(138.dp)
+                            .pointerInput(values) {
+                                detectTapGestures { select(it.x, size.width.toFloat()) }
+                            }
+                            .pointerInput(values) {
+                                detectDragGestures { change, _ ->
+                                    select(change.position.x, size.width.toFloat())
+                                }
+                            }
                             .semantics {
                                 contentDescription = description
                                 selectedIndex.takeIf { it in values.indices }?.let {
@@ -153,74 +170,77 @@ fun VibeGraph(
                         Canvas(
                             Modifier
                                 .matchParentSize()
-                                .pointerInput(values) {
-                                    detectTapGestures { select(it.x, size.width.toFloat()) }
-                                }
-                                .pointerInput(values) {
-                                    detectDragGestures { change, _ ->
-                                        select(change.position.x, size.width.toFloat())
+                                .drawWithCache {
+                                    val padding = 12.dp.toPx()
+                                    val major = palette.textPrimary.copy(alpha = if (palette.isDark) 0.09f else 0.12f)
+                                    val primaryPath = Path()
+                                    var primaryStarted = false
+                                    val primaryPoints = values.mapIndexedNotNull { index, value ->
+                                        value.takeIf(Double::isFinite)?.let {
+                                            graphPoint(index, it, values.size, size.width, size.height, domain, padding)
+                                        }
                                     }
-                                },
+                                    values.forEachIndexed { index, value ->
+                                        if (!value.isFinite()) {
+                                            primaryStarted = false
+                                        } else {
+                                            val point = graphPoint(index, value, values.size, size.width, size.height, domain, padding)
+                                            if (primaryStarted) primaryPath.lineTo(point.x, point.y) else primaryPath.moveTo(point.x, point.y)
+                                            primaryStarted = true
+                                        }
+                                    }
+                                    val secondarySegments = secondaryValues.mapIndexedNotNull { index, value ->
+                                        val previous = secondaryValues.getOrNull(index - 1)
+                                        if (value != null && value.isFinite() && previous != null && previous.isFinite()) {
+                                            graphPoint(index - 1, previous, values.size, size.width, size.height, domain, padding) to
+                                                graphPoint(index, value, values.size, size.width, size.height, domain, padding)
+                                        } else null
+                                    }
+                                    onDrawBehind {
+                                        repeat(5) { row ->
+                                            val y = padding + (size.height - padding * 2f) * row / 4f
+                                            drawLine(major, Offset(padding, y), Offset(size.width - padding, y), 1.dp.toPx())
+                                        }
+                                        repeat(4) { column ->
+                                            val x = padding + (size.width - padding * 2f) * column / 3f
+                                            drawLine(major, Offset(x, padding), Offset(x, size.height - padding), 1.dp.toPx())
+                                        }
+                                        if (style == VibeGraphStyle.LINE) {
+                                            drawPath(primaryPath, palette.accent, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
+                                            primaryPoints.forEach { drawCircle(palette.accent, 2.5.dp.toPx(), it) }
+                                        } else {
+                                            val slot = (size.width - padding * 2f) / values.size.coerceAtLeast(1)
+                                            values.forEachIndexed { index, value ->
+                                                if (value.isFinite()) {
+                                                    val point = graphPoint(index, value, values.size, size.width, size.height, domain, padding)
+                                                    drawRect(
+                                                        palette.accent,
+                                                        topLeft = Offset(point.x - slot * 0.3f, point.y),
+                                                        size = androidx.compose.ui.geometry.Size(slot * 0.6f, size.height - padding - point.y),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        secondarySegments.forEach { (from, to) ->
+                                            drawLine(palette.secondary, from, to, 2.5.dp.toPx(), pathEffect = dashEffect)
+                                        }
+                                    }
+                                }
+                                ,
                         ) {
-                            val padding = 12.dp.toPx()
-                            val major = palette.textPrimary.copy(alpha = if (palette.isDark) 0.09f else 0.12f)
-                            repeat(5) { row ->
-                                val y = padding + (size.height - padding * 2f) * row / 4f
-                                drawLine(major, Offset(padding, y), Offset(size.width - padding, y), 1.dp.toPx())
-                            }
-                            repeat(4) { column ->
-                                val x = padding + (size.width - padding * 2f) * column / 3f
-                                drawLine(major, Offset(x, padding), Offset(x, size.height - padding), 1.dp.toPx())
-                            }
-                            val primaryPath = Path()
-                            var primaryStarted = false
-                            values.forEachIndexed { index, value ->
-                                if (!value.isFinite()) {
-                                    primaryStarted = false
-                                } else {
-                                    val point = graphPoint(index, value, values.size, size.width, size.height, domain, padding)
-                                    if (primaryStarted) primaryPath.lineTo(point.x, point.y) else primaryPath.moveTo(point.x, point.y)
-                                    primaryStarted = true
-                                    if (style == VibeGraphStyle.BARS) {
-                                        val slot = (size.width - padding * 2f) / values.size.coerceAtLeast(1)
-                                        drawRect(
-                                            palette.accent,
-                                            topLeft = Offset(point.x - slot * 0.3f, point.y),
-                                            size = androidx.compose.ui.geometry.Size(slot * 0.6f, size.height - padding - point.y),
-                                        )
-                                    }
-                                }
-                            }
-                            if (style == VibeGraphStyle.LINE) {
-                                drawPath(primaryPath, palette.accent, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))
-                            }
-                            secondaryValues.forEachIndexed { index, value ->
-                                val previous = secondaryValues.getOrNull(index - 1)
-                                if (value != null && value.isFinite() && previous != null && previous.isFinite()) {
-                                    drawLine(
-                                        palette.secondary,
-                                        graphPoint(index - 1, previous, values.size, size.width, size.height, domain, padding),
-                                        graphPoint(index, value, values.size, size.width, size.height, domain, padding),
-                                        2.5.dp.toPx(),
-                                        pathEffect = dashEffect,
-                                    )
-                                }
-                            }
-                            values.forEachIndexed { index, value ->
-                                if (value.isFinite() && style == VibeGraphStyle.LINE) {
-                                    val point = graphPoint(index, value, values.size, size.width, size.height, domain, padding)
-                                    drawCircle(palette.accent, if (index == selectedIndex) 3.5.dp.toPx() else 2.5.dp.toPx(), point)
-                                    if (index == selectedIndex) {
-                                        drawCircle(palette.surfaceInset, 1.dp.toPx(), point)
-                                        drawLine(
-                                            palette.textSecondary.copy(alpha = 0.6f),
-                                            Offset(point.x, padding),
-                                            Offset(point.x, size.height - padding),
-                                            1.dp.toPx(),
-                                            pathEffect = dashEffect,
-                                        )
-                                    }
-                                }
+                            val index = selectedIndex
+                            if (index in values.indices && values[index].isFinite()) {
+                                val padding = 12.dp.toPx()
+                                val point = graphPoint(index, values[index], values.size, size.width, size.height, domain, padding)
+                                drawCircle(palette.accent, 3.5.dp.toPx(), point)
+                                drawCircle(palette.surfaceInset, 1.dp.toPx(), point)
+                                drawLine(
+                                    palette.textSecondary.copy(alpha = 0.6f),
+                                    Offset(point.x, padding),
+                                    Offset(point.x, size.height - padding),
+                                    1.dp.toPx(),
+                                    pathEffect = dashEffect,
+                                )
                             }
                         }
                         selectedIndex.takeIf { it in values.indices && values[it].isFinite() }?.let { index ->

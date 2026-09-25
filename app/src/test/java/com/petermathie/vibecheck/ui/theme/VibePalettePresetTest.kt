@@ -63,6 +63,7 @@ class VibePalettePresetTest {
             assertTrue(palette.surfaceFloating != Color.Unspecified)
             assertTrue(palette.surfaceModal != Color.Unspecified)
             assertContrast(palette.focusRing, palette.background, 3.0)
+            assertContrast(palette.accent, palette.surfaceInset, 3.0)
         }
     }
 

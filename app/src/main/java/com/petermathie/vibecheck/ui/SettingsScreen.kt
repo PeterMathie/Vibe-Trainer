@@ -168,7 +168,7 @@ private fun demoRemovalMessage(summary: DemoRemovalSummary): String =
         "${summary.trackers} habits, ${summary.measurements} body entries and ${summary.photos} photos."
 
 private fun timerNotificationsEnabled(context: android.content.Context): Boolean =
-    context.getSystemService(NotificationManager::class.java).areNotificationsEnabled() &&
+    (Build.VERSION.SDK_INT < 24 || context.getSystemService(NotificationManager::class.java).areNotificationsEnabled()) &&
         (Build.VERSION.SDK_INT < 33 ||
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
 

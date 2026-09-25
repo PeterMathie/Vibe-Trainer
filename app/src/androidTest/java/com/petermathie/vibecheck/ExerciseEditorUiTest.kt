@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import kotlinx.coroutines.runBlocking
 
 @RunWith(AndroidJUnit4::class)
+@android.annotation.SuppressLint("ViewModelConstructorInComposable")
 class ExerciseEditorUiTest {
     @get:Rule
     val compose = createComposeRule()

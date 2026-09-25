@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -76,6 +77,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -463,8 +465,9 @@ internal fun HomeScreen(
     }
     val mapNextStates = if (reducedMotion || !sliderDragging) null else upperStates
     val mapInterpolationFraction = if (mapNextStates == null) 0f else sliderPosition - lowerDay
+    val horizontalGutter = ((LocalConfiguration.current.screenWidthDp.dp - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
     Column(
-        Modifier.fillMaxSize().padding(VibeSpacing.medium).widthIn(max = 840.dp),
+        Modifier.fillMaxSize().padding(horizontal = horizontalGutter, vertical = VibeSpacing.medium),
         verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
     ) {
         state.activeWorkout?.let { workout ->
