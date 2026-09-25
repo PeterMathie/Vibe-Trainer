@@ -9,6 +9,8 @@ import com.petermathie.vibecheck.data.local.ProgrammeExerciseEntity
 import com.petermathie.vibecheck.data.local.VibeDatabase
 import com.petermathie.vibecheck.data.seed.DatabaseSeeder
 import com.petermathie.vibecheck.domain.model.SetDraft
+import com.petermathie.vibecheck.ui.MainViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -59,9 +61,77 @@ class WorkoutWorkflowTest {
         }
         assertTrue(requireNotNull(autosaved).exercises.first().sets.isNotEmpty())
 
-        repository.finishWorkout(workoutId)
+        val completion = repository.finishWorkout(workoutId)
+        assertEquals(day.mode, completion?.mode)
+        assertTrue(requireNotNull(completion).affectedMuscleIds.isNotEmpty())
         assertNull(repository.observeDraft().first())
         assertTrue(repository.observeMuscleRecency(day.mode).first { it.isNotEmpty() }.isNotEmpty())
+    }
+
+    @Test(timeout = 120_000)
+    fun strengthAndStretchCompletionDeriveMappedMusclesButEmptyWorkoutIsRejected() = runBlocking {
+        val days = repository.observeProgrammeDays().first { rows ->
+            rows.any { it.mode == com.petermathie.vibecheck.domain.model.TrainingMode.STRENGTH } &&
+                rows.any { it.mode == com.petermathie.vibecheck.domain.model.TrainingMode.STRETCHING }
+        }
+        for (mode in com.petermathie.vibecheck.domain.model.TrainingMode.entries) {
+            val day = days.first { it.mode == mode }
+            val workoutId = repository.startWorkout(day.id, replaceExisting = true)
+            val draft = requireNotNull(repository.observeDraft().first { it?.id == workoutId })
+            repository.addSet(draft.exercises.first().id, SetDraft(reps = 1, holdMillis = 1_000))
+
+            val completion = requireNotNull(repository.finishWorkout(workoutId))
+            assertEquals(mode, completion.mode)
+            assertEquals(completion.affectedMuscleIds.distinct().sorted(), completion.affectedMuscleIds)
+            assertTrue(completion.affectedMuscleIds.isNotEmpty())
+        }
+
+        val emptyDay = days.first()
+        val emptyWorkoutId = repository.startWorkout(emptyDay.id, replaceExisting = true)
+        assertNull(repository.finishWorkout(emptyWorkoutId))
+        assertEquals(
+            "DRAFT",
+            database.editorDao().workouts().first().single { it.id == emptyWorkoutId }.status,
+        )
+    }
+
+    @Test(timeout = 120_000)
+    fun completionEventPrecedesNavigationAndIsAbsentForInvalidFinish() = runBlocking {
+        val day = repository.observeProgrammeDays().first { it.isNotEmpty() }.first()
+        val workoutId = repository.startWorkout(day.id)
+        val viewModel = MainViewModel(repository, database.catalogueDao())
+        val rejected = CompletableDeferred<String>()
+        var navigated = false
+
+        viewModel.finishWorkout(
+            workoutId,
+            onFinished = { navigated = true },
+            onRejected = { rejected.complete(it) },
+        )
+        assertTrue(rejected.await().contains("completed working set"))
+        assertTrue(!navigated)
+        assertNull(viewModel.completionEvents.value)
+
+        val draft = requireNotNull(repository.observeDraft().first { it?.id == workoutId })
+        repository.addSet(draft.exercises.first().id, SetDraft(reps = 5))
+        val finished = CompletableDeferred<Unit>()
+        viewModel.finishWorkout(
+            workoutId,
+            onFinished = {
+                assertNotNull(viewModel.completionEvents.value)
+                navigated = true
+                finished.complete(Unit)
+            },
+            onRejected = { error(it) },
+        )
+        finished.await()
+        val event = requireNotNull(viewModel.completionEvents.value)
+        assertEquals(day.mode, event.mode)
+        assertEquals(day.mode, viewModel.uiState.value.mode)
+        assertTrue(event.affectedMuscleIds.isNotEmpty())
+        viewModel.consumeCompletionEvent(event.id)
+        assertNull(viewModel.completionEvents.value)
+        assertNull(repository.finishWorkout(workoutId))
     }
 
     @Test(timeout = 120_000)

@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.core.app.ApplicationProvider
@@ -14,10 +13,13 @@ import com.petermathie.vibecheck.ui.rememberVibePalette
 import com.petermathie.vibecheck.data.BackupPreferences
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
+import com.petermathie.vibecheck.ui.theme.VibePalettes
+import com.petermathie.vibecheck.ui.theme.VibeThemeMode
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
-import org.junit.Assert.assertThrows
 import org.junit.runner.RunWith
 import org.json.JSONObject
 
@@ -34,55 +36,79 @@ class StyleUiTest {
     }
 
     @Test
-    fun customPaletteAndReducedMotionRefreshImmediatelyWithContrastProtection() {
-        assertThrows(IllegalArgumentException::class.java) {
-            BackupPreferences.validate(
-                """{"preferences":{"palette":"custom","accent":-1,"background":-1,"surface":-1}}""",
-            )
-        }
+    fun curatedPalettesSwitchLiveAndLegacyCustomMigratesToOcean() {
         preferences.edit().clear().commit()
         compose.setContent {
+            var themeMode by remember { mutableStateOf(VibeThemeMode.SYSTEM) }
             val palette = rememberVibePalette(preferences)
             VibeCheckTheme(palette) {
                 Column {
-                    Text("Active accent ${palette.accent.toArgb()}")
+                    Text("Active palette ${palette.id} dark=${palette.isDark}")
+                    Text("Theme mode ${themeMode.id}")
                     Text("Reduced motion ${LocalVibeReducedMotion.current}")
-                    StyleScreen(palette.id, { preferences.edit().putString("palette", it).apply() }, {})
+                    StyleScreen(
+                        palette.id,
+                        { preferences.edit().putString("palette", it).apply() },
+                        themeMode,
+                        {
+                            themeMode = it
+                            preferences.edit().putString("themeMode", it.id).apply()
+                        },
+                        {},
+                    )
                 }
             }
         }
-        compose.onNodeWithText(
-            "Habit indicators and muscle-map colours stay independent.",
-            substring = true,
-        ).assertExists()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Custom palette"))
-
-        replaceField("Accent hex", "#FFFF00")
-        replaceField("Background hex", "#000000")
-        replaceField("Surface hex", "#111111")
-        compose.onNodeWithText("Apply custom palette").performClick()
-        compose.waitUntil(5_000) { compose.onAllNodesWithText("Active accent -256").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("Custom palette applied").assertExists()
+        VibePalettes.presets.forEach {
+            compose.onNodeWithContentDescription("${it.displayName} palette", substring = true).assertExists()
+        }
+        compose.onNodeWithText("Custom palette").assertDoesNotExist()
+        compose.onNodeWithText("Follow system").assertExists()
+        compose.onNodeWithText("Dark").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Theme mode dark").fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithText("Active palette ocean dark=true").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription("Ocean palette, dark preview", substring = true).assertExists()
+        compose.onNodeWithContentDescription("Sunset palette", substring = true).performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Active palette sunset", substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
 
         preferences.edit().putBoolean("reducedMotion", true).apply()
         compose.waitUntil(5_000) { compose.onAllNodesWithText("Reduced motion true").fetchSemanticsNodes().isNotEmpty() }
 
         compose.runOnIdle {
             BackupPreferences.restore(
-                JSONObject("""{"palette":"custom","accent":-65281,"background":-16777216,"surface":-15658735}"""),
+                JSONObject("""{"palette":"custom","themeMode":"dark","accent":-65281,"background":-16777216,"surface":-15658735}"""),
                 preferences,
             )
         }
-        compose.waitUntil(5_000) { compose.onAllNodesWithText("Active accent -65281").fetchSemanticsNodes().isNotEmpty() }
-
-        replaceField("Background hex", "#FFFFFF")
-        compose.onNodeWithText("Apply custom palette").performClick()
-        compose.onNodeWithText("Background needs more contrast", substring = true).assertExists()
-        compose.onNodeWithText("Active accent -65281").assertExists()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Active palette ocean", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        assertEquals("ocean", preferences.getString("palette", null))
+        assertFalse(preferences.contains("accent"))
+        assertFalse(preferences.contains("background"))
+        assertFalse(preferences.contains("surface"))
+        assertEquals("dark", preferences.getString("themeMode", null))
     }
 
-    private fun replaceField(label: String, value: String) {
-        compose.onNode(hasText(label) and hasSetTextAction()).performTextClearance()
-        compose.onNode(hasText(label) and hasSetTextAction()).performTextInput(value)
+    @Test
+    fun missingThemeModeFollowsSystemAndExplicitModesArePreserved() {
+        preferences.edit().clear().commit()
+        var systemDark = false
+        compose.setContent {
+            systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+            val palette = rememberVibePalette(preferences)
+            Text("Palette dark=${palette.isDark}")
+        }
+        compose.onNodeWithText("Palette dark=$systemDark").assertExists()
+
+        preferences.edit().putString("themeMode", "dark").apply()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Palette dark=true").fetchSemanticsNodes().isNotEmpty() }
+        assertEquals("dark", preferences.getString("themeMode", null))
+
+        preferences.edit().putString("themeMode", "light").apply()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Palette dark=false").fetchSemanticsNodes().isNotEmpty() }
+        assertEquals("light", preferences.getString("themeMode", null))
     }
 }

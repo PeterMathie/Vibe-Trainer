@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,7 +55,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +70,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -78,17 +83,22 @@ import com.petermathie.vibecheck.domain.model.ExerciseSummary
 import com.petermathie.vibecheck.domain.model.MuscleRecency
 import com.petermathie.vibecheck.domain.model.TrainingMode
 import com.petermathie.vibecheck.ui.anatomy.AnatomyView
+import com.petermathie.vibecheck.ui.anatomy.FreshnessLegend
 import com.petermathie.vibecheck.ui.anatomy.MuscleMap
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
+import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
 import com.petermathie.vibecheck.ui.theme.VibePalette
 import com.petermathie.vibecheck.ui.theme.VibePalettes
+import com.petermathie.vibecheck.ui.theme.VibeThemeMode
 import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import kotlin.math.floor
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 internal enum class Destination(val label: String, val icon: ImageVector) {
     HOME("Home", Icons.Outlined.Home),
@@ -112,14 +122,23 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("settings",0)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val completionEvent by viewModel.completionEvents.collectAsStateWithLifecycle()
     val exercises by viewModel.exerciseResults.collectAsStateWithLifecycle()
     var destination by rememberSaveable { mutableStateOf(Destination.HOME) }
-    var paletteId by rememberSaveable { mutableStateOf(prefs.getString("palette",VibePalettes.MidnightLime.id)!!) }
+    var paletteId by rememberSaveable {
+        mutableStateOf(VibePalettes.normalizeId(prefs.getString("palette", VibePalettes.Ocean.id)))
+    }
+    var themeMode by rememberSaveable {
+        mutableStateOf(VibeThemeMode.fromPreference(prefs.getString("themeMode", null)))
+    }
     val palette = rememberVibePalette(prefs)
     val haptics = rememberVibeHaptics()
     DisposableEffect(prefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { preferences, key ->
-            if (key == "palette") paletteId = preferences.getString(key, VibePalettes.MidnightLime.id)!!
+            when (key) {
+                "palette" -> paletteId = VibePalettes.normalizeId(preferences.getString(key, VibePalettes.Ocean.id))
+                "themeMode" -> themeMode = VibeThemeMode.fromPreference(preferences.getString(key, null))
+            }
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
@@ -152,6 +171,8 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
                         { destination = Destination.ACTIVE_WORKOUT },
                         viewModel::selectHomeRecencyDay,
                         viewModel::setMode,
+                        completionEvent,
+                        viewModel::consumeCompletionEvent,
                     )
                     Destination.PROGRAMMES -> ProgrammeEditor(editor, state.mode, viewModel::setMode) { dayId, replace ->
                         viewModel.startWorkout(dayId, replace) {
@@ -162,8 +183,15 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
                     Destination.ACTIVE_WORKOUT -> WorkoutEditor(
                         vm = editor,
                         workoutId = state.activeWorkout?.id,
-                        onFinish = { id -> viewModel.finishWorkout(id) { destination = Destination.HOME } },
+                        onFinish = { id ->
+                            viewModel.finishWorkout(
+                                id,
+                                onFinished = { destination = Destination.HOME },
+                                onRejected = { editor.error.value = it },
+                            )
+                        },
                         onChoose = { destination = Destination.PROGRAMMES },
+                        onDoneEditing = { destination = Destination.HOME },
                     )
                     Destination.EXERCISES -> ExerciseEditor(editor)
                     Destination.PROGRESS -> ProgressScreen(editor)
@@ -177,6 +205,8 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
                     Destination.STYLE -> StyleScreen(
                         paletteId,
                         { paletteId = it; prefs.edit().putString("palette", it).apply() },
+                        themeMode,
+                        { themeMode = it; prefs.edit().putString("themeMode", it.id).apply() },
                     ) { result -> viewModel.removeDemoData(result) }
                     Destination.ARCHIVE -> ArchiveScreen(editor)
                 }
@@ -277,22 +307,29 @@ internal fun MoreScreen(onSelect: (Destination) -> Unit) {
 @Composable
 internal fun rememberVibePalette(prefs: android.content.SharedPreferences): VibePalette {
     var revision by remember { mutableIntStateOf(0) }
+    val systemDark = isSystemInDarkTheme()
     DisposableEffect(prefs) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key in setOf("palette", "accent", "background", "surface")) revision++
+            if (key == "palette" || key == "themeMode") revision++
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
     revision
-    val id = prefs.getString("palette", VibePalettes.MidnightLime.id)!!
-    return if (id == "custom") VibePalettes.MidnightLime.copy(
-        id = "custom",
-        displayName = "Custom",
-        accent = Color(prefs.getInt("accent", 0xFFC2F85A.toInt())),
-        background = Color(prefs.getInt("background", 0xFF081017.toInt())),
-        surface = Color(prefs.getInt("surface", 0xFF101B23.toInt())),
-    ) else VibePalettes.builtIns[id] ?: VibePalettes.MidnightLime
+    val storedId = prefs.getString("palette", VibePalettes.Ocean.id)
+    val id = VibePalettes.normalizeId(storedId)
+    val themeMode = VibeThemeMode.fromPreference(prefs.getString("themeMode", null))
+    LaunchedEffect(prefs, storedId, id) {
+        if (storedId != id || prefs.contains("accent") || prefs.contains("background") || prefs.contains("surface")) {
+            prefs.edit()
+                .putString("palette", id)
+                .remove("accent")
+                .remove("background")
+                .remove("surface")
+                .apply()
+        }
+    }
+    return VibePalettes.resolve(id, themeMode.useDarkPalette(systemDark))
 }
 
 @Composable
@@ -302,6 +339,8 @@ internal fun HomeScreen(
     onContinue: () -> Unit,
     onRecencyDayChange: (Long) -> Unit,
     onModeChange: (TrainingMode) -> Unit,
+    completionEvent: WorkoutCompletionEvent? = null,
+    onCompletionConsumed: (String) -> Unit = {},
 ) {
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     var selectedMuscle by rememberSaveable { mutableStateOf<String?>(null) }
@@ -311,8 +350,58 @@ internal fun HomeScreen(
         .coerceAtMost(today)
     val monthRange = freshnessMonthRange(YearMonth.from(selectedRecencyDate), today)
     val palette = LocalVibePalette.current
+    val reducedMotion = LocalVibeReducedMotion.current
     val haptics = rememberVibeHaptics()
     var lastHapticDay by remember { mutableStateOf(selectedRecencyDate.toEpochDay()) }
+    var sliderPosition by rememberSaveable(monthRange.month.toString()) {
+        mutableFloatStateOf(selectedRecencyDate.dayOfMonth.toFloat())
+    }
+    var sliderDragging by remember { mutableStateOf(false) }
+    var celebratedMuscles by remember { mutableStateOf(emptySet<String>()) }
+    var confettiEventId by remember { mutableStateOf<String?>(null) }
+    var completionAnnouncement by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(completionEvent?.id) {
+        val event = completionEvent ?: return@LaunchedEffect
+        onCompletionConsumed(event.id)
+        val plan = completionAnimationPlan(reducedMotion)
+        completionAnnouncement = if (event.affectedMuscleIds.isEmpty()) {
+            "${event.mode.name.lowercase().replaceFirstChar(Char::uppercase)} session complete"
+        } else {
+            "${event.mode.name.lowercase().replaceFirstChar(Char::uppercase)} session complete. Freshness updated."
+        }
+        haptics.perform(VibeHapticEvent.SUCCESS)
+        if (plan.showConfetti) confettiEventId = event.id
+        if (plan.muscleStaggerMillis == 0L) {
+            celebratedMuscles = event.affectedMuscleIds.toSet()
+        } else {
+            event.affectedMuscleIds.forEach { muscleId ->
+                celebratedMuscles = celebratedMuscles + muscleId
+                delay(plan.muscleStaggerMillis)
+            }
+        }
+        delay(plan.highlightHoldMillis)
+        celebratedMuscles = emptySet()
+        confettiEventId = null
+        completionAnnouncement = null
+    }
+    LaunchedEffect(selectedRecencyDate, sliderDragging) {
+        if (!sliderDragging) sliderPosition = selectedRecencyDate.dayOfMonth.toFloat()
+    }
+    val lowerDay = floor(sliderPosition).toInt().coerceIn(1, monthRange.dayCount)
+    val upperDay = (lowerDay + 1).coerceAtMost(monthRange.dayCount)
+    val lowerStates = state.freshnessByDay[monthRange.month.atDay(lowerDay).toEpochDay()]
+        ?.associate { it.muscleId to it.band }
+        ?: state.recency.associate { it.muscleId to it.band }
+    val upperStates = state.freshnessByDay[monthRange.month.atDay(upperDay).toEpochDay()]
+        ?.associate { it.muscleId to it.band }
+        ?: lowerStates
+    val mapStates = if (reducedMotion || !sliderDragging) {
+        state.recency.associate { it.muscleId to it.band }
+    } else {
+        lowerStates
+    }
+    val mapNextStates = if (reducedMotion || !sliderDragging) null else upperStates
+    val mapInterpolationFraction = if (mapNextStates == null) 0f else sliderPosition - lowerDay
     Column(
         Modifier.fillMaxSize().padding(VibeSpacing.medium),
         verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
@@ -342,40 +431,77 @@ internal fun HomeScreen(
                 )
                 ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
             }
-            Row(
-                Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                MuscleMap(
-                    sex = sex,
-                    view = AnatomyView.FRONT,
-                    states = state.recency.associate { it.muscleId to it.band },
-                    onMuscleTap = { selectedMuscle = it },
-                    modifier = Modifier.weight(1f).fillMaxSize().graphicsLayer(scaleX = 1.12f, scaleY = 1.12f),
-                    selectedMuscleId = selectedMuscle,
-                )
-                MuscleMap(
-                    sex = sex,
-                    view = AnatomyView.BACK,
-                    states = state.recency.associate { it.muscleId to it.band },
-                    onMuscleTap = { selectedMuscle = it },
-                    modifier = Modifier.weight(1f).fillMaxSize().graphicsLayer(scaleX = 1.12f, scaleY = 1.12f),
-                    selectedMuscleId = selectedMuscle,
-                )
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                Row(
+                    Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    MuscleMap(
+                        sex = sex,
+                        view = AnatomyView.FRONT,
+                        states = mapStates,
+                        onMuscleTap = { selectedMuscle = it },
+                        modifier = Modifier.weight(1f).fillMaxSize().graphicsLayer(scaleX = 1.12f, scaleY = 1.12f),
+                        selectedMuscleId = selectedMuscle,
+                        nextStates = mapNextStates,
+                        interpolationFraction = mapInterpolationFraction,
+                        directInterpolation = sliderDragging,
+                        celebratedMuscleIds = celebratedMuscles,
+                    )
+                    MuscleMap(
+                        sex = sex,
+                        view = AnatomyView.BACK,
+                        states = mapStates,
+                        onMuscleTap = { selectedMuscle = it },
+                        modifier = Modifier.weight(1f).fillMaxSize().graphicsLayer(scaleX = 1.12f, scaleY = 1.12f),
+                        selectedMuscleId = selectedMuscle,
+                        nextStates = mapNextStates,
+                        interpolationFraction = mapInterpolationFraction,
+                        directInterpolation = sliderDragging,
+                        celebratedMuscleIds = celebratedMuscles,
+                    )
+                    FreshnessLegend()
+                }
+                confettiEventId?.let { eventId ->
+                    CompletionConfetti(eventId, Modifier.fillMaxSize())
+                }
+                completionAnnouncement?.let { announcement ->
+                    Text(
+                        announcement,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .background(palette.surfaceRaised, RoundedCornerShape(50))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .semantics {
+                                liveRegion = LiveRegionMode.Polite
+                                contentDescription = announcement
+                            },
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
             }
             Text(
                 "Freshness through ${selectedRecencyDate.format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
                 color = palette.textSecondary,
             )
             Slider(
-                value = selectedRecencyDate.dayOfMonth.toFloat(),
+                value = sliderPosition,
                 onValueChange = {
+                    sliderDragging = true
+                    sliderPosition = it
                     val day = monthRange.month.atDay(it.roundToInt().coerceIn(1, monthRange.dayCount)).toEpochDay()
                     if (day != lastHapticDay) {
                         lastHapticDay = day
                         haptics.perform(VibeHapticEvent.SELECTION)
                     }
                     onRecencyDayChange(day)
+                },
+                onValueChangeFinished = {
+                    val settledDay = sliderPosition.roundToInt().coerceIn(1, monthRange.dayCount)
+                    val settledEpochDay = monthRange.month.atDay(settledDay).toEpochDay()
+                    sliderDragging = false
+                    sliderPosition = settledDay.toFloat()
+                    onRecencyDayChange(settledEpochDay)
                 },
                 valueRange = 1f..monthRange.dayCount.toFloat(),
                 steps = (monthRange.dayCount - 2).coerceAtLeast(0),

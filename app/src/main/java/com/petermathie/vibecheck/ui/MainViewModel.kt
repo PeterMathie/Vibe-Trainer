@@ -28,17 +28,25 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+import java.util.UUID
 
 data class MainUiState(
     val mode: TrainingMode = TrainingMode.STRENGTH,
     val programmeDays: List<ProgrammeDaySummary> = emptyList(),
     val activeWorkout: ActiveWorkout? = null,
     val recency: List<MuscleRecency> = emptyList(),
+    val freshnessByDay: Map<Long, List<MuscleRecency>> = emptyMap(),
     val activityDays: List<ActivityDay> = emptyList(),
     val homeRecencyDay: Long? = null,
     val selectedHistoryDay: Long? = null,
     val historyDay: HistoryDayDetail? = null,
 )
+
+data class WorkoutCompletionEvent(
+    override val id: String,
+    val mode: TrainingMode,
+    val affectedMuscleIds: List<String>,
+) : IdentifiedUiEvent
 
 private data class CoreUiState(
     val mode: TrainingMode,
@@ -64,6 +72,8 @@ class MainViewModel @Inject constructor(
     private val homeRecencyDay = MutableStateFlow<Long?>(null)
     private val selectedHistoryDay = MutableStateFlow<Long?>(null)
     private val searchQuery = MutableStateFlow("")
+    private val completionEvent = OneShotEventState<WorkoutCompletionEvent>()
+    val completionEvents: StateFlow<WorkoutCompletionEvent?> = completionEvent.state
 
     private val clock = MutableStateFlow(System.currentTimeMillis())
     init { viewModelScope.launch { while (true) { delay(30_000); clock.value=System.currentTimeMillis() } } }
@@ -82,6 +92,19 @@ class MainViewModel @Inject constructor(
         else repository.observeHistoryDay(day).map { it as HistoryDayDetail? }
     }
 
+    private val freshnessByDay = combine(mode, homeRecencyDay, clock) { currentMode, homeDay, now ->
+        val today = LocalDate.now()
+        val selectedDate = LocalDate.ofEpochDay(homeDay ?: today.toEpochDay()).coerceAtMost(today)
+        Triple(currentMode, freshnessMonthRange(java.time.YearMonth.from(selectedDate), today), now)
+    }.flatMapLatest { (currentMode, range, now) ->
+        repository.observeMuscleRecencyRange(
+            mode = currentMode,
+            firstEpochDay = range.firstDate.toEpochDay(),
+            lastEpochDay = range.lastDate.toEpochDay(),
+            now = now,
+        )
+    }
+
     private val coreState = combine(
         mode,
         repository.observeProgrammeDays(),
@@ -92,12 +115,13 @@ class MainViewModel @Inject constructor(
         CoreUiState(currentMode, days, workout, currentRecency, activity)
     }
 
-    val uiState: StateFlow<MainUiState> = combine(coreState, homeRecencyDay, selectedHistoryDay, history) { core, homeDay, selectedDay, dayHistory ->
+    val uiState: StateFlow<MainUiState> = combine(coreState, homeRecencyDay, selectedHistoryDay, history, freshnessByDay) { core, homeDay, selectedDay, dayHistory, freshness ->
         MainUiState(
             mode = core.mode,
             programmeDays = core.programmeDays,
             activeWorkout = core.activeWorkout,
             recency = core.recency,
+            freshnessByDay = freshness,
             activityDays = core.activityDays,
             homeRecencyDay = homeDay,
             selectedHistoryDay = selectedDay,
@@ -139,10 +163,31 @@ class MainViewModel @Inject constructor(
         repository.updateExerciseNotes(workoutExerciseId, notes)
     }
 
-    fun finishWorkout(workoutId: String, onFinished: () -> Unit = {}) = viewModelScope.launch {
-        repository.finishWorkout(workoutId)
-        clock.value=System.currentTimeMillis()
-        onFinished()
+    fun finishWorkout(
+        workoutId: String,
+        onFinished: () -> Unit = {},
+        onRejected: (String) -> Unit = {},
+    ) = viewModelScope.launch {
+        runCatching { repository.finishWorkout(workoutId) }
+            .onSuccess { completion ->
+                if (completion == null) {
+                    onRejected("Log at least one completed working set before finishing.")
+                } else {
+                    mode.value = completion.mode
+                    completionEvent.emit(WorkoutCompletionEvent(
+                        id = UUID.randomUUID().toString(),
+                        mode = completion.mode,
+                        affectedMuscleIds = completion.affectedMuscleIds.distinct().sorted(),
+                    ))
+                    clock.value = System.currentTimeMillis()
+                    onFinished()
+                }
+            }
+            .onFailure { onRejected("Workout could not be finished: ${it.message.orEmpty()}") }
+    }
+
+    fun consumeCompletionEvent(id: String) {
+        completionEvent.consume(id)
     }
 
     fun removeDemoData(onResult: (Result<com.petermathie.vibecheck.data.DemoRemovalSummary>) -> Unit) =

@@ -6,6 +6,8 @@ This format currently targets database schema 13. Historical notes must be conve
 
 The root object contains `format: "vibe-trainer"`, numeric `version: 1`, and a `tables` object. The legacy format identifier is intentionally unchanged so Vibe Check can import Vibe Trainer backups after the Android identity change. Optional `preferences` contains the supported profile/palette settings. Unknown root fields, table names or preference keys are rejected.
 
+Palette preferences use the stable IDs `ocean`, `sunset`, `forest` and `mono`. Older built-in IDs, unknown IDs and the former `custom` value are normalized to `ocean`; legacy custom colour integers are accepted during import but intentionally discarded. The optional `themeMode` preference accepts `system`, `dark` or `light`; missing and unknown values resolve safely to `system`, while explicit dark/light choices remain unchanged. New exports include only the stable preset and theme-mode IDs.
+
 Each supplied table is an array of row objects. A table can be omitted to leave it untouched. Every included row must supply exactly its database columns, including explicit `null` for optional values. Export a backup from the app for the complete schema and field names; definitions also live in `data/local/Entities.kt`. Exported schema JSON is included in CI's validation artifact.
 
 Rows merge by stable primary key: an existing row is updated; a new row is inserted. Omitted rows are retained, including existing relationship rows. Import is not an exact replacement or deletion format. Duplicate primary keys within a supplied table are rejected. Reimporting an unchanged file is idempotent. Keep stable IDs when correcting a prior import; use new IDs for new records.

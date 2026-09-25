@@ -30,7 +30,13 @@ fun emptySet(id: String, ordinal: Int) = WorkoutSetEntity(newId(), id, ordinal, 
 fun emptyEntryDraft(id: String, ordinal: Int) = WorkoutEntryDraftEntity(id, newId(), ordinal, "", "", false, false, false, "[]", null, "", "", "", "", "", "cm", System.currentTimeMillis())
 
 @Composable
-fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit, onFinish: (String) -> Unit) {
+fun WorkoutEditor(
+    vm: EditorViewModel,
+    workoutId: String?,
+    onChoose: () -> Unit,
+    onFinish: (String) -> Unit,
+    onDoneEditing: () -> Unit = onChoose,
+) {
     val workouts by vm.workouts.collectAsStateWithLifecycle()
     val snapshots by vm.workoutExercises.collectAsStateWithLifecycle()
     val sets by vm.sets.collectAsStateWithLifecycle()
@@ -73,7 +79,22 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
         }
         item {
             VibeActionButton("Add exercise to workout", { add = true }, importance = ActionImportance.SECONDARY)
-            Button(onClick = { onFinish(workout.id) }, modifier = Modifier.fillMaxWidth()) { Text(if (workout.status == "FINISHED") "Done editing" else "Finish workout") }
+            val canFinish = logged.any { set ->
+                set.result == "COMPLETED" && listOf(
+                    set.reps?.toDouble(),
+                    set.holdMillis?.toDouble(),
+                    set.leftReps?.toDouble(),
+                    set.rightReps?.toDouble(),
+                    set.leftHoldMillis?.toDouble(),
+                    set.rightHoldMillis?.toDouble(),
+                    set.romValue,
+                ).any { (it ?: 0.0) > 0.0 }
+            }
+            Button(
+                onClick = { if (workout.status == "FINISHED") onDoneEditing() else onFinish(workout.id) },
+                enabled = workout.status == "FINISHED" || canFinish,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (workout.status == "FINISHED") "Done editing" else "Finish workout") }
         }
     }
     if (bodyweight) NameDialog("Bodyweight in kg", workout.bodyweightKg?.toString().orEmpty(), { bodyweight = false }) { it.toDoubleOrNull()?.takeIf { n -> n > 0 }?.let { n -> vm.save(workout.copy(bodyweightKg = n)) }; bodyweight = false }

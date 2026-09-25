@@ -447,11 +447,11 @@ Final `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndro
   Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026.
 
   Evidence: commits `e6f969f` and `885a6f6` snapshot variation rank and selected band name/width on set submission and persist each tracker's daily target outcome when a value is saved. Progress, activity heatmaps, CSV export and structured backup consume/preserve snapshots instead of recalculating from later definition edits. Room v4 → v5 migration backfills existing history and is schema/data tested; legacy version-1 JSON imports derive missing snapshots from definitions available during import. Regression tests prove later variation/band/target edits do not rewrite history. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 15 unit tests and 24 API 35 instrumentation tests. Limitation: if a definition was edited before v5 migration/import, its earlier value is unavailable and the migration can only snapshot the definition present at upgrade.
-- [x] **STYLE-01:** Fix immediate palette refresh after editing/restoring; check contrast and other Material motion. Extend custom palette controls if useful.
+- [x] **STYLE-01:** Provide exactly four curated Ocean, Sunset, Forest and Mono presets with immediate switching, safe legacy migration, complete light/dark Material roles and contrast checks.
 
   Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026.
 
-  Evidence: commit `94cb902` observes palette preferences as Compose state, so custom edits and structured preference restores immediately replace semantic colours without reopening. Editable accent/background/surface combinations are checked at WCAG AA 4.5:1 against their fixed text tokens; invalid edits and restored custom palettes are rejected. Reduced motion is exposed as a semantic composition-local and disables Material ripple; no app-owned animated transition APIs are currently present. Existing three controls remain sufficient because all other semantic tokens intentionally inherit the established base palette. Local `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` passed with 17 unit tests and 25 API 35 instrumentation tests. `StyleUiTest` proves immediate edit/restore refresh, contrast feedback and live reduced-motion propagation.
+  Earlier custom-colour controls were superseded by the curated preset direction. Legacy custom and old built-in IDs normalize to Ocean; new backups persist only stable preset IDs. Reduced motion remains a semantic composition-local used by app-owned motion.
 - [x] **ARCH-01:** Split dense editors into maintainable components/state holders, centralise validation and remove superseded private screens without changing the agreed navigation.
 
   ARCH-01a (superseded private screens): **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`. Branch: `pmathie-cicpilot-persist-workout-drafts`. Completed: 22 September 2026. Commit `dd1beb9` removes 226 lines comprising the unreachable private `ProgrammeScreen`, `WorkoutScreen`, `ExerciseLogger` and their exclusive compact-entry helpers from `VibeCheckApp.kt`; current navigation continues to use `ProgrammeEditor` and `WorkoutEditor`. Focused programme/logging/history Compose suites passed, followed by full `gradle :app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest` validation with 17 unit tests and 32 instrumentation tests.
@@ -579,7 +579,7 @@ Status: **COMPLETED**. Owner: GitHub Copilot session `33304680-6464-408c-b019-2a
 - [x] Space exercise and History actions evenly and use shared outlined buttons/cards instead of the unrelated tonal fill.
 - [x] Show only kilograms in exercise settings unless the existing Pounds setting is enabled, then show pounds.
 - [x] Put corrected icons on the left of More actions, including exercise and cog Settings icons.
-- [x] Add four coherent built-in palettes and show every semantic palette colour while excluding habit indicator colours.
+- [x] Add four coherent curated palettes with complete light/dark Material roles and preset-derived Freshness colours.
 
 Evidence: `f843253` implements the habit, Progress and anatomy refinements. `c9bf07b` modernizes Exercises, History, More and Style while reusing exercise tags, the existing `lb` preference, shared cards/actions and the central palette registry. Unit tests passed, including contrast validation for all six built-in palettes. Focused API 35 instrumentation passed for `ExerciseEditorUiTest`, `HistoryUiTest`, `NavigationUiTest`, `StyleUiTest`, `HabitUiTest`, `ProgressUiTest` and `MuscleMapUiTest`. The exact installed APK SHA-256 is `41f65144b47d7713371f9f21484d51a53d3fa7c1523583b45972f5f52b9b6f39`; inspected evidence is under `files/ux-30-ui-modernization/`.
 
@@ -599,7 +599,7 @@ Evidence: `5593d4a` implements the Exercise, Programme, workout-label and initia
 
 Follow-up `1124763` replaces the platform choice dropdown with a themed adaptive grid. Each choice previews the exact light, medium or dark habit shade used by Progress; nine-state Mood renders as a 3×3 grid. `df8d043` centers each label in its tile. Unit tests and debug assembly passed. API 35 `ExerciseEditorUiTest`, `ProgrammeUiTest`, `WorkoutLoggingUiTest`, `SettingsUiTest`, `StyleUiTest`, `HabitUiTest`, `ProgressUiTest`, `MeasurementsUiTest` and `NavigationUiTest` passed. The exact installed APK SHA-256 is `99d1646a59d676c6c007dd5705af687954a827a724a21dfde7bbb99f4ee00d25`; MainActivity is foregrounded with PID 8776 and no AndroidRuntime/FATAL launch error. Evidence is under `files/ux-31-controls/`.
 
-Style palettes preview interface surfaces, text, borders, accents, generic workout heat-map colours and danger states. Per-habit indicators and muscle-map anatomy/recency colours remain independent and are not included in palette previews.
+Style presets preview their light and dark primary, secondary, tertiary, surface and alert roles. Per-habit indicators remain independent; Freshness colours derive from the selected preset.
 
 ## Intentionally deferred
 

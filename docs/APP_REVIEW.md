@@ -17,7 +17,7 @@ All images below come from the exact debug APK identified above, installed on an
 
 ![Home screen with front and back freshness maps, calendar-month slider, and activity heatmap](images/app-review/01-home.png)
 
-The Home screen keeps the current strength/stretch context visible, colours the anatomy by the last qualifying finished session, and reconstructs earlier states with the date slider. The activity grid combines finished training and completed habit activity without presenting either as recovery science.
+The Home screen keeps the current strength/stretch context visible, colours the anatomy by the last qualifying finished session, and reconstructs earlier states with a calendar-month date slider. Its vertical colour key runs from most recent to least recent with no-data separate. The activity grid combines finished training and completed habit activity without presenting either as recovery science. Successful persisted sessions return Home with one accessible, reduced-motion-aware affected-muscle celebration.
 
 ### Programmes and a coherent editor
 
@@ -81,7 +81,7 @@ Bodyweight is available as a trend and a calendar so a value is easy to find in 
 
 ![Settings and data screen with unit, anatomy, rest, haptics, reduced motion, timer permissions, JSON backup/import, CSV export, demo removal, and notices](images/app-review/13-settings.png)
 
-Settings use switches for binary preferences and direct actions for operations. Colour palettes and custom semantic colours live behind **Colour palette**. JSON backup/import, CSV export, timer permission routes, demo-data removal and open-source notices are deliberately visible rather than hidden in platform menus.
+Settings use switches for binary preferences and direct actions for operations. The Ocean, Sunset, Forest and Mono presets live behind **Colour palette** and update the app immediately; **Follow system** is the default appearance, with persistent **Dark** and **Light** overrides. JSON backup/import, CSV export, timer permission routes, demo-data removal and open-source notices are deliberately visible rather than hidden in platform menus.
 
 ## Feature overview
 
@@ -102,7 +102,7 @@ Settings use switches for binary preferences and direct actions for operations. 
 - Separate strength and stretching freshness maps with male/female anatomy profiles.
 - Primary and secondary muscle dose expressed as explainable set-equivalents.
 - Historical map reconstruction for any recorded day.
-- Five-week activity heatmap combining completed training and qualifying habit activity.
+- Calendar-month activity heatmap combining completed training and qualifying habit activity.
 - Exercise-specific performance scoring, rolling trends and personal records.
 - Variation-aware assisted and skill comparisons so unlike performances are not ranked together.
 
@@ -116,7 +116,7 @@ Settings use switches for binary preferences and direct actions for operations. 
 
 ### Personalization and platform behavior
 
-- kg/lb preference, selectable anatomy, multiple built-in palettes and custom semantic colours.
+- kg/lb preference, selectable anatomy, and four curated light/dark palettes with matching Freshness scales.
 - Reduced motion removes app-owned transition animation and touch ripples.
 - Notification and precise-alarm settings are linked for background rest timers.
 - Content descriptions, scalable Compose layouts and consistent controls support accessibility review.

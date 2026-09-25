@@ -222,8 +222,45 @@ interface WorkoutDao {
     @Query("SELECT * FROM workouts WHERE status = 'FINISHED' AND finishedAt IS NOT NULL ORDER BY finishedAt DESC")
     fun observeFinishedWorkouts(): Flow<List<WorkoutEntity>>
 
-    @Query("UPDATE workouts SET status = 'FINISHED', finishedAt = :finishedAt WHERE id = :workoutId")
-    suspend fun finish(workoutId: String, finishedAt: Long)
+    @Query(
+        "UPDATE workouts SET status = 'FINISHED', finishedAt = :finishedAt " +
+            "WHERE id = :workoutId AND status = 'DRAFT'",
+    )
+    suspend fun finish(workoutId: String, finishedAt: Long): Int
+
+    @Query("SELECT mode FROM workouts WHERE id = :workoutId")
+    suspend fun workoutMode(workoutId: String): String?
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM workout_sets ws
+        JOIN workout_exercises we ON we.id = ws.workoutExerciseId
+        WHERE we.workoutId = :workoutId
+          AND ws.setType = 'WORKING'
+          AND ws.result = 'COMPLETED'
+          AND (COALESCE(ws.reps, 0) > 0 OR COALESCE(ws.holdMillis, 0) > 0
+            OR COALESCE(ws.leftReps, 0) > 0 OR COALESCE(ws.rightReps, 0) > 0
+            OR COALESCE(ws.leftHoldMillis, 0) > 0 OR COALESCE(ws.rightHoldMillis, 0) > 0
+            OR COALESCE(ws.romValue, 0) > 0)
+        """,
+    )
+    suspend fun qualifyingSetCount(workoutId: String): Int
+
+    @Query(
+        """
+        SELECT DISTINCT wm.muscleId FROM workout_muscles wm
+        JOIN workout_exercises we ON we.id = wm.workoutExerciseId
+        JOIN workout_sets ws ON ws.workoutExerciseId = we.id
+        WHERE we.workoutId = :workoutId
+          AND ws.setType = 'WORKING'
+          AND ws.result = 'COMPLETED'
+          AND (COALESCE(ws.reps, 0) > 0 OR COALESCE(ws.holdMillis, 0) > 0
+            OR COALESCE(ws.leftReps, 0) > 0 OR COALESCE(ws.rightReps, 0) > 0
+            OR COALESCE(ws.leftHoldMillis, 0) > 0 OR COALESCE(ws.rightHoldMillis, 0) > 0)
+        ORDER BY wm.muscleId
+        """,
+    )
+    suspend fun affectedMuscleIds(workoutId: String): List<String>
 
     @Query("DELETE FROM workouts WHERE isDemo = 1")
     suspend fun deleteDemoWorkouts(): Int

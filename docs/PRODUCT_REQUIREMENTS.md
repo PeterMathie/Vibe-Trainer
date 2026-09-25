@@ -67,6 +67,8 @@ Primary sets contribute 1 set-equivalent and secondary sets 0.5. Set-equivalents
 
 The daily historical scrubber reconstructs maps from records at the end of the selected day and never stores screenshots.
 
+Finishing a valid strength or stretching session persists it before returning Home. Home then announces completion once, highlights only the mapped muscles affected by that session in deterministic order and shows a brief palette-themed celebration. Sessions without mapped muscles receive a generic acknowledgement; reduced motion removes confetti and staggered movement.
+
 ## Progress
 
 - The strongest valid working set supplies the exercise session score.
@@ -82,6 +84,8 @@ The daily historical scrubber reconstructs maps from records at the end of the s
 ## Homepage and history
 
 The homepage contains the freshness SVG and a calendar-month activity heatmap. The selected freshness date is authoritative: the slider exposes one step per selectable day in that displayed month, past months include every day, and the current month stops at today.
+
+A compact vertical key beside the maps uses the active preset's continuous Freshness scale from most recent at the top to least recent at the bottom, with no-data shown separately.
 
 - 0 activities: neutral.
 - 1: light green.
@@ -115,4 +119,4 @@ Trackers contain any combination of Boolean, number, duration, count, rating, te
 
 ## Visual system
 
-Every screen consumes semantic tokens for colour, typography, spacing, shape and motion. Built-in or custom palettes replace token values without screen changes.
+Every screen consumes semantic tokens for colour, typography, spacing, shape and motion. The four curated Ocean, Sunset, Forest and Mono presets provide complete light/dark Material roles and matching Freshness colours without screen-specific overrides. Appearance defaults to **Follow system**, while explicit **Dark** and **Light** choices persist across launches and backups. Dark variants use restrained layered neutral surfaces; Ocean dark maps its core roles to the official [VS Code Dark Modern theme](https://github.com/microsoft/vscode/blob/main/extensions/theme-defaults/themes/dark_modern.json) while retaining Vibe Check's own semantic Freshness colours and mobile state treatments.

@@ -38,7 +38,7 @@ Follow-ups `f9d47b6` and `75ee13e` replace permission-like Settings buttons with
 
 Current implementation task: **UX-26 habit, anatomy and secondary-screen polish is complete** at `f843253` and `c9bf07b` on `pmathie-cicpilot-persist-workout-drafts`. Habit setup uses an icon-only curated picker, full-width plus action, centered Cancel and title-row New habit control; Progress heat maps now show each persisted habit icon. Never-trained mapped muscles use the neutral recency token rather than disappearing into the transparent SVG background.
 
-Exercises are visibly separated into Strength and Stretching sections. Exercise and History cards use shared surfaces with evenly spaced outlined actions, and exercise settings expose only the unit selected by the existing Pounds preference. More uses left-aligned destination icons, with a strength icon for Exercises and a cog for Settings. Style now offers six built-in palettes and displays every semantic palette role colour; habit indicator colours remain independent and are not shown as palette tokens.
+Exercises are visibly separated into Strength and Stretching sections. Exercise and History cards use shared surfaces with evenly spaced outlined actions, and exercise settings expose only the unit selected by the existing Pounds preference. More uses left-aligned destination icons, with a strength icon for Exercises and a cog for Settings. Style now offers exactly four curated presets—Ocean, Sunset, Forest and Mono—with complete light/dark Material roles and preset-derived Freshness colours.
 
 Unit tests passed, including all built-in palette contrast checks. Focused API 35 instrumentation passed for Exercises, History, Navigation/More, Style, Habits, Progress and the muscle map. Exact installed APK SHA-256: `41f65144b47d7713371f9f21484d51a53d3fa7c1523583b45972f5f52b9b6f39`. Inspected evidence is under `files/ux-30-ui-modernization/`.
 
@@ -192,12 +192,12 @@ The detailed, claimable checklist is [TODO.md](TODO.md). RUN-02 completed succes
 - Exercise session scoring, baseline/rolling index, variation filters, raw performance/notes, aligned RPE graph, PR summaries and separate ROM view.
 - Progress charts expose value/date axes and pointer detail, ROM is charted per unit, PR types are explicit, and skill-index copy explains its heuristic and personal baseline.
 - Historical progress and tracker activity are deterministic after Room v5: submitted sets retain variation rank and band definitions, while tracker days retain their target outcome.
-- Custom palette edits/restores refresh immediately, unreadable custom colour combinations are blocked, and reduced motion is available throughout the semantic theme.
+- Curated preset changes/restores refresh immediately, legacy custom values normalize safely to Ocean, and reduced motion is available throughout the semantic theme.
 - Homepage activity heatmap, historical calendar navigation, editable/searchable finished workouts, custom multi-field habits and daily totals with numeric targets.
 - Habit fields support configured choices, date/time pickers, inclusive range targets, archival/restoration and reordering while retaining historical values.
 - Body measurements and photo import/removal/export; structured JSON merge/restore, CSV including band stacks and notes, last-backup indicator, backed-up profile preferences.
 - AlarmManager rest alerts, notification/precise-alarm permission controls, hold timer, units/plate calculator, haptics and reduced-motion ripple control.
-- Central palette tokens, built-in/custom colours, debug demo history and removable demo records. Production personal data starts empty.
+- Central palette tokens, four curated light/dark presets, debug demo history and removable demo records. Production personal data starts empty.
 
 ## Fixes completed in this continuation
 
@@ -286,7 +286,7 @@ The repository-controlled beta implementation and readiness work is complete. Th
 
 Future architecture work is not an active task. Splitting `WorkoutEditor` exercise-card orchestration or the remaining cross-aggregate `EditorViewModel` operations would alter lifecycle/transaction boundaries and should begin only with a new bounded claim and purpose-built regression coverage.
 | DATA-03 | Medium | Review history immutability for variation ordering/band definitions and habit-target edits. Exercise names/types/muscle mappings are snapshotted, but some derived history still reads live definitions. Decide and test historical policy before widening editors. | `data/local/*`, `domain/progress/SessionProgress.kt` |
-| STYLE-01 | Medium | Expand custom palette controls beyond accent/background/surface if desired. Verify contrast and make restored/custom palette changes refresh immediately. Reduced motion currently disables ripples; review other Material animations. | `ui/theme/VibeDesignSystem.kt`, `ui/VibeCheckApp.kt` |
+| STYLE-01 | Complete | Exactly four curated presets replace free-form custom colours; legacy values normalize to Ocean. Contrast, live switching and reduced motion are covered. | `ui/theme/VibeDesignSystem.kt`, `ui/VibeCheckApp.kt` |
 | ARCH-01 | Medium | Refactor dense editor composables into smaller screens/state holders and move persistence/validation out of UI-facing code. Remove superseded private screens in `VibeCheckApp.kt`. Preserve behaviour and avoid a new visual redesign. | `ui/*`, `ui/EditorViewModel.kt` |
 | RELEASE-01 | Later | Release signing/versioning, complete dependency-license inventory, migration policy and store preparation. Asset notices are bundled; that is not a complete release/legal audit. | Gradle, manifest, notices |
 

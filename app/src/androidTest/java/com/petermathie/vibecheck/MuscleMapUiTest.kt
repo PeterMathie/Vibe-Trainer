@@ -6,8 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.dp
@@ -17,9 +19,11 @@ import com.petermathie.vibecheck.ui.anatomy.AnatomyView
 import com.petermathie.vibecheck.ui.anatomy.MuscleMap
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class MuscleMapUiTest {
@@ -83,5 +87,41 @@ class MuscleMapUiTest {
         compose.runOnIdle { inspectLats.action() }
         back.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Selected lats"))
         front.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "No muscle selected"))
+    }
+
+    @Test
+    fun neutralOutlineLayerRendersTheCompleteSilhouette() {
+        compose.setContent {
+            VibeCheckTheme {
+                MuscleMap(
+                    sex = AnatomySex.MALE,
+                    view = AnatomyView.FRONT,
+                    states = emptyMap(),
+                    onMuscleTap = {},
+                    modifier = androidx.compose.ui.Modifier.width(240.dp),
+                )
+            }
+        }
+
+        val pixels = compose.onNodeWithContentDescription("male front freshness map").captureToImage().toPixelMap()
+        val background = pixels[0, 0]
+        var headPixels = 0
+        var feetPixels = 0
+        for (x in 0 until pixels.width) {
+            for (y in 0 until pixels.height) {
+                val pixel = pixels[x, y]
+                val differsFromBackground =
+                    abs(pixel.red - background.red) > 0.04f ||
+                        abs(pixel.green - background.green) > 0.04f ||
+                        abs(pixel.blue - background.blue) > 0.04f ||
+                        abs(pixel.alpha - background.alpha) > 0.04f
+                if (differsFromBackground) {
+                    if (y < pixels.height * 0.15f) headPixels++
+                    if (y > pixels.height * 0.87f) feetPixels++
+                }
+            }
+        }
+        assertTrue("Expected rendered head outline, found $headPixels pixels", headPixels > 20)
+        assertTrue("Expected rendered feet outline, found $feetPixels pixels", feetPixels > 20)
     }
 }

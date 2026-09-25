@@ -6,6 +6,7 @@ import com.petermathie.vibecheck.data.local.ProgrammeDao
 import com.petermathie.vibecheck.data.local.TrackerDao
 import com.petermathie.vibecheck.data.local.VibeDatabase
 import com.petermathie.vibecheck.data.local.WorkoutDao
+import com.petermathie.vibecheck.data.local.CompletedMuscleSetRow
 import com.petermathie.vibecheck.data.local.WorkoutEntity
 import com.petermathie.vibecheck.data.local.WorkoutExerciseEntity
 import com.petermathie.vibecheck.data.local.WorkoutSetEntity
@@ -27,6 +28,7 @@ import com.petermathie.vibecheck.domain.recency.RecencyCalculator
 import com.petermathie.vibecheck.data.seed.DemoProgressPhotos
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
@@ -37,6 +39,32 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+
+data class WorkoutCompletion(
+    val mode: TrainingMode,
+    val affectedMuscleIds: List<String>,
+)
+
+private fun List<CompletedMuscleSetRow>.recencyAt(
+    mode: TrainingMode,
+    atMillis: Long,
+): List<MuscleRecency> =
+    filter { it.mode == mode.name && it.finishedAt <= atMillis }
+        .groupBy { it.muscleId }
+        .map { (muscleId, muscleRows) ->
+            val last = muscleRows.maxOfOrNull { it.finishedAt }
+            val recentWindowStart = atMillis - 7 * 86_400_000L
+            MuscleRecency(
+                muscleId = muscleId,
+                lastTrainedAt = last,
+                band = RecencyCalculator.band(last, atMillis),
+                contributingExerciseNames = muscleRows.filter { it.finishedAt == last }
+                    .map { it.exerciseName }
+                    .distinct(),
+                setEquivalents = muscleRows.filter { it.finishedAt >= recentWindowStart }
+                    .sumOf { MuscleRole.valueOf(it.role).setEquivalent },
+            )
+        }
 
 @Singleton
 class TrainingRepository @Inject constructor(
@@ -148,27 +176,32 @@ class TrainingRepository @Inject constructor(
     suspend fun updateExerciseNotes(workoutExerciseId: String, notes: String) =
         workoutDao.updateExerciseNotes(workoutExerciseId, notes)
 
-    suspend fun finishWorkout(workoutId: String) = database.withTransaction {
+    suspend fun finishWorkout(workoutId: String): WorkoutCompletion? = database.withTransaction {
+        if (workoutDao.qualifyingSetCount(workoutId) == 0) return@withTransaction null
+        val mode = workoutDao.workoutMode(workoutId)?.let(TrainingMode::valueOf)
+            ?: error("Workout $workoutId does not exist")
+        val affectedMuscleIds = workoutDao.affectedMuscleIds(workoutId)
+        if (workoutDao.finish(workoutId, System.currentTimeMillis()) != 1) return@withTransaction null
         database.editorDao().deleteEntryDraftsForWorkout(workoutId)
-        workoutDao.finish(workoutId, System.currentTimeMillis())
+        WorkoutCompletion(mode, affectedMuscleIds)
     }
 
     fun observeMuscleRecency(mode: TrainingMode, atMillis: Long = System.currentTimeMillis()): Flow<List<MuscleRecency>> =
+        workoutDao.observeCompletedMuscleSets().map { rows -> rows.recencyAt(mode, atMillis) }
+
+    fun observeMuscleRecencyRange(
+        mode: TrainingMode,
+        firstEpochDay: Long,
+        lastEpochDay: Long,
+        now: Long = System.currentTimeMillis(),
+        zoneId: ZoneId = ZoneId.systemDefault(),
+    ): Flow<Map<Long, List<MuscleRecency>>> =
         workoutDao.observeCompletedMuscleSets().map { rows ->
-            rows.filter { it.mode == mode.name && it.finishedAt <= atMillis }
-                .groupBy { it.muscleId }
-                .map { (muscleId, muscleRows) ->
-                    val last = muscleRows.maxOfOrNull { it.finishedAt }
-                    val recentWindowStart = atMillis - 7 * 86_400_000L
-                    val recentRows = muscleRows.filter { it.finishedAt >= recentWindowStart }
-                    MuscleRecency(
-                        muscleId = muscleId,
-                        lastTrainedAt = last,
-                        band = RecencyCalculator.band(last, atMillis),
-                        contributingExerciseNames = muscleRows.filter { it.finishedAt == last }.map { it.exerciseName }.distinct(),
-                        setEquivalents = recentRows.sumOf { MuscleRole.valueOf(it.role).setEquivalent },
-                    )
-                }
+            (firstEpochDay..lastEpochDay).associateWith { epochDay ->
+                val endOfDay = LocalDate.ofEpochDay(epochDay).plusDays(1)
+                    .atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+                rows.recencyAt(mode, minOf(endOfDay, now))
+            }
         }
 
     fun observeActivityHeatmap(zoneId: ZoneId = ZoneId.systemDefault()): Flow<List<ActivityDay>> =

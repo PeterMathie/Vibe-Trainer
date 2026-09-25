@@ -30,13 +30,14 @@ import com.petermathie.vibecheck.domain.model.AnatomySex
 import com.petermathie.vibecheck.domain.model.MuscleRecencyBand
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
+import com.petermathie.vibecheck.ui.theme.freshnessColors
+import com.petermathie.vibecheck.ui.theme.interpolateFreshnessColor
 import androidx.compose.ui.semantics.stateDescription
 import kotlin.math.min
 
 enum class AnatomyView { FRONT, BACK }
 
 internal const val MUSCLE_COLOR_TRANSITION_MILLIS = 35
-internal const val RENDER_NEUTRAL_BODY_OUTLINE = false
 
 private data class ParsedOutline(val def: OutlinePathDef, val path: Path)
 private data class ParsedMuscle(val def: MusclePathDef, val path: Path, val region: Region)
@@ -49,8 +50,13 @@ fun MuscleMap(
     onMuscleTap: (String) -> Unit,
     modifier: Modifier = Modifier,
     selectedMuscleId: String? = null,
+    nextStates: Map<String, MuscleRecencyBand>? = null,
+    interpolationFraction: Float = 0f,
+    directInterpolation: Boolean = false,
+    celebratedMuscleIds: Set<String> = emptySet(),
 ) {
     val palette = LocalVibePalette.current
+    val freshnessColors = palette.freshnessColors()
     val reducedMotion = LocalVibeReducedMotion.current
     val diagram = when (sex to view) {
         AnatomySex.MALE to AnatomyView.FRONT -> MuscleDiagrams.MaleFront
@@ -72,17 +78,17 @@ fun MuscleMap(
     val groups = muscles.map { it.def.group }.distinct()
     val selectedGroup = selectedMuscleId?.takeIf(groups::contains)
     val animatedColors = groups.associateWith { group ->
-        val targetColor = when (states[group] ?: MuscleRecencyBand.NEVER) {
-            MuscleRecencyBand.UNDER_24_HOURS -> palette.recencyUnder24
-            MuscleRecencyBand.HOURS_24_TO_48 -> palette.recency24To48
-            MuscleRecencyBand.HOURS_48_TO_72 -> palette.recency48To72
-            MuscleRecencyBand.DAYS_3_TO_7 -> palette.recency3To7
-            MuscleRecencyBand.OVER_7_DAYS -> palette.recencyOver7
-            MuscleRecencyBand.NEVER -> palette.recencyNever
-        }
+        val from = freshnessColors.forBand(states[group] ?: MuscleRecencyBand.NEVER)
+        val targetColor = nextStates?.let {
+            interpolateFreshnessColor(
+                from,
+                freshnessColors.forBand(it[group] ?: MuscleRecencyBand.NEVER),
+                interpolationFraction,
+            )
+        } ?: from
         val color by animateColorAsState(
             targetValue = targetColor,
-            animationSpec = if (reducedMotion) snap() else tween(durationMillis = MUSCLE_COLOR_TRANSITION_MILLIS),
+            animationSpec = if (reducedMotion || directInterpolation) snap() else tween(durationMillis = MUSCLE_COLOR_TRANSITION_MILLIS),
             label = "freshness $group",
         )
         color
@@ -126,21 +132,29 @@ fun MuscleMap(
             translate(offsetX, offsetY)
             scale(scale, scale, Offset.Zero)
         }) {
-            if (RENDER_NEUTRAL_BODY_OUTLINE) {
-                outlines.forEach { item ->
-                    drawPathWithMirror(item.path, item.def.side, diagram.centerX, Color.Transparent, palette.diagramLine)
-                }
+            outlines.forEach { item ->
+                drawPathWithMirror(item.path, item.def.side, diagram.centerX, Color.Transparent, palette.diagramLine)
             }
             muscles.forEach { item ->
                 val color = animatedColors.getValue(item.def.group)
                 val selected = item.def.group == selectedMuscleId
+                if (item.def.group in celebratedMuscleIds) {
+                    drawPathWithMirror(
+                        path = item.path,
+                        side = item.def.side,
+                        centerX = diagram.centerX,
+                        color = Color.Transparent,
+                        strokeColor = freshnessColors.intermediate.copy(alpha = 0.78f),
+                        strokeWidth = 8f,
+                    )
+                }
                 drawPathWithMirror(
                     path = item.path,
                     side = item.def.side,
                     centerX = diagram.centerX,
                     color = color,
-                    strokeColor = if (selected) palette.accent else color,
-                    strokeWidth = if (selected) 3f else 2.5f,
+                    strokeColor = if (selected) freshnessColors.selection else color,
+                    strokeWidth = if (selected) 4f else 2.5f,
                 )
             }
         }

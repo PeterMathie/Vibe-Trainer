@@ -9,9 +9,11 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.test.core.app.ApplicationProvider
 import com.petermathie.vibecheck.ui.HomeScreen
 import com.petermathie.vibecheck.ui.MainUiState
 import com.petermathie.vibecheck.ui.ReorderHandle
+import com.petermathie.vibecheck.ui.WorkoutCompletionEvent
 import com.petermathie.vibecheck.ui.rememberReorderState
 import com.petermathie.vibecheck.domain.model.TrainingMode
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
@@ -49,6 +51,7 @@ class EndUserControlsTest {
         }
 
         compose.onNodeWithText("FRESHNESS").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Freshness colour scale", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Overview").assertDoesNotExist()
         compose.onNodeWithText("Recency, not recovery or fatigue").assertDoesNotExist()
         compose.onNodeWithText("Habits, workouts and stretching").assertDoesNotExist()
@@ -83,6 +86,14 @@ class EndUserControlsTest {
         val previousRange = compose.onNodeWithContentDescription("Freshness date")
             .fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
         assertEquals(previousMonth.lengthOfMonth().toFloat(), previousRange.range.endInclusive)
+        compose.onNodeWithContentDescription("Freshness date").performSemanticsAction(SemanticsActions.SetProgress) {
+            it(10.49f)
+        }
+        compose.waitUntil(15_000) { previewDay == previousMonth.atDay(10).toEpochDay() }
+        compose.onNodeWithContentDescription("Freshness date").performSemanticsAction(SemanticsActions.SetProgress) {
+            it(10.51f)
+        }
+        compose.waitUntil(15_000) { previewDay == previousMonth.atDay(11).toEpochDay() }
         assertNotNull(previewDay)
     }
 
@@ -111,5 +122,33 @@ class EndUserControlsTest {
         compose.waitForIdle()
 
         assertEquals(listOf(Triple("one", 0, 1)), moves)
+    }
+
+    @Test
+    fun reducedMotionCompletionAcknowledgesOnceWithoutAnimatedDelay() {
+        val preferences = ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("settings", 0)
+        preferences.edit().putBoolean("reducedMotion", true).commit()
+        var consumedId: String? = null
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            VibeCheckTheme {
+                HomeScreen(
+                    state = MainUiState(),
+                    onDayClick = {},
+                    onContinue = {},
+                    onRecencyDayChange = {},
+                    onModeChange = {},
+                    completionEvent = WorkoutCompletionEvent("event-1", TrainingMode.STRENGTH, listOf("CHEST")),
+                    onCompletionConsumed = { consumedId = it },
+                )
+            }
+        }
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithContentDescription("Strength session complete. Freshness updated.").assertExists()
+        compose.runOnIdle { assertEquals("event-1", consumedId) }
+        compose.mainClock.advanceTimeBy(300)
+        preferences.edit().remove("reducedMotion").commit()
+        compose.mainClock.autoAdvance = true
     }
 }
