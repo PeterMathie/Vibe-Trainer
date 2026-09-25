@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -95,7 +96,7 @@ class WorkoutEntryDraftTest {
     }
 
     @Test(timeout = 120_000)
-    fun cancellationFinishAndDeletionClearPendingInputWithoutDerivedHistory() = runBlocking {
+    fun cancellationRejectedFinishValidFinishAndDeletionRespectPendingInputLifecycle() = runBlocking {
         val (workoutId, exerciseId) = startWorkout()
         val dao = database.editorDao()
         dao.entryDraft(pendingDraft(exerciseId).copy(performance = "10"))
@@ -104,11 +105,18 @@ class WorkoutEntryDraftTest {
 
         dao.entryDraft(pendingDraft(exerciseId).copy(performance = "11"))
         val recencyBeforeFinish = repository.observeMuscleRecency(TrainingMode.STRENGTH).first()
-        repository.finishWorkout(workoutId)
-        assertNull(dao.entryDraft(exerciseId))
+        assertNull(repository.finishWorkout(workoutId))
+        assertEquals("11", dao.entryDraft(exerciseId)?.performance)
         dao.persistEntryDraft(pendingDraft(exerciseId).copy(performance = "stale write"))
-        assertNull(dao.entryDraft(exerciseId))
+        val persistedDraft = requireNotNull(dao.entryDraft(exerciseId))
+        assertEquals("stale write", persistedDraft.performance)
         assertEquals(recencyBeforeFinish, repository.observeMuscleRecency(TrainingMode.STRENGTH).first())
+
+        dao.saveSetWithSnapshots(pendingSet(persistedDraft, reps = 5), emptyList(), consumeDraft = false)
+        assertNotNull(repository.finishWorkout(workoutId))
+        assertNull(dao.entryDraft(exerciseId))
+        dao.persistEntryDraft(pendingDraft(exerciseId).copy(performance = "stale write after finish"))
+        assertNull(dao.entryDraft(exerciseId))
 
         val (nextWorkoutId, nextExerciseId) = startWorkout()
         dao.entryDraft(pendingDraft(nextExerciseId).copy(performance = "12"))
