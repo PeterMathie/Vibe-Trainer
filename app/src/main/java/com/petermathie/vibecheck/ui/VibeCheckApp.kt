@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,6 +69,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
@@ -87,6 +92,9 @@ import com.petermathie.vibecheck.ui.anatomy.FreshnessLegend
 import com.petermathie.vibecheck.ui.anatomy.FreshnessNoDataKey
 import com.petermathie.vibecheck.ui.anatomy.MuscleMap
 import com.petermathie.vibecheck.ui.components.VibeSurface
+import com.petermathie.vibecheck.ui.components.MuscleDetailsSheet
+import com.petermathie.vibecheck.ui.components.TechnicalBackdrop
+import com.petermathie.vibecheck.ui.components.muscleDetailsUiState
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
 import com.petermathie.vibecheck.ui.theme.VibePalette
@@ -98,6 +106,7 @@ import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import com.petermathie.vibecheck.ui.theme.habitHeatmapColors
 import com.petermathie.vibecheck.ui.theme.heatmapOutlineColor
+import com.petermathie.vibecheck.ui.theme.freshnessColors
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -349,6 +358,7 @@ internal fun HomeScreen(
 ) {
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     var selectedMuscle by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedMuscleView by rememberSaveable { mutableStateOf<AnatomyView?>(null) }
     val selected = state.recency.firstOrNull { it.muscleId == selectedMuscle }
     val today = LocalDate.now()
     val selectedRecencyDate = LocalDate.ofEpochDay(state.homeRecencyDay ?: today.toEpochDay())
@@ -365,9 +375,22 @@ internal fun HomeScreen(
     var celebratedMuscles by remember { mutableStateOf(emptySet<String>()) }
     var confettiEventId by remember { mutableStateOf<String?>(null) }
     var completionAnnouncement by remember { mutableStateOf<String?>(null) }
+    var completionSummary by remember { mutableStateOf<WorkoutCompletionEvent?>(null) }
+    var completionSummaryExpanded by remember { mutableStateOf(false) }
+    var completionSummaryFocused by remember { mutableStateOf(false) }
+    val frontMapFocusRequester = remember { FocusRequester() }
+    val backMapFocusRequester = remember { FocusRequester() }
+    val sheetTitleFocusRequester = remember { FocusRequester() }
+    val selectMuscle: (String, AnatomyView) -> Unit = { muscleId, view ->
+        selectedMuscle = muscleId
+        selectedMuscleView = view
+        haptics.perform(VibeHapticEvent.SELECTION)
+    }
     LaunchedEffect(completionEvent?.id) {
         val event = completionEvent ?: return@LaunchedEffect
         onCompletionConsumed(event.id)
+        completionSummary = event
+        completionSummaryExpanded = true
         val plan = completionAnimationPlan(reducedMotion)
         completionAnnouncement = if (event.affectedMuscleIds.isEmpty()) {
             "${event.mode.name.lowercase().replaceFirstChar(Char::uppercase)} session complete"
@@ -389,6 +412,14 @@ internal fun HomeScreen(
         confettiEventId = null
         completionAnnouncement = null
     }
+    LaunchedEffect(completionSummary?.id, completionSummaryFocused) {
+        if (completionSummary == null || completionSummaryFocused) return@LaunchedEffect
+        delay(3_000)
+        if (!completionSummaryFocused) completionSummaryExpanded = false
+    }
+    LaunchedEffect(selectedMuscle) {
+        if (selectedMuscle != null) sheetTitleFocusRequester.requestFocus()
+    }
     LaunchedEffect(selectedRecencyDate, sliderDragging) {
         if (!sliderDragging) sliderPosition = selectedRecencyDate.dayOfMonth.toFloat()
     }
@@ -408,7 +439,7 @@ internal fun HomeScreen(
     val mapNextStates = if (reducedMotion || !sliderDragging) null else upperStates
     val mapInterpolationFraction = if (mapNextStates == null) 0f else sliderPosition - lowerDay
     Column(
-        Modifier.fillMaxSize().padding(VibeSpacing.medium),
+        Modifier.fillMaxSize().padding(VibeSpacing.medium).widthIn(max = 840.dp),
         verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
     ) {
         state.activeWorkout?.let { workout ->
@@ -426,15 +457,50 @@ internal fun HomeScreen(
                 }
             }
         }
+        completionSummary?.let { summary ->
+            VibeSurface(
+                level = if (completionSummaryExpanded) VibeSurfaceLevel.FLOATING else VibeSurfaceLevel.RAISED,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { completionSummaryFocused = it.hasFocus },
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = VibeSpacing.medium, vertical = VibeSpacing.compact),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.Check, contentDescription = null, tint = palette.accent)
+                    Spacer(Modifier.width(VibeSpacing.compact))
+                    Column {
+                        Text(
+                            if (completionSummaryExpanded) {
+                                "${summary.mode.name.lowercase().replaceFirstChar(Char::uppercase)} session saved"
+                            } else {
+                                "Session saved"
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        if (completionSummaryExpanded) {
+                            Text(
+                                if (summary.affectedMuscleIds.isEmpty()) "Freshness saved with no mapped muscles."
+                                else "${summary.affectedMuscleIds.size} muscle areas updated.",
+                                color = palette.textSecondary,
+                            )
+                        }
+                    }
+                }
+            }
+        }
         VibeCard(Modifier.weight(1f), fillHeight = true) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "FRESHNESS",
-                    modifier = Modifier.weight(1f),
-                    color = palette.accent,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
+            TechnicalBackdrop(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "FRESHNESS",
+                        modifier = Modifier.weight(1f),
+                        color = palette.accent,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
+                }
             }
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 Column(
@@ -449,8 +515,8 @@ internal fun HomeScreen(
                             sex = sex,
                             view = AnatomyView.FRONT,
                             states = mapStates,
-                            onMuscleTap = { selectedMuscle = it },
-                            modifier = Modifier.weight(1f).fillMaxSize(),
+                            onMuscleTap = { selectMuscle(it, AnatomyView.FRONT) },
+                            modifier = Modifier.weight(1f).fillMaxSize().focusRequester(frontMapFocusRequester).focusable(),
                             selectedMuscleId = selectedMuscle,
                             nextStates = mapNextStates,
                             interpolationFraction = mapInterpolationFraction,
@@ -462,8 +528,8 @@ internal fun HomeScreen(
                             sex = sex,
                             view = AnatomyView.BACK,
                             states = mapStates,
-                            onMuscleTap = { selectedMuscle = it },
-                            modifier = Modifier.weight(1f).fillMaxSize(),
+                            onMuscleTap = { selectMuscle(it, AnatomyView.BACK) },
+                            modifier = Modifier.weight(1f).fillMaxSize().focusRequester(backMapFocusRequester).focusable(),
                             selectedMuscleId = selectedMuscle,
                             nextStates = mapNextStates,
                             interpolationFraction = mapInterpolationFraction,
@@ -527,16 +593,6 @@ internal fun HomeScreen(
                 ),
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Freshness date" },
             )
-            selectedMuscle?.let { muscle ->
-                Text(muscle.replace('_', ' '), fontWeight = FontWeight.Bold)
-                Text(
-                    selected?.let { "${it.band.name.replace('_', ' ').lowercase()} · ${"%.1f".format(it.setEquivalents)} set-equivalents in 7 days" }
-                        ?: "Never recorded",
-                    color = palette.textSecondary,
-                )
-                selected?.contributingExerciseNames?.takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(), color = palette.textFaint) }
-                selected?.lastTrainedAt?.let { Text("Last trained: ${java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy HH:mm"))}") }
-            }
         }
         VibeCard {
             Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelLarge)
@@ -554,6 +610,23 @@ internal fun HomeScreen(
             )
             Text("0 none · 1 low · 2 medium · 3+ strong", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
         }
+    }
+    selectedMuscle?.let { muscleId ->
+        MuscleDetailsSheet(
+            state = muscleDetailsUiState(
+                muscleId = muscleId,
+                recency = selected,
+                mode = state.mode,
+                colour = palette.freshnessColors().forBand(selected?.band ?: com.petermathie.vibecheck.domain.model.MuscleRecencyBand.NEVER),
+            ),
+            titleFocusRequester = sheetTitleFocusRequester,
+            onDismiss = {
+                val requester = if (selectedMuscleView == AnatomyView.BACK) backMapFocusRequester else frontMapFocusRequester
+                selectedMuscle = null
+                selectedMuscleView = null
+                requester.requestFocus()
+            },
+        )
     }
 }
 

@@ -210,8 +210,16 @@ fun MuscleMap(
                         side = item.def.side,
                         centerX = diagram.centerX,
                         color = Color.Transparent,
-                        strokeColor = freshnessColors.intermediate.copy(alpha = 0.78f),
-                        strokeWidth = 8f,
+                        strokeColor = color.copy(alpha = if (palette.isDark) 0.24f else 0.14f),
+                        strokeWidth = 12f,
+                    )
+                    drawPathWithMirror(
+                        path = item.path,
+                        side = item.def.side,
+                        centerX = diagram.centerX,
+                        color = Color.Transparent,
+                        strokeColor = color,
+                        strokeWidth = 1f,
                     )
                 }
                 drawPathWithMirror(

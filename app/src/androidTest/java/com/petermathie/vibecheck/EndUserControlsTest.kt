@@ -131,6 +131,7 @@ class EndUserControlsTest {
                 val state = rememberReorderState(listOf("one", "two")) { key, from, to ->
                     moves += Triple(key, from, to)
                 }
+
                 Column {
                     ReorderHandle(state, "one", "one")
                     ReorderHandle(state, "two", "two")
@@ -148,6 +149,42 @@ class EndUserControlsTest {
         compose.waitForIdle()
 
         assertEquals(listOf(Triple("one", 0, 1)), moves)
+    }
+
+    @Test
+    fun muscleDetailsSheetPreservesMapGeometryAndDismissesWithClose() {
+        compose.setContent {
+            VibeCheckTheme {
+                HomeScreen(
+                    state = MainUiState(),
+                    onDayClick = {},
+                    onContinue = {},
+                    onRecencyDayChange = {},
+                    onModeChange = {},
+                )
+            }
+        }
+        val map = compose.onNodeWithContentDescription("male front freshness map")
+        val before = map.fetchSemanticsNode().boundsInRoot
+        val inspectChest = map.fetchSemanticsNode().config[SemanticsActions.CustomActions]
+            .first { it.label.startsWith("Inspect CHEST") }
+
+        compose.runOnIdle { inspectChest.action() }
+        compose.onNodeWithText("Chest Freshness details").assertIsDisplayed()
+        val during = map.fetchSemanticsNode().boundsInRoot
+        assertEquals(before.left, during.left, 0.5f)
+        assertEquals(before.top, during.top, 0.5f)
+        assertEquals(before.right, during.right, 0.5f)
+        assertEquals(before.bottom, during.bottom, 0.5f)
+
+        compose.onNodeWithContentDescription("Close muscle details").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Chest Freshness details").assertDoesNotExist()
+        val after = map.fetchSemanticsNode().boundsInRoot
+        assertEquals(before.left, after.left, 0.5f)
+        assertEquals(before.top, after.top, 0.5f)
+        assertEquals(before.right, after.right, 0.5f)
+        assertEquals(before.bottom, after.bottom, 0.5f)
     }
 
     @Test
