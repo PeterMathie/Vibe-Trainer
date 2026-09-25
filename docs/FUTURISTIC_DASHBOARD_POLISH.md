@@ -1,6 +1,6 @@
 # Futuristic monochrome dashboard polish
 
-> **Status:** Proposed implementation plan; not an approved production change.
+> **Status:** Approved production implementation specification.
 > **Stacked baseline:** PR #8 branch `pmathie-cicpilot-polish-feedback-progress` at commit `78941221638bce500a46eee9ca9456b2c54072f9` (`Align Freshness figures with legend`).
 > **Scope:** Visual-system and interaction polish only. Product semantics, navigation destinations, persistence, calculations and PR #8's completion guarantees remain unchanged.
 
@@ -375,6 +375,18 @@ This phase must not:
 | More / Settings / Style | Section grouping, consistent list rows, palette preview depth, correct light/dark system bars | Six primary destinations, visible data controls, all four palettes, Follow system default, preference persistence/backup |
 | Dialogs / sheets / menus | L3/L4 surfaces, focus ring, inset content groups, consistent actions, responsive max width | Validation, dismiss semantics, destructive confirmations and explicit errors |
 | Empty / error / loading | Shared `VibeStatePanel`; stable layout, actionable copy, static skeletons, explicit retry/error | No fake data, no silent fallback, no dead controls |
+
+### Pointer-anchored reorder behavior
+
+All drag-to-reorder tile and card lists use the same pointer-anchored reorder primitive. The active item is an elevated overlay whose root-coordinate translation preserves the original grab point through every keyed list relayout; only displaced neighbors animate into their new positions. Candidate crossings use measured item geometry plus a directional dead zone, with one haptic per accepted crossing and one haptic after a successful drop. Persistence occurs once, on successful drop only. Cancellation, Back, or pointer interruption restores the source order without persistence.
+
+When the pointer approaches the visible scrolling viewport edge, the list scrolls automatically at a bounded speed that increases smoothly with edge proximity. The viewport is measured after system insets and includes the actual visible list bounds. Auto-scroll stops immediately away from the edge, on drop, or on cancellation, and crossing candidates are recomputed after layout updates. Stable keys, partially visible first/last items, rapid direction reversal, 200% font scale, reduced motion, and accessibility Move earlier/Move later actions retain equivalent behavior.
+
+### Stable habit choice intensity
+
+“Choose from a list” fields store every option with a stable ID, an explicit `LIGHT`, `MEDIUM`, or `DARK` bucket, and a stable position within that bucket. The editor presents three labelled drag groups with counts, explanations, and empty drop targets. Reordering within a group changes only local order; moving between groups changes only that option’s explicit intensity. New options start in Light, empty groups are valid, and deletion never reclassifies surviving options. Duplicate labels remain invalid under the existing product rule.
+
+Room migration 13→14 converts legacy positional options deterministically using the prior visible boundary algorithm and snapshots the selected option ID and intensity onto existing daily values. New logs always snapshot both, so later option moves or deletion cannot recolour history. Legacy backups without the new fields are upgraded during import; exports always emit explicit option metadata and logged snapshots. No-response days remain neutral, and all palettes use their audited three-step habit ramp.
 
 ## Architecture and file-level implementation map
 

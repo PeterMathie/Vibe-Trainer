@@ -12,12 +12,14 @@ data class HabitFieldForm(
     val comparison: String,
     val choiceLightThrough: Int = -1,
     val choiceDarkFrom: Int = -1,
+    val choices: List<HabitChoiceOption> = emptyList(),
 ) {
     val isNumeric: Boolean
         get() = type in NUMERIC_TYPES
 
     val choiceValues: List<String>
-        get() = options.split(',', '\n').map(String::trim).filter(String::isNotBlank)
+        get() = if (choices.isNotEmpty()) choices.map(HabitChoiceOption::label)
+        else options.split(',', '\n').map(String::trim).filter(String::isNotBlank)
 
     val isTargetValid: Boolean
         get() = target.isBlank() || target.toDoubleOrNull()?.isFinite() == true
@@ -31,14 +33,15 @@ data class HabitFieldForm(
     val areChoicesValid: Boolean
         get() = type != CHOICE || (
             choiceValues.size >= 2 &&
-                choiceValues.distinct().size == choiceValues.size
+                choiceValues.all { it.trim().isNotEmpty() } &&
+                choiceValues.map { it.trim() }.distinct().size == choiceValues.size
             )
 
     val canSave: Boolean
         get() = name.isNotBlank() && isTargetValid && isRangeValid && areChoicesValid && areChoiceShadesValid
 
     val areChoiceShadesValid: Boolean
-        get() = type != CHOICE || (
+        get() = type != CHOICE || choices.isNotEmpty() || (
             choiceLightThrough in 0 until choiceValues.lastIndex &&
                 choiceDarkFrom in 1..choiceValues.lastIndex &&
                 choiceLightThrough < choiceDarkFrom
@@ -56,6 +59,11 @@ data class HabitFieldForm(
             choiceOptions = if (type == CHOICE) choiceValues.joinToString("\n") else "",
             choiceLightThrough = if (type == CHOICE) choiceLightThrough else -1,
             choiceDarkFrom = if (type == CHOICE) choiceDarkFrom else -1,
+            choiceOptionsJson = if (type == CHOICE) {
+                encodeHabitChoices(choices.map { it.copy(label = it.label.trim()) })
+            } else {
+                ""
+            },
             targetMaxValue = if (minimum != null && comparison == RANGE) {
                 targetMaximum.toDoubleOrNull()
             } else {
@@ -90,6 +98,7 @@ data class HabitFieldForm(
             comparison = field.targetComparison ?: "AT_LEAST",
             choiceLightThrough = field.choiceLightThrough,
             choiceDarkFrom = field.choiceDarkFrom,
+            choices = decodeHabitChoices(field),
         )
     }
 }

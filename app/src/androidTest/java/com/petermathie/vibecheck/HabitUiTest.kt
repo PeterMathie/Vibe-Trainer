@@ -11,6 +11,8 @@ import com.petermathie.vibecheck.data.local.VibeDatabase
 import com.petermathie.vibecheck.ui.EditorViewModel
 import com.petermathie.vibecheck.ui.TrackerScreen
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceIntensity
+import com.petermathie.vibecheck.domain.tracker.decodeHabitChoices
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -104,35 +106,31 @@ class HabitUiTest {
         assertEquals(2, field.choiceDarkFrom)
         compose.onNodeWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Choose from a list").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Choice 3").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Light · 1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Medium · 1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Dark · 1").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("What would you like to track?").assertDoesNotExist()
-        compose.onNodeWithText("Heat-map intensity").assertDoesNotExist()
         compose.onNodeWithText("Archive habit").assertDoesNotExist()
         val actions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =
-            compose.onNodeWithContentDescription("Reorder Happy")
+            compose.onNodeWithContentDescription("Happy intensity controls")
                 .fetchSemanticsNode()
                 .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
-        assertEquals(true, actions.first { it.label == "Move earlier" }.action())
+        assertEquals(true, actions.first { it.label == "Move to Medium" }.action())
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Add choice").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Choice 3").performTextInput("Great")
-        val greatActions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =
-            compose.onNodeWithContentDescription("Reorder Great")
-                .fetchSemanticsNode()
-                .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
-        assertEquals(true, greatActions.first { it.label == "Move later" }.action())
-        compose.onNodeWithContentDescription("Low to medium boundary").assertExists()
-        compose.onNodeWithContentDescription("Medium to strong boundary").assertExists()
+        compose.onNodeWithContentDescription("light choice 2").performTextInput("Great")
         compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) {
             runBlocking {
                 database.editorDao().fields().first().single().let {
-                    it.choiceOptions == "Sad\nHappy\nOkay\nGreat" &&
-                        it.choiceLightThrough == 0 &&
-                        it.choiceDarkFrom == 3
+                    val choices = decodeHabitChoices(it)
+                    choices.first { option -> option.label == "Happy" }.intensity == HabitChoiceIntensity.MEDIUM &&
+                        choices.first { option -> option.label == "Great" }.intensity == HabitChoiceIntensity.LIGHT
                 }
             }
         }
+        val historical = runBlocking { database.editorDao().values().first().single() }
+        assertEquals("DARK", historical.choiceIntensity)
         compose.onNodeWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Delete habit permanently").assertDoesNotExist()
         compose.onNodeWithText("Archive").performClick()

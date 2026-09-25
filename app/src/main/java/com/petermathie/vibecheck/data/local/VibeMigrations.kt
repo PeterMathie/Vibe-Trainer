@@ -2,6 +2,9 @@ package com.petermathie.vibecheck.data.local
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.petermathie.vibecheck.domain.tracker.encodeHabitChoices
+import com.petermathie.vibecheck.domain.tracker.legacyHabitChoices
+import com.petermathie.vibecheck.domain.tracker.legacyHabitChoiceSnapshot
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -409,5 +412,56 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
                     )
                 """.trimIndent(),
             )
+        }
+}
+
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE tracker_fields ADD COLUMN choiceOptionsJson TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE tracker_daily_values ADD COLUMN choiceOptionId TEXT")
+        db.execSQL("ALTER TABLE tracker_daily_values ADD COLUMN choiceIntensity TEXT")
+        val choicesByField = mutableMapOf<String, List<com.petermathie.vibecheck.domain.tracker.HabitChoiceOption>>()
+        db.query(
+            """
+            SELECT id,choiceOptions,choiceLightThrough,choiceDarkFrom
+            FROM tracker_fields
+            WHERE UPPER(valueType) = 'CHOICE'
+            """.trimIndent(),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val fieldId = cursor.getString(0)
+                val options = legacyHabitChoices(fieldId, cursor.getString(1), cursor.getInt(2), cursor.getInt(3))
+                choicesByField[fieldId] = options
+                db.execSQL(
+                    "UPDATE tracker_fields SET choiceOptionsJson=? WHERE id=?",
+                    arrayOf(encodeHabitChoices(options), fieldId),
+                )
+            }
+        }
+        db.query(
+            """
+            SELECT fieldId,epochDay,textValue
+            FROM tracker_daily_values
+            WHERE textValue IS NOT NULL
+              AND fieldId IN (SELECT id FROM tracker_fields WHERE valueType = 'CHOICE')
+            """.trimIndent(),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val fieldId = cursor.getString(0)
+                val option = legacyHabitChoiceSnapshot(
+                    fieldId,
+                    cursor.getString(2),
+                    choicesByField[fieldId].orEmpty(),
+                )
+                db.execSQL(
+                    """
+                    UPDATE tracker_daily_values
+                    SET choiceOptionId=?,choiceIntensity=?
+                    WHERE fieldId=? AND epochDay=?
+                    """.trimIndent(),
+                    arrayOf(option.id, option.intensity.name, fieldId, cursor.getLong(1)),
+                )
+            }
+        }
     }
 }

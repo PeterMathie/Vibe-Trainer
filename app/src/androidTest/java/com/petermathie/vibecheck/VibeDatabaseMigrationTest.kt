@@ -14,6 +14,7 @@ import com.petermathie.vibecheck.data.local.MIGRATION_9_10
 import com.petermathie.vibecheck.data.local.MIGRATION_10_11
 import com.petermathie.vibecheck.data.local.MIGRATION_11_12
 import com.petermathie.vibecheck.data.local.MIGRATION_12_13
+import com.petermathie.vibecheck.data.local.MIGRATION_13_14
 import com.petermathie.vibecheck.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -432,5 +433,38 @@ fun migrate10To11AddsChoiceBoundariesAndHabitIconsWithoutLosingData() {
             assertEquals(-1, it.getInt(3))
         }
     }
+    }
+
+    @Test
+    fun migrate13To14SnapshotsStableChoiceIdentityAndIntensity() {
+        helper.createDatabase(databaseName, 13).apply {
+                execSQL("INSERT INTO trackers (id,name,isDemo,isArchived,colourArgb,position,heatmapLightBelow,heatmapMediumBelow,iconName) VALUES ('mood','Mood',0,0,1,0,7,15,'habit')")
+                execSQL(
+                    """
+                    INSERT INTO tracker_fields (
+                        id,trackerId,name,valueType,unit,targetComparison,targetValue,position,
+                        choiceOptions,targetMaxValue,isArchived,choiceLightThrough,choiceDarkFrom
+                    ) VALUES ('mood-choice','mood','Mood','CHOICE',NULL,NULL,NULL,0,
+                        'Low
+                    Okay
+                    High',NULL,0,0,2)
+                    """.trimIndent(),
+                )
+                execSQL("INSERT INTO tracker_daily_values (fieldId,epochDay,numericValue,booleanValue,textValue,notes,updatedAt) VALUES ('mood-choice',1,NULL,NULL,'Okay','',1)")
+                close()
+        }
+
+        helper.runMigrationsAndValidate(databaseName, 14, true, MIGRATION_13_14).use { migrated ->
+            migrated.query("SELECT choiceOptionsJson FROM tracker_fields WHERE id='mood-choice'").use {
+                assertTrue(it.moveToFirst())
+                assertTrue(it.getString(0).contains("\"intensity\":\"MEDIUM\""))
+            }
+            migrated.query("SELECT choiceOptionId,choiceIntensity,textValue FROM tracker_daily_values").use {
+                assertTrue(it.moveToFirst())
+                assertEquals("mood-choice:choice:1", it.getString(0))
+                assertEquals("MEDIUM", it.getString(1))
+                assertEquals("Okay", it.getString(2))
+            }
+        }
     }
 }

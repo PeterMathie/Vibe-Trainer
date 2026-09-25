@@ -35,6 +35,8 @@ import com.petermathie.vibecheck.domain.progress.PersonalRecords
 import com.petermathie.vibecheck.domain.progress.PersonalRecordVisibility
 import com.petermathie.vibecheck.domain.model.ActivityDay
 import com.petermathie.vibecheck.domain.tracker.HabitFieldForm
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceIntensity
+import com.petermathie.vibecheck.domain.tracker.decodeHabitChoices
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
 import com.petermathie.vibecheck.ui.components.VibeGraph
 import com.petermathie.vibecheck.ui.components.VibeGraphStyle
@@ -407,13 +409,12 @@ internal fun habitHeatmapLevel(
         when (field.valueType) {
             "BOOLEAN" -> value.booleanValue?.let { if (it) 3 else 1 }
             HabitFieldForm.CHOICE -> {
-                val options = field.choiceOptions.lineSequence().filter(String::isNotBlank).toList()
-                val index = options.indexOf(value.textValue)
-                if (index < 0 || options.isEmpty()) {
-                    null
-                } else {
-                    choiceShadeLevel(options.size, index, field.choiceLightThrough, field.choiceDarkFrom)
-                }
+                value.choiceIntensity?.let {
+                    runCatching { HabitChoiceIntensity.valueOf(it).heatmapLevel }.getOrNull()
+                } ?: decodeHabitChoices(field)
+                    .firstOrNull { it.id == value.choiceOptionId || value.choiceOptionId == null && it.label == value.textValue }
+                    ?.intensity
+                    ?.heatmapLevel
             }
             "TEXT", "DATETIME" -> value.textValue?.takeIf(String::isNotBlank)?.let { 2 }
             else -> null
@@ -430,7 +431,7 @@ private fun habitIntensityDescription(
         "Low < ${formatAxis(tracker.heatmapLightBelow)}${unitSuffix(unit)} · " +
             "medium < ${formatAxis(tracker.heatmapMediumBelow)}${unitSuffix(unit)} · strong at or above"
     fields.any { it.valueType == HabitFieldForm.CHOICE } ->
-        "Choices run from low to strong in the order configured."
+        "Each choice uses its configured Light, Medium, or Dark intensity."
     fields.any { it.valueType == "BOOLEAN" } -> "No is low · Yes is strong"
     else -> "A written entry uses the medium shade."
 }

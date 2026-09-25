@@ -2,6 +2,8 @@ package com.petermathie.vibecheck
 
 import com.petermathie.vibecheck.data.local.TrackerFieldEntity
 import com.petermathie.vibecheck.domain.tracker.HabitFieldForm
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceIntensity
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceOption
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -68,7 +70,21 @@ class HabitFieldFormTest {
     }
 
     @Test
-    fun choiceShadeBoundariesValidateAndRoundTrip() {
+    fun explicitChoicesRejectBlankOrDuplicateTrimmedLabels() {
+        val choices = listOf(
+            HabitChoiceOption("one", "Good", HabitChoiceIntensity.LIGHT, 0),
+            HabitChoiceOption("two", " ", HabitChoiceIntensity.DARK, 0),
+        )
+        val form = HabitFieldForm.from(field).copy(type = HabitFieldForm.CHOICE, choices = choices)
+
+        assertFalse(form.canSave)
+        assertFalse(form.copy(choices = choices.mapIndexed { index, option ->
+            option.copy(label = if (index == 0) "Good" else " Good ")
+        }).canSave)
+    }
+
+    @Test
+    fun legacyChoiceBoundariesBecomeExplicitBucketsAndRoundTrip() {
         val choiceField = field.copy(
             valueType = HabitFieldForm.CHOICE,
             choiceOptions = "Terrified\nLonely\nSad\nHappy\nJoyful\nSuper",
@@ -78,11 +94,11 @@ class HabitFieldFormTest {
         val form = HabitFieldForm.from(choiceField)
 
         assertTrue(form.canSave)
-        assertFalse(form.copy(choiceDarkFrom = 2).canSave)
-        assertFalse(form.copy(choiceLightThrough = -1).canSave)
+        assertEquals(listOf("LIGHT", "LIGHT", "LIGHT", "DARK", "DARK", "DARK"), form.choices.map { it.intensity.name })
         val saved = form.applyTo(choiceField)
         assertEquals(2, saved.choiceLightThrough)
         assertEquals(3, saved.choiceDarkFrom)
+        assertEquals(form.choices, HabitFieldForm.from(saved).choices)
     }
 
     @Test
@@ -97,6 +113,7 @@ class HabitFieldFormTest {
         ).copy(type = "TEXT").applyTo(field)
 
         assertEquals("", saved.choiceOptions)
+        assertEquals("", saved.choiceOptionsJson)
         assertEquals(-1, saved.choiceLightThrough)
         assertEquals(-1, saved.choiceDarkFrom)
         assertNull(saved.targetValue)

@@ -38,6 +38,17 @@ class HabitHeatmapTest {
         assertEquals(2, habitHeatmapLevel(tracker, listOf(text), listOf(value(text = "Journal entry"))))
     }
 
+    @Test
+    fun loggedChoiceIntensitySurvivesOptionMoveOrDeletion() {
+        val fieldAfterEdit = field("CHOICE", "Different")
+        val historical = value(text = "Deleted option").copy(
+            choiceOptionId = "field:choice:old",
+            choiceIntensity = "DARK",
+        )
+
+        assertEquals(3, habitHeatmapLevel(tracker, listOf(fieldAfterEdit), listOf(historical)))
+    }
+
     private fun field(type: String, options: String = "") = TrackerFieldEntity(
         id = "field",
         trackerId = tracker.id,

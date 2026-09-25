@@ -2,6 +2,8 @@ package com.petermathie.vibecheck.data
 
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.petermathie.vibecheck.domain.model.*
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceIntensity
+import com.petermathie.vibecheck.domain.tracker.decodeHabitChoices
 import org.json.JSONObject
 import java.math.BigDecimal
 
@@ -56,6 +58,7 @@ internal object ImportValidation {
         oneOf("result", SetResult.entries.map { it.name }.toSet())
         oneOf("valueType", numericTrackers + setOf("BOOLEAN", "TEXT", "CHOICE", "DATETIME"))
         oneOf("targetComparison", setOf("AT_LEAST", "AT_MOST", "EXACTLY", "RANGE"))
+        oneOf("choiceIntensity", HabitChoiceIntensity.entries.map { it.name }.toSet())
         range("rpe", 0.0, 10.0)
         range("targetRpe", 0.0, 10.0)
         if (table == "workouts") {
@@ -73,6 +76,10 @@ internal object ImportValidation {
             require(row.getString("valueType") == "CHOICE" || options.isEmpty()) { "Choice options require a choice field" }
             require(row.getString("valueType") != "CHOICE" || options.size >= 2) { "Choice fields require at least two options" }
             require(options.distinct().size == options.size) { "Choice options must be unique" }
+            val explicitOptions = decodeHabitChoices(row.optString("choiceOptionsJson"))
+            require(row.getString("valueType") != "CHOICE" || explicitOptions.size == options.size) { "Choice option metadata is incomplete" }
+            require(explicitOptions.map { it.id }.distinct().size == explicitOptions.size) { "Choice option IDs must be unique" }
+            require(explicitOptions.map { it.label }.distinct().size == explicitOptions.size) { "Choice option labels must be unique" }
         }
         if (table == "tracker_daily_values") require(row.getLong("epochDay") in java.time.LocalDate.MIN.toEpochDay()..java.time.LocalDate.MAX.toEpochDay()) { "Habit date is outside the supported calendar range" }
         if (table == "workout_sets" && row.getString("result") == "FAILED") {
@@ -116,7 +123,7 @@ internal object ImportValidation {
         reject("SELECT v.fieldId FROM tracker_daily_values v JOIN tracker_fields f ON f.id=v.fieldId WHERE (f.valueType IN ('NUMBER','COUNT','DURATION','RATING') AND (v.numericValue IS NULL OR v.booleanValue IS NOT NULL OR v.textValue IS NOT NULL)) OR (f.valueType='BOOLEAN' AND (v.booleanValue IS NULL OR v.numericValue IS NOT NULL OR v.textValue IS NOT NULL)) OR (f.valueType IN ('TEXT','CHOICE','DATETIME') AND (v.textValue IS NULL OR v.numericValue IS NOT NULL OR v.booleanValue IS NOT NULL)) OR (f.valueType IN ('COUNT','DURATION') AND v.numericValue<0) OR (f.valueType='COUNT' AND v.numericValue != CAST(v.numericValue AS INTEGER)) LIMIT 1", "Habit value does not match its field type")
         sql.query(
             """
-            SELECT f.valueType, f.choiceOptions, v.textValue
+            SELECT f.valueType, f.choiceOptions, v.textValue,v.choiceOptionId,v.choiceIntensity
             FROM tracker_daily_values v
             JOIN tracker_fields f ON f.id=v.fieldId
             WHERE f.valueType IN ('CHOICE','DATETIME')
@@ -126,8 +133,8 @@ internal object ImportValidation {
                 val type = cursor.getString(0)
                 val value = cursor.getString(2)
                 if (type == "CHOICE") {
-                    val options = cursor.getString(1).lineSequence().map(String::trim).filter(String::isNotBlank).toSet()
-                    require(value in options) { "Habit choice value is not a configured option" }
+                    require(!cursor.isNull(3) && !cursor.isNull(4)) { "Habit choice value requires a stable option snapshot" }
+                    require(cursor.getString(4) in HabitChoiceIntensity.entries.map { it.name }) { "Habit choice intensity is invalid" }
                 } else {
                     require(runCatching { java.time.LocalDateTime.parse(value) }.isSuccess) { "Habit date/time value is invalid" }
                 }

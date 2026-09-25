@@ -396,6 +396,7 @@ data class TrackerFieldEntity(
     @androidx.room.ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
     @androidx.room.ColumnInfo(defaultValue = "-1") val choiceLightThrough: Int = -1,
     @androidx.room.ColumnInfo(defaultValue = "-1") val choiceDarkFrom: Int = -1,
+    @androidx.room.ColumnInfo(defaultValue = "''") val choiceOptionsJson: String = "",
 )
 
 @Entity(
@@ -417,6 +418,8 @@ data class TrackerDailyValueEntity(
     val textValue: String?,
     val notes: String,
     val updatedAt: Long,
+    val choiceOptionId: String? = null,
+    val choiceIntensity: String? = null,
 )
 
 @Entity(
