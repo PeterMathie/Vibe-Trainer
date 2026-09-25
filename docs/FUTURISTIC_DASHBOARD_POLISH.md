@@ -340,12 +340,12 @@ This phase must not:
 1. Home renders the persisted Freshness state immediately.
 2. Affected muscles receive the existing one-shot palette-derived illumination, refined to a 1 dp bright core plus a maximum 12 dp halo at the limits above.
 3. Existing restrained confetti remains for coloured palettes, but Mono dark uses 12–16 short monochrome line/dot particles sampled from `textPrimary`, `textSecondary`, `accent` and the affected Freshness values. No rainbow and no screen-filling burst.
-4. A floating completion summary card appears below the Home section header without covering the maps. It contains factual metrics only: session type/name, duration when available, exercises, completed working sets and any genuine PR count.
+4. Completion confirmation must not add a card, banner, compact row or other document-flow content to Home. The one-shot affected-muscle illumination, bounded confetti, success haptic and polite accessibility announcement are the confirmation, and the Freshness map keeps identical bounds before, during and after completion.
 5. The summary auto-collapses after 3 seconds only if focus is not inside it; it remains available in the freshly updated Home content until dismissed or navigation changes. The one-shot animation and durable summary visibility must be modeled separately.
 6. Reduced motion shows final muscle colours and the summary immediately, with a static check icon/accent border and no particles, stagger, scale or travel.
 7. Sessions with no mapped muscles use the same summary card and generic acknowledgement without a body-map halo.
 
-**Open decision:** whether the summary persists until explicit dismissal or auto-collapses after 3 seconds. Recommended default: auto-collapse visually after 3 seconds but retain a compact “Session saved” row until Home is left, because this gives confirmation without blocking the dashboard.
+**Approved decision (supersedes the earlier recommended default):** do not show a completion summary, “Session saved” row, notification card or visible acknowledgement bubble. No completion state reserves Home layout space. When no muscles are mapped, use only the same non-layout-shifting polite accessibility announcement.
 
 ## Iconography, density and system UI
 
@@ -364,7 +364,7 @@ This phase must not:
 
 | Surface | Change in this phase | Must remain untouched |
 |---|---|---|
-| Home / Freshness | L1 Freshness panel, restrained technical backdrop in unused header space, improved metric/annotation hierarchy, refined date control, current map illumination, completion summary, crisp Work tracker cells; replace inline muscle details with the approved modal bottom sheet while keeping both SVG bounds fixed | Freshness bands, continuous OKLab scrub interpolation, neutral no-data, selected-date/month/front-back authority, month bounds, figure geometry/hit regions, Strength/Stretch semantics |
+| Home / Freshness | L1 Freshness panel first at an invariant height, restrained technical backdrop in unused header space, improved metric/annotation hierarchy, refined date control, current map illumination, one-shot non-layout-shifting completion effects, then the compact active-workout resume card when present, then crisp Work tracker cells; constrained layouts scroll rather than shrink the SVG. Replace inline muscle details with the approved modal bottom sheet while keeping both SVG bounds fixed | Freshness bands, continuous OKLab scrub interpolation, neutral no-data, selected-date/month/front-back authority, month bounds, figure geometry/hit regions, Strength/Stretch semantics |
 | Programme list | Shared pressable cards, selection/focus ring, technical micro-metadata, refined expand/collapse and drag lift/insertion feedback | Schedule-free model, preview contents, direct start/edit, persisted ordering, single-workout simplification |
 | Programme editor | Shared card/surface levels, clearer prescription metrics, common action hierarchy and reorder states | Assignment ownership, add/edit/remove/duplicate/archive behavior, start/resume/discard logic |
 | Active Workout / Stretch | Highest information-density treatment: compact tabular metrics, inset set rows, stronger active timer state, pressed depth, static saved-state acknowledgement | Autosave, durable row IDs, finish validation, input configuration, rest behavior, notes ownership, no incomplete-workout warning |
@@ -404,7 +404,7 @@ All paths and symbols below describe the PR #8 stacked baseline commit stated at
 | Proposed `ui/components/VibeStatePanel.kt` | Shared empty/loading/error content and static skeleton. |
 | Proposed `ui/components/TechnicalBackdrop.kt` | Cached bounded grid/radial texture with performance guardrails. |
 | Proposed `ui/components/MuscleDetailsSheet.kt` | `MuscleDetailsUiState`, modal sheet content hierarchy, partial/expanded policy, common dismissal callback and accessibility semantics. It receives already-derived facts and owns no repository access. |
-| `app/src/main/java/com/petermathie/vibecheck/ui/VibeCheckApp.kt` — `VibeCard`, `HomeScreen`, `ActivityHeatmap`, `MonthlyActivityHeatmap`, `PrimaryNavigationBar` | Move generic card implementation to components; adopt tokens; integrate completion summary; replace inline selected-muscle content with `MuscleDetailsSheet`; preserve map measurement, navigation and calendar semantics. |
+| `app/src/main/java/com/petermathie/vibecheck/ui/VibeCheckApp.kt` — `VibeCard`, `HomeScreen`, `ActivityHeatmap`, `MonthlyActivityHeatmap`, `PrimaryNavigationBar` | Move generic card implementation to components; adopt tokens; integrate completion effects without document-flow UI; replace inline selected-muscle content with `MuscleDetailsSheet`; preserve map measurement, navigation and calendar semantics. |
 | `app/src/main/java/com/petermathie/vibecheck/ui/ProgressScreen.kt` — `MiniChart`, `RpeBarChart`, `ProgressCardShell` | Migrate to shared graph APIs and state model without changing domain inputs. |
 | `app/src/main/java/com/petermathie/vibecheck/ui/ActionControls.kt` — `VibeActionButton`, `ReorderHandle`, `reorderItemFeedback` | Apply press/elevation tokens and insertion target while preserving reorder state/persistence and haptic events. |
 | `app/src/main/java/com/petermathie/vibecheck/ui/CompletionCelebration.kt` | Keep deterministic one-shot plan; add palette/reduced-motion visual parameters and Mono particle style. |
@@ -425,7 +425,7 @@ Each production slice should be a small reviewable commit or stacked PR. Do not 
 | 0. Visual fixtures | Screenshot test host, deterministic demo states, token preview composable | PR #8 baseline | Test-only; removable without product impact |
 | 1. Tokens/primitives | Palette surface roles, elevation/motion/type tokens, `VibeSurface`, compatibility `VibeCard` | Slice 0 | Revert returns old rendering with no screen behavior change |
 | 2. Graph system | Shared graph renderer and Progress/Body migration | Slice 1 | Revert graph package and two call-site migrations; domain untouched |
-| 3. Home/completion | Home hierarchy, fixed-geometry muscle detail sheet, texture, completion summary and refined Mono one-shot visuals | Slices 1–2; PR #8 event contract | Revert presentation while retaining PR #8 completion behavior |
+| 3. Home/completion | Home hierarchy, fixed-geometry muscle detail sheet, texture and refined non-layout-shifting Mono one-shot visuals | Slices 1–2; PR #8 event contract | Revert presentation while retaining PR #8 completion behavior |
 | 4. Interaction migration | Buttons, programme drag states, tabs/toggles, skeleton/state panels | Slice 1 | Per-component migration can revert independently |
 | 5. Remaining screens | Workout, Habits, History, More/Settings/Style, dialogs/sheets | Slices 1 and 4 | Commit per screen family |
 | 6. Accessibility/performance hardening | Font scale, contrast, benchmark and real-device fixes | All prior slices | Must land before feature is declared complete |
@@ -547,7 +547,7 @@ The phase is not complete from emulator screenshots alone.
 | Typography breaks dense inputs/localization | Clipping or unusable workout logging | 320 dp/200% gate, adaptive stacks, no fixed text heights |
 | Graph polish changes perceived data | Misleading trends | Domain untouched; deterministic coordinate tests and old/new value parity |
 | Texture/blur causes jank | Poor training-time usability | Static cached drawing, performance gate, delete effect before accepting regression |
-| Completion summary duplicates one-shot event | Replay or stale success | Separate ephemeral animation from persisted Home-derived summary; preserve `OneShotEventState` |
+| Completion presentation duplicates one-shot event | Replay or stale success | Keep confirmation entirely ephemeral and preserve `OneShotEventState`; never derive a persistent Home banner from it |
 | Broad migration creates inconsistent intermediate UI | Review and rollback become difficult | Primitive-first slices and screen-family commits |
 | System-bar ownership is split | Wrong icon contrast in light mode | Resolve icon appearance from active palette in one theme-owned path |
 | Bottom sheet remeasures Home or loses focus | Visible map jump and accessibility regression | Overlay-only composition, stable map constraints, bounds assertions and explicit focus requester restoration |
@@ -558,7 +558,7 @@ The phase is not complete from emulator screenshots alone.
 |---|---|---|
 | Mono accent strength | Keep current cool `#9CCFE8` accent for actions/focus; use grayscale for ordinary hierarchy | Token preview before Slice 1 |
 | Static texture | One 32 dp, 2.5% grid only in bounded Home/graph regions | Mono dark screenshot review |
-| Completion summary lifetime | Auto-collapse after 3 seconds, retain compact row until leaving Home | Completion prototype |
+| Completion confirmation | No banner, card, compact row or visible bubble; preserve fixed map geometry and use the one-shot map effect, haptic and polite accessibility announcement | Explicit product decision |
 | Page transitions | 8 dp shared-axis + fade; no navigation-scale zoom | Reduced-motion and 200% font review |
 | Light-mode shadows | Borders for L1, shadow only interactive/floating/modal | All-palette component matrix |
 | Chart secondary-series distinction | Colour + dash/point shape | Grayscale/accessibility review |

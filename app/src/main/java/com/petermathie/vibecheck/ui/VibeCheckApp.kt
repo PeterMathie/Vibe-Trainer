@@ -21,8 +21,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -80,10 +83,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -332,6 +333,7 @@ internal fun MoreScreen(onSelect: (Destination) -> Unit) {
                     onSelect(destination)
                 },
                 modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
             ) {
                 Row(
                     Modifier.fillMaxWidth(),
@@ -403,9 +405,6 @@ internal fun HomeScreen(
     var celebratedMuscles by remember { mutableStateOf(emptySet<String>()) }
     var confettiEventId by remember { mutableStateOf<String?>(null) }
     var completionAnnouncement by remember { mutableStateOf<String?>(null) }
-    var completionSummary by remember { mutableStateOf<WorkoutCompletionEvent?>(null) }
-    var completionSummaryExpanded by remember { mutableStateOf(false) }
-    var completionSummaryFocused by remember { mutableStateOf(false) }
     val frontMapFocusRequester = remember { FocusRequester() }
     val backMapFocusRequester = remember { FocusRequester() }
     val sheetTitleFocusRequester = remember { FocusRequester() }
@@ -417,8 +416,6 @@ internal fun HomeScreen(
     LaunchedEffect(completionEvent?.id) {
         val event = completionEvent ?: return@LaunchedEffect
         onCompletionConsumed(event.id)
-        completionSummary = event
-        completionSummaryExpanded = true
         val plan = completionAnimationPlan(reducedMotion)
         completionAnnouncement = if (event.affectedMuscleIds.isEmpty()) {
             "${event.mode.name.lowercase().replaceFirstChar(Char::uppercase)} session complete"
@@ -438,12 +435,8 @@ internal fun HomeScreen(
         delay(plan.highlightHoldMillis)
         celebratedMuscles = emptySet()
         confettiEventId = null
+        delay(2_500)
         completionAnnouncement = null
-    }
-    LaunchedEffect(completionSummary?.id, completionSummaryFocused) {
-        if (completionSummary == null || completionSummaryFocused) return@LaunchedEffect
-        delay(3_000)
-        if (!completionSummaryFocused) completionSummaryExpanded = false
     }
     LaunchedEffect(selectedMuscle) {
         if (selectedMuscle != null) sheetTitleFocusRequester.requestFocus()
@@ -467,61 +460,17 @@ internal fun HomeScreen(
     val mapNextStates = if (reducedMotion || !sliderDragging) null else upperStates
     val mapInterpolationFraction = if (mapNextStates == null) 0f else sliderPosition - lowerDay
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val freshnessPanelHeight = (LocalConfiguration.current.screenHeightDp.dp * 0.62f)
+        .coerceIn(420.dp, 560.dp)
     val horizontalGutter = ((screenWidth - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
     Column(
-        Modifier.fillMaxSize().padding(horizontal = horizontalGutter, vertical = VibeSpacing.medium),
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = horizontalGutter, vertical = VibeSpacing.medium),
         verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
     ) {
-        state.activeWorkout?.let { workout ->
-            VibeCard {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("ACTIVE WORKOUT", color = palette.accent, style = MaterialTheme.typography.labelLarge)
-                        Text(workout.name, style = MaterialTheme.typography.titleLarge)
-                        Text("${workout.exercises.sumOf { it.sets.size }} sets autosaved", color = palette.textSecondary)
-                    }
-                    Button(onClick = {
-                        haptics.perform(VibeHapticEvent.PLAY)
-                        onContinue()
-                    }) { Text("Continue") }
-                }
-            }
-        }
-        completionSummary?.let { summary ->
-            VibeSurface(
-                level = if (completionSummaryExpanded) VibeSurfaceLevel.FLOATING else VibeSurfaceLevel.RAISED,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { completionSummaryFocused = it.hasFocus },
-            ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = VibeSpacing.medium, vertical = VibeSpacing.compact),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Outlined.Check, contentDescription = null, tint = palette.accent)
-                    Spacer(Modifier.width(VibeSpacing.compact))
-                    Column {
-                        Text(
-                            if (completionSummaryExpanded) {
-                                "${summary.mode.name.lowercase().replaceFirstChar(Char::uppercase)} session saved"
-                            } else {
-                                "Session saved"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        if (completionSummaryExpanded) {
-                            Text(
-                                if (summary.affectedMuscleIds.isEmpty()) "Freshness saved with no mapped muscles."
-                                else "${summary.affectedMuscleIds.size} muscle areas updated.",
-                                color = palette.textSecondary,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        HomeDashboardLayout(isWide = screenWidth >= 600.dp, modifier = Modifier.weight(1f)) {
-        VibeCard(fillHeight = true) {
+        VibeCard(modifier = Modifier.height(freshnessPanelHeight), fillHeight = true) {
             TechnicalBackdrop(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -577,16 +526,14 @@ internal fun HomeScreen(
                 }
                 completionAnnouncement?.let { announcement ->
                     Text(
-                        announcement,
+                        text = announcement,
+                        color = Color.Transparent,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .background(palette.surfaceRaised, RoundedCornerShape(50))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
                             .semantics {
                                 liveRegion = LiveRegionMode.Polite
                                 contentDescription = announcement
                             },
-                        style = MaterialTheme.typography.labelLarge,
                     )
                 }
             }
@@ -625,6 +572,21 @@ internal fun HomeScreen(
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Freshness date" },
             )
         }
+        state.activeWorkout?.let { workout ->
+            VibeCard {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("ACTIVE WORKOUT", color = palette.accent, style = MaterialTheme.typography.labelLarge)
+                        Text(workout.name, style = MaterialTheme.typography.titleLarge)
+                        Text("${workout.exercises.sumOf { it.sets.size }} sets autosaved", color = palette.textSecondary)
+                    }
+                    Button(onClick = {
+                        haptics.perform(VibeHapticEvent.PLAY)
+                        onContinue()
+                    }, shape = MaterialTheme.shapes.medium) { Text("Continue") }
+                }
+            }
+        }
         VibeCard {
             Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelLarge)
             MonthlyActivityHeatmap(
@@ -640,7 +602,6 @@ internal fun HomeScreen(
                 },
             )
             Text("0 none · 1 low · 2 medium · 3+ strong", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
-        }
         }
     }
     selectedMuscle?.let { muscleId ->
@@ -659,44 +620,6 @@ internal fun HomeScreen(
                 requester.requestFocus()
             },
         )
-    }
-}
-
-@Composable
-private fun HomeDashboardLayout(
-    isWide: Boolean,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    val gap = VibeSpacing.medium
-    Layout(content = content, modifier = modifier) { measurables, constraints ->
-        require(measurables.size == 2)
-        val gapPx = gap.roundToPx()
-        if (isWide) {
-            val availableWidth = (constraints.maxWidth - gapPx).coerceAtLeast(0)
-            val secondaryWidth = (availableWidth * 0.38f).roundToInt()
-            val primaryWidth = availableWidth - secondaryWidth
-            val primary = measurables[0].measure(
-                constraints.copy(minWidth = primaryWidth, maxWidth = primaryWidth, minHeight = constraints.maxHeight),
-            )
-            val secondary = measurables[1].measure(
-                constraints.copy(minWidth = secondaryWidth, maxWidth = secondaryWidth, minHeight = constraints.maxHeight),
-            )
-            layout(constraints.maxWidth, constraints.maxHeight) {
-                primary.placeRelative(0, 0)
-                secondary.placeRelative(primaryWidth + gapPx, 0)
-            }
-        } else {
-            val secondary = measurables[1].measure(constraints.copy(minHeight = 0))
-            val primaryHeight = (constraints.maxHeight - secondary.height - gapPx).coerceAtLeast(0)
-            val primary = measurables[0].measure(
-                constraints.copy(minHeight = primaryHeight, maxHeight = primaryHeight),
-            )
-            layout(constraints.maxWidth, constraints.maxHeight) {
-                primary.placeRelative(0, 0)
-                secondary.placeRelative(0, primary.height + gapPx)
-            }
-        }
     }
 }
 
@@ -752,11 +675,11 @@ private fun MonthlyActivityHeatmap(
                                     contentDescription = "$date: $count activities" +
                                         if (date == selectedDate) ", selected freshness date" else ""
                                 }
-                                .background(color, RoundedCornerShape(5.dp))
+                                .background(color, RoundedCornerShape(VibeShapes.tooltip))
                                 .border(
                                     width = if (date == selectedDate) 2.dp else 1.dp,
                                     color = outlineColor,
-                                    shape = RoundedCornerShape(5.dp),
+                                    shape = RoundedCornerShape(VibeShapes.tooltip),
                                 )
                                 .clickable { onDayClick(date) },
                         )
@@ -810,11 +733,11 @@ fun ActivityHeatmap(
                     Box(
                         Modifier.fillMaxWidth().height(cellHeight)
                             .semantics { contentDescription = "${LocalDate.ofEpochDay(epochDay)}: $count $itemLabel" }
-                            .background(color, RoundedCornerShape(5.dp))
+                            .background(color, RoundedCornerShape(VibeShapes.tooltip))
                             .border(
                                 width = 1.dp,
                                 color = if (isToday) palette.heatmapOutlineColor(color) else Color.Transparent,
-                                shape = RoundedCornerShape(5.dp),
+                                shape = RoundedCornerShape(VibeShapes.tooltip),
                             )
                             .clickable { onDayClick(epochDay) },
                     )
@@ -870,16 +793,18 @@ internal fun ScreenList(
         val sidePadding = ((maxWidth - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
         val listState = androidx.compose.foundation.lazy.rememberLazyListState()
         val reorderContext = rememberReorderScrollContext(listState)
-        androidx.compose.runtime.CompositionLocalProvider(LocalReorderScrollContext provides reorderContext) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .reorderScrollViewport(reorderContext),
-                contentPadding = PaddingValues(horizontal = sidePadding, vertical = VibeSpacing.medium),
-                verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
-                content = content,
-            )
+        ReorderOverlayHost(Modifier.fillMaxSize()) {
+            androidx.compose.runtime.CompositionLocalProvider(LocalReorderScrollContext provides reorderContext) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .reorderScrollViewport(reorderContext),
+                    contentPadding = PaddingValues(horizontal = sidePadding, vertical = VibeSpacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
+                    content = content,
+                )
+            }
         }
     }
 }

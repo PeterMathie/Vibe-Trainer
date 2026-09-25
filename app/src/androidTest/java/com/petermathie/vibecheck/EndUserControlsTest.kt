@@ -17,10 +17,12 @@ import androidx.test.core.app.ApplicationProvider
 import com.petermathie.vibecheck.ui.HomeScreen
 import com.petermathie.vibecheck.ui.MainUiState
 import com.petermathie.vibecheck.ui.ReorderHandle
+import com.petermathie.vibecheck.ui.ReorderItem
+import com.petermathie.vibecheck.ui.ReorderOverlayHost
 import com.petermathie.vibecheck.ui.WorkoutCompletionEvent
 import com.petermathie.vibecheck.ui.rememberReorderState
-import com.petermathie.vibecheck.ui.reorderItemFeedback
 import com.petermathie.vibecheck.domain.model.TrainingMode
+import com.petermathie.vibecheck.domain.model.ActiveWorkout
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -138,15 +140,19 @@ class EndUserControlsTest {
                     moves += Triple(key, from, to)
                 }
 
-                Column {
-                    state.ordered(keys) { it }.forEachIndexed { index, key ->
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .reorderItemFeedback(state, key, index)
-                                .semantics { contentDescription = "Tile $key" },
-                        ) {
-                            ReorderHandle(state, key, key)
+                ReorderOverlayHost {
+                    Column {
+                        state.ordered(keys) { it }.forEachIndexed { index, key ->
+                            ReorderItem(
+                                state,
+                                key,
+                                index,
+                                Modifier
+                                    .fillMaxWidth()
+                                    .semantics { contentDescription = "Tile $key" },
+                            ) {
+                                ReorderHandle(state, key, key)
+                            }
                         }
                     }
                 }
@@ -207,11 +213,52 @@ class EndUserControlsTest {
     }
 
     @Test
+    fun activeWorkoutAppearsAfterInvariantFreshnessAndBeforeWorkTracker() {
+        var activeWorkout by mutableStateOf<ActiveWorkout?>(null)
+        compose.setContent {
+            VibeCheckTheme {
+                HomeScreen(
+                    state = MainUiState(activeWorkout = activeWorkout),
+                    onDayClick = {},
+                    onContinue = {},
+                    onRecencyDayChange = {},
+                    onModeChange = {},
+                )
+            }
+        }
+        val map = compose.onNodeWithContentDescription("male front freshness map")
+        val before = map.fetchSemanticsNode().boundsInRoot
+
+        compose.runOnIdle {
+            activeWorkout = ActiveWorkout(
+                id = "active",
+                name = "Strength session",
+                mode = TrainingMode.STRENGTH,
+                startedAt = 1L,
+                notes = "",
+                exercises = emptyList(),
+            )
+        }
+        compose.waitForIdle()
+
+        val after = map.fetchSemanticsNode().boundsInRoot
+        assertEquals(before.left, after.left, 0.5f)
+        assertEquals(before.top, after.top, 0.5f)
+        assertEquals(before.right, after.right, 0.5f)
+        assertEquals(before.bottom, after.bottom, 0.5f)
+        val active = compose.onNodeWithText("ACTIVE WORKOUT").fetchSemanticsNode().boundsInRoot
+        val tracker = compose.onNodeWithText("WORK TRACKER").fetchSemanticsNode().boundsInRoot
+        assertTrue(active.top > after.bottom)
+        assertTrue(active.bottom < tracker.top)
+    }
+
+    @Test
     fun reducedMotionCompletionAcknowledgesOnceWithoutAnimatedDelay() {
         val preferences = ApplicationProvider.getApplicationContext<android.content.Context>()
             .getSharedPreferences("settings", 0)
         preferences.edit().putBoolean("reducedMotion", true).commit()
         var consumedId: String? = null
+        var completionEvent by mutableStateOf<WorkoutCompletionEvent?>(null)
         compose.mainClock.autoAdvance = false
         compose.setContent {
             VibeCheckTheme {
@@ -221,15 +268,35 @@ class EndUserControlsTest {
                     onContinue = {},
                     onRecencyDayChange = {},
                     onModeChange = {},
-                    completionEvent = WorkoutCompletionEvent("event-1", TrainingMode.STRENGTH, listOf("CHEST")),
+                    completionEvent = completionEvent,
                     onCompletionConsumed = { consumedId = it },
                 )
             }
         }
         compose.mainClock.advanceTimeByFrame()
-        compose.onNodeWithContentDescription("Strength session complete. Freshness updated.").assertExists()
+        val map = compose.onNodeWithContentDescription("male front freshness map")
+        val before = map.fetchSemanticsNode().boundsInRoot
+        compose.runOnIdle {
+            completionEvent = WorkoutCompletionEvent("event-1", TrainingMode.STRENGTH, listOf("CHEST"))
+        }
+        compose.mainClock.advanceTimeBy(100)
+        compose.onNodeWithContentDescription(
+            "Strength session complete. Freshness updated.",
+            useUnmergedTree = true,
+        ).assertExists()
+        compose.onNodeWithText("Session saved", substring = true).assertDoesNotExist()
+        val during = map.fetchSemanticsNode().boundsInRoot
+        assertEquals(before.left, during.left, 0.5f)
+        assertEquals(before.top, during.top, 0.5f)
+        assertEquals(before.right, during.right, 0.5f)
+        assertEquals(before.bottom, during.bottom, 0.5f)
         compose.runOnIdle { assertEquals("event-1", consumedId) }
         compose.mainClock.advanceTimeBy(300)
+        val after = map.fetchSemanticsNode().boundsInRoot
+        assertEquals(before.left, after.left, 0.5f)
+        assertEquals(before.top, after.top, 0.5f)
+        assertEquals(before.right, after.right, 0.5f)
+        assertEquals(before.bottom, after.bottom, 0.5f)
         preferences.edit().remove("reducedMotion").commit()
         compose.mainClock.autoAdvance = true
     }
