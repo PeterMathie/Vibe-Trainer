@@ -31,16 +31,46 @@ import com.petermathie.vibecheck.domain.model.MuscleRecencyBand
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
 import com.petermathie.vibecheck.ui.theme.freshnessColors
-import com.petermathie.vibecheck.ui.theme.interpolateFreshnessColor
+import com.petermathie.vibecheck.ui.theme.interpolateFreshnessBandColor
 import androidx.compose.ui.semantics.stateDescription
 import kotlin.math.min
 
 enum class AnatomyView { FRONT, BACK }
 
 internal const val MUSCLE_COLOR_TRANSITION_MILLIS = 35
+internal const val MUSCLE_MAP_HORIZONTAL_SCALE = 1.12f
+internal const val MUSCLE_MAP_VERTICAL_STRETCH = 1.10f
 
 private data class ParsedOutline(val def: OutlinePathDef, val path: Path)
 private data class ParsedMuscle(val def: MusclePathDef, val path: Path, val region: Region)
+internal data class MuscleMapTransform(
+    val scaleX: Float,
+    val scaleY: Float,
+    val offsetX: Float,
+    val offsetY: Float,
+)
+
+internal fun muscleMapTransform(
+    canvasWidth: Float,
+    canvasHeight: Float,
+    diagramWidth: Float,
+    contentTop: Float,
+    contentBottom: Float,
+): MuscleMapTransform {
+    val targetYScale = MUSCLE_MAP_HORIZONTAL_SCALE * MUSCLE_MAP_VERTICAL_STRETCH
+    val fit = min(
+        canvasWidth / diagramWidth,
+        canvasHeight / ((contentBottom - contentTop) * targetYScale),
+    )
+    val scaleX = fit * MUSCLE_MAP_HORIZONTAL_SCALE
+    val scaleY = fit * targetYScale
+    return MuscleMapTransform(
+        scaleX = scaleX,
+        scaleY = scaleY,
+        offsetX = (canvasWidth - diagramWidth * scaleX) / 2f,
+        offsetY = canvasHeight / 2f - (contentTop + contentBottom) / 2f * scaleY,
+    )
+}
 
 @Composable
 fun MuscleMap(
@@ -68,6 +98,8 @@ fun MuscleMap(
     val outlines = remember(diagram.id) {
         diagram.outline.map { ParsedOutline(it, PathParser().parsePathString(it.pathData).toPath()) }
     }
+    val contentTop = remember(outlines) { outlines.minOf { it.path.getBounds().top } }
+    val contentBottom = remember(outlines) { outlines.maxOf { it.path.getBounds().bottom } }
     val muscles = remember(diagram.id) {
         diagram.muscles.map { definition ->
             val path = PathParser().parsePathString(definition.pathData).toPath()
@@ -78,12 +110,14 @@ fun MuscleMap(
     val groups = muscles.map { it.def.group }.distinct()
     val selectedGroup = selectedMuscleId?.takeIf(groups::contains)
     val animatedColors = groups.associateWith { group ->
-        val from = freshnessColors.forBand(states[group] ?: MuscleRecencyBand.NEVER)
+        val fromBand = states[group] ?: MuscleRecencyBand.NEVER
+        val from = freshnessColors.forBand(fromBand)
         val targetColor = nextStates?.let {
-            interpolateFreshnessColor(
-                from,
-                freshnessColors.forBand(it[group] ?: MuscleRecencyBand.NEVER),
+            interpolateFreshnessBandColor(
+                fromBand,
+                it[group] ?: MuscleRecencyBand.NEVER,
                 interpolationFraction,
+                freshnessColors,
             )
         } ?: from
         val color by animateColorAsState(
@@ -97,7 +131,10 @@ fun MuscleMap(
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(diagram.viewBoxWidth / diagram.viewBoxHeight)
+            .aspectRatio(
+                diagram.viewBoxWidth /
+                    (diagram.viewBoxHeight * MUSCLE_MAP_HORIZONTAL_SCALE * MUSCLE_MAP_VERTICAL_STRETCH),
+            )
             .semantics {
                 contentDescription = "${sex.name.lowercase()} ${view.name.lowercase()} freshness map"
                 stateDescription = selectedGroup?.let { "Selected ${it.replace('_', ' ').lowercase()}" }
@@ -111,11 +148,15 @@ fun MuscleMap(
             }
             .pointerInput(diagram.id, muscles) {
                 detectTapGestures { tap ->
-                    val scale = min(size.width / diagram.viewBoxWidth, size.height / diagram.viewBoxHeight)
-                    val offsetX = (size.width - diagram.viewBoxWidth * scale) / 2f
-                    val offsetY = (size.height - diagram.viewBoxHeight * scale) / 2f
-                    val vectorX = (tap.x - offsetX) / scale
-                    val vectorY = (tap.y - offsetY) / scale
+                    val transform = muscleMapTransform(
+                        size.width.toFloat(),
+                        size.height.toFloat(),
+                        diagram.viewBoxWidth,
+                        contentTop,
+                        contentBottom,
+                    )
+                    val vectorX = (tap.x - transform.offsetX) / transform.scaleX
+                    val vectorY = (tap.y - transform.offsetY) / transform.scaleY
                     val hit = muscles.lastOrNull { item ->
                         val direct = item.region.contains(vectorX.toInt(), vectorY.toInt())
                         val mirroredX = 2f * diagram.centerX - vectorX
@@ -125,12 +166,10 @@ fun MuscleMap(
                 }
             },
     ) {
-        val scale = min(size.width / diagram.viewBoxWidth, size.height / diagram.viewBoxHeight)
-        val offsetX = (size.width - diagram.viewBoxWidth * scale) / 2f
-        val offsetY = (size.height - diagram.viewBoxHeight * scale) / 2f
+        val transform = muscleMapTransform(size.width, size.height, diagram.viewBoxWidth, contentTop, contentBottom)
         withTransform({
-            translate(offsetX, offsetY)
-            scale(scale, scale, Offset.Zero)
+            translate(transform.offsetX, transform.offsetY)
+            scale(transform.scaleX, transform.scaleY, Offset.Zero)
         }) {
             outlines.forEach { item ->
                 drawPathWithMirror(item.path, item.def.side, diagram.centerX, Color.Transparent, palette.diagramLine)

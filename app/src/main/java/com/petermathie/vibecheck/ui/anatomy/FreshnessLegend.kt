@@ -36,7 +36,9 @@ fun FreshnessLegend(modifier: Modifier = Modifier) {
             .fillMaxHeight()
             .clearAndSetSemantics {
                 contentDescription =
-                    "Freshness colour scale. Most recent at the top, least recent at the bottom. Separate no data colour."
+                    "Freshness colour scale. Most recent under 24 hours at the top; " +
+                        "24 to 48 hours; 48 to 72 hours; 3 to 7 days; least recent over 7 days at the bottom. " +
+                        "No data is separate."
             },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -48,13 +50,7 @@ fun FreshnessLegend(modifier: Modifier = Modifier) {
                 .width(18.dp)
                 .background(
                     Brush.verticalGradient(
-                        listOf(
-                            colors.recentlyTrained,
-                            colors.recovering,
-                            colors.intermediate,
-                            colors.rested,
-                            colors.fresh,
-                        ),
+                        colors.ageStops,
                     ),
                     shape,
                 )

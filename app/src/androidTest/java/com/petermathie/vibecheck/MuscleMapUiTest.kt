@@ -15,9 +15,12 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.petermathie.vibecheck.domain.model.AnatomySex
+import com.petermathie.vibecheck.domain.model.MuscleRecencyBand
 import com.petermathie.vibecheck.ui.anatomy.AnatomyView
+import com.petermathie.vibecheck.ui.anatomy.FreshnessLegend
 import com.petermathie.vibecheck.ui.anatomy.MuscleMap
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
+import com.petermathie.vibecheck.ui.theme.VibePalettes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -123,5 +126,40 @@ class MuscleMapUiTest {
         }
         assertTrue("Expected rendered head outline, found $headPixels pixels", headPixels > 20)
         assertTrue("Expected rendered feet outline, found $feetPixels pixels", feetPixels > 20)
+    }
+
+    @Test
+    fun allPresetModesRenderTheSharedFreshnessScaleAndAccessibleLegend() {
+        val palettes = VibePalettes.presets.flatMap { listOf(it.light, it.dark) }
+        val activePalette = mutableStateOf(palettes.first())
+        compose.setContent {
+            VibeCheckTheme(activePalette.value) {
+                Column {
+                    MuscleMap(
+                        sex = AnatomySex.MALE,
+                        view = AnatomyView.FRONT,
+                        states = mapOf(
+                            "CHEST" to MuscleRecencyBand.UNDER_24_HOURS,
+                            "CORE" to MuscleRecencyBand.HOURS_48_TO_72,
+                            "QUADS" to MuscleRecencyBand.OVER_7_DAYS,
+                        ),
+                        onMuscleTap = {},
+                        modifier = androidx.compose.ui.Modifier.width(240.dp),
+                    )
+                    FreshnessLegend(androidx.compose.ui.Modifier.width(74.dp))
+                }
+            }
+        }
+
+        palettes.forEach { palette ->
+            compose.runOnIdle { activePalette.value = palette }
+            compose.waitForIdle()
+            compose.onNodeWithContentDescription("male front freshness map").assertExists()
+            compose.onNodeWithContentDescription(
+                "Freshness colour scale. Most recent under 24 hours at the top; " +
+                    "24 to 48 hours; 48 to 72 hours; 3 to 7 days; least recent over 7 days at the bottom. " +
+                    "No data is separate.",
+            ).assertExists()
+        }
     }
 }

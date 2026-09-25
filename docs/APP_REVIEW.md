@@ -51,7 +51,7 @@ Habits are open-ended trackers, not streak obligations. A day can contain Boolea
 
 ![Mood habit settings with colour, icon, reordered choices, and visual light-to-dark shade boundaries](images/app-review/08-habit-configuration.png)
 
-Choice-based habits keep their values and heatmap shade mapping together in one visual editor. Values can be added, removed and reordered, and the boundaries between light, medium and dark are visible without a separate configuration maze.
+Choice-based habits keep their values and heatmap intensity mapping together in one visual editor. Values can be added, removed and reordered, and the boundaries between low, medium and strong are visible without a separate configuration maze.
 
 ### Fixed navigation, More and Archive
 

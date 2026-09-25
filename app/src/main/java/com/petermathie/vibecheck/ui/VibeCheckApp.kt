@@ -5,6 +5,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -67,7 +68,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -93,6 +93,8 @@ import com.petermathie.vibecheck.ui.theme.VibeThemeMode
 import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
+import com.petermathie.vibecheck.ui.theme.habitHeatmapColors
+import com.petermathie.vibecheck.ui.theme.heatmapOutlineColor
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -441,7 +443,7 @@ internal fun HomeScreen(
                         view = AnatomyView.FRONT,
                         states = mapStates,
                         onMuscleTap = { selectedMuscle = it },
-                        modifier = Modifier.weight(1f).fillMaxSize().graphicsLayer(scaleX = 1.12f, scaleY = 1.12f),
+                        modifier = Modifier.weight(1f).fillMaxSize(),
                         selectedMuscleId = selectedMuscle,
                         nextStates = mapNextStates,
                         interpolationFraction = mapInterpolationFraction,
@@ -453,7 +455,7 @@ internal fun HomeScreen(
                         view = AnatomyView.BACK,
                         states = mapStates,
                         onMuscleTap = { selectedMuscle = it },
-                        modifier = Modifier.weight(1f).fillMaxSize().graphicsLayer(scaleX = 1.12f, scaleY = 1.12f),
+                        modifier = Modifier.weight(1f).fillMaxSize(),
                         selectedMuscleId = selectedMuscle,
                         nextStates = mapNextStates,
                         interpolationFraction = mapInterpolationFraction,
@@ -539,7 +541,7 @@ internal fun HomeScreen(
                     onRecencyDayChange(freshnessDateInMonth(selectedRecencyDate, month, today).toEpochDay())
                 },
             )
-            Text("0 neutral · 1 light · 2 medium · 3+ dark", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
+            Text("0 none · 1 low · 2 medium · 3+ strong", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -553,6 +555,7 @@ private fun MonthlyActivityHeatmap(
     onMonthChange: (YearMonth) -> Unit,
 ) {
     val palette = LocalVibePalette.current
+    val heatmapColors = palette.habitHeatmapColors()
     val range = freshnessMonthRange(YearMonth.from(selectedDate), today)
     val counts = days.associate { it.epochDay to it.activityCount }
     val leadingDays = range.firstDate.dayOfWeek.value % 7
@@ -584,11 +587,10 @@ private fun MonthlyActivityHeatmap(
                     if (dayOfMonth in 1..range.dayCount) {
                         val date = range.month.atDay(dayOfMonth)
                         val count = counts[date.toEpochDay()] ?: 0
-                        val color = when {
-                            count >= 3 -> palette.heatmapThreePlus
-                            count == 2 -> palette.heatmapTwo
-                            count == 1 -> palette.heatmapOne
-                            else -> palette.heatmapNeutral
+                        val color = heatmapColors.forLevel(count.coerceAtMost(3))
+                        val outlineColor = when {
+                            date == selectedDate || date == today -> palette.heatmapOutlineColor(color)
+                            else -> Color.Transparent
                         }
                         Box(
                             Modifier.fillMaxWidth().height(14.dp)
@@ -597,6 +599,11 @@ private fun MonthlyActivityHeatmap(
                                         if (date == selectedDate) ", selected freshness date" else ""
                                 }
                                 .background(color, RoundedCornerShape(5.dp))
+                                .border(
+                                    width = if (date == selectedDate) 2.dp else 1.dp,
+                                    color = outlineColor,
+                                    shape = RoundedCornerShape(5.dp),
+                                )
                                 .clickable { onDayClick(date) },
                         )
                     } else {
@@ -617,6 +624,7 @@ fun ActivityHeatmap(
     compact: Boolean = false,
 ) {
     val palette = LocalVibePalette.current
+    val heatmapColors = palette.habitHeatmapColors(activityColor)
     val counts = days.associate { it.epochDay to it.activityCount }
     var offset by rememberSaveable { mutableStateOf(0L) }
     val today = LocalDate.now().toEpochDay() + offset
@@ -643,16 +651,17 @@ fun ActivityHeatmap(
                 repeat(7) { day ->
                     val epochDay = start + week * 7 + day
                     val count = counts[epochDay] ?: 0
-                    val color = when {
-                        count >= 3 -> activityColor?.copy(alpha = 1f) ?: palette.heatmapThreePlus
-                        count == 2 -> activityColor?.copy(alpha = 0.68f) ?: palette.heatmapTwo
-                        count == 1 -> activityColor?.copy(alpha = 0.38f) ?: palette.heatmapOne
-                        else -> palette.heatmapNeutral
-                    }
+                    val color = heatmapColors.forLevel(count.coerceAtMost(3))
+                    val isToday = epochDay == LocalDate.now().toEpochDay()
                     Box(
                         Modifier.fillMaxWidth().height(cellHeight)
                             .semantics { contentDescription = "${LocalDate.ofEpochDay(epochDay)}: $count $itemLabel" }
                             .background(color, RoundedCornerShape(5.dp))
+                            .border(
+                                width = 1.dp,
+                                color = if (isToday) palette.heatmapOutlineColor(color) else Color.Transparent,
+                                shape = RoundedCornerShape(5.dp),
+                            )
                             .clickable { onDayClick(epochDay) },
                     )
                 }

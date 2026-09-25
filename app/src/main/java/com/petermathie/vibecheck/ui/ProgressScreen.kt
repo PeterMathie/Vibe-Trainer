@@ -423,11 +423,11 @@ private fun habitIntensityDescription(
     unit: String?,
 ): String = when {
     fields.any { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") } ->
-        "Light < ${formatAxis(tracker.heatmapLightBelow)}${unitSuffix(unit)} · " +
-            "medium < ${formatAxis(tracker.heatmapMediumBelow)}${unitSuffix(unit)} · dark above"
+        "Low < ${formatAxis(tracker.heatmapLightBelow)}${unitSuffix(unit)} · " +
+            "medium < ${formatAxis(tracker.heatmapMediumBelow)}${unitSuffix(unit)} · strong at or above"
     fields.any { it.valueType == HabitFieldForm.CHOICE } ->
-        "Choices run from light to dark in the order configured."
-    fields.any { it.valueType == "BOOLEAN" } -> "No is light · Yes is dark"
+        "Choices run from low to strong in the order configured."
+    fields.any { it.valueType == "BOOLEAN" } -> "No is low · Yes is strong"
     else -> "A written entry uses the medium shade."
 }
 
