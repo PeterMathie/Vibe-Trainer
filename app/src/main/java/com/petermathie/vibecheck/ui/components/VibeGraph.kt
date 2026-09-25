@@ -102,11 +102,13 @@ fun VibeGraph(
     var selectedIndex by remember(values) { mutableIntStateOf(-1) }
     val select: (Float, Float) -> Unit = { x, width ->
         if (values.isNotEmpty()) {
-            nearestGraphIndex(
-                x = (x - graphPaddingPx).coerceAtLeast(0f),
-                width = (width - graphPaddingPx * 2f).coerceAtLeast(1f),
-                count = values.size,
-            )
+            val plotX = (x - graphPaddingPx).coerceAtLeast(0f)
+            val plotWidth = (width - graphPaddingPx * 2f).coerceAtLeast(1f)
+            (if (style == VibeGraphStyle.BARS) {
+                (plotX / plotWidth * values.size).toInt().coerceIn(0, values.lastIndex)
+            } else {
+                nearestGraphIndex(plotX, plotWidth, values.size)
+            })
                 .let { candidate ->
                     if (values[candidate].isFinite()) candidate
                     else values.indices.minByOrNull { kotlin.math.abs(it - candidate) + if (values[it].isFinite()) 0 else values.size } ?: candidate
@@ -150,15 +152,19 @@ fun VibeGraph(
                                 }
                                 customActions = listOf(
                                     CustomAccessibilityAction("Previous data point") {
-                                        if (values.isEmpty()) false else {
-                                            selectedIndex = (selectedIndex.takeIf { it >= 0 } ?: values.lastIndex).minus(1).coerceAtLeast(0)
+                                        val start = selectedIndex.takeIf { it in values.indices } ?: values.size
+                                        val previous = (start - 1 downTo 0).firstOrNull { values[it].isFinite() }
+                                        if (previous == null) false else {
+                                            selectedIndex = previous
                                             onSelect(selectedIndex)
                                             true
                                         }
                                     },
                                     CustomAccessibilityAction("Next data point") {
-                                        if (values.isEmpty()) false else {
-                                            selectedIndex = (selectedIndex + 1).coerceIn(0, values.lastIndex)
+                                        val next = ((selectedIndex + 1).coerceAtLeast(0)..values.lastIndex)
+                                            .firstOrNull { values[it].isFinite() }
+                                        if (next == null) false else {
+                                            selectedIndex = next
                                             onSelect(selectedIndex)
                                             true
                                         }
@@ -213,6 +219,7 @@ fun VibeGraph(
                                             values.forEachIndexed { index, value ->
                                                 if (value.isFinite()) {
                                                     val point = graphPoint(index, value, values.size, size.width, size.height, domain, padding)
+                                                        .copy(x = padding + slot * (index + 0.5f))
                                                     drawRect(
                                                         palette.accent,
                                                         topLeft = Offset(point.x - slot * 0.3f, point.y),
@@ -231,7 +238,13 @@ fun VibeGraph(
                             val index = selectedIndex
                             if (index in values.indices && values[index].isFinite()) {
                                 val padding = 12.dp.toPx()
-                                val point = graphPoint(index, values[index], values.size, size.width, size.height, domain, padding)
+                                val linePoint = graphPoint(index, values[index], values.size, size.width, size.height, domain, padding)
+                                val point = if (style == VibeGraphStyle.BARS) {
+                                    val slot = (size.width - padding * 2f) / values.size.coerceAtLeast(1)
+                                    linePoint.copy(x = padding + slot * (index + 0.5f))
+                                } else {
+                                    linePoint
+                                }
                                 drawCircle(palette.accent, 3.5.dp.toPx(), point)
                                 drawCircle(palette.surfaceInset, 1.dp.toPx(), point)
                                 drawLine(

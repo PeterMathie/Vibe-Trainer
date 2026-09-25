@@ -244,12 +244,19 @@ private fun HabitSettingsDialog(
     }
     val unit = activeFields.firstOrNull { it.valueType == "NUMBER" }?.unit
     val suffix = unit?.let { " ($it)" }.orEmpty()
+    val settingsListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val reorderContext = rememberReorderScrollContext(settingsListState)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("${tracker.name} settings") },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item {
+            androidx.compose.runtime.CompositionLocalProvider(LocalReorderScrollContext provides reorderContext) {
+                LazyColumn(
+                    state = settingsListState,
+                    modifier = Modifier.reorderScrollViewport(reorderContext),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    item {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         EditField("Habit name", name) { name = it }
                         OutlinedButton(
@@ -320,8 +327,11 @@ private fun HabitSettingsDialog(
                             )
                         }
                         Text("Measurements", style = MaterialTheme.typography.titleMedium)
-                        fieldOrder.ordered(activeFields) { it.id }.forEach { habitField ->
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        fieldOrder.ordered(activeFields) { it.id }.forEachIndexed { fieldIndex, habitField ->
+                            Column(
+                                modifier = Modifier.reorderItemFeedback(fieldOrder, habitField.id, fieldIndex),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
                                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                                     if (activeFields.size > 1) {
                                         ReorderHandle(fieldOrder, habitField.id, habitField.name)
@@ -362,6 +372,7 @@ private fun HabitSettingsDialog(
                                 }
                             }
                         }
+                    }
                     }
                 }
             }

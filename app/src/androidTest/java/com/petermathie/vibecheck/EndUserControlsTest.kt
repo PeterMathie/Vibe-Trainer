@@ -1,6 +1,10 @@
 package com.petermathie.vibecheck
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -15,6 +19,7 @@ import com.petermathie.vibecheck.ui.MainUiState
 import com.petermathie.vibecheck.ui.ReorderHandle
 import com.petermathie.vibecheck.ui.WorkoutCompletionEvent
 import com.petermathie.vibecheck.ui.rememberReorderState
+import com.petermathie.vibecheck.ui.reorderItemFeedback
 import com.petermathie.vibecheck.domain.model.TrainingMode
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import org.junit.Assert.assertEquals
@@ -128,13 +133,22 @@ class EndUserControlsTest {
         val moves = mutableListOf<Triple<Any, Int, Int>>()
         compose.setContent {
             VibeCheckTheme {
-                val state = rememberReorderState(listOf("one", "two")) { key, from, to ->
+                val keys = listOf("one", "two", "three", "four")
+                val state = rememberReorderState(keys) { key, from, to ->
                     moves += Triple(key, from, to)
                 }
 
                 Column {
-                    ReorderHandle(state, "one", "one")
-                    ReorderHandle(state, "two", "two")
+                    state.ordered(keys) { it }.forEachIndexed { index, key ->
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .reorderItemFeedback(state, key, index)
+                                .semantics { contentDescription = "Tile $key" },
+                        ) {
+                            ReorderHandle(state, key, key)
+                        }
+                    }
                 }
             }
         }
@@ -142,13 +156,18 @@ class EndUserControlsTest {
         compose.onNodeWithContentDescription("Reorder one").performTouchInput {
             down(center)
             advanceEventTime(1_000)
-            moveBy(Offset(0f, 300f))
-            advanceEventTime(100)
+            repeat(3) {
+                moveBy(Offset(0f, 60f))
+                advanceEventTime(100)
+            }
             up()
         }
         compose.waitForIdle()
 
         assertEquals(listOf(Triple("one", 0, 1)), moves)
+        val firstTile = compose.onNodeWithContentDescription("Tile one").fetchSemanticsNode().boundsInRoot
+        val secondTile = compose.onNodeWithContentDescription("Tile two").fetchSemanticsNode().boundsInRoot
+        assertTrue(firstTile.top > secondTile.top)
     }
 
     @Test

@@ -122,8 +122,15 @@ fun ExerciseEditor(vm: EditorViewModel) {
                 val variationOrder = rememberReorderState(customVariations.map { it.id }) { key, from, to ->
                     vm.moveVariation(key as String, to - from)
                 }
-                (seededVariations + variationOrder.ordered(customVariations) { it.id }).forEach { v ->
-                    Row(Modifier.animateContentSize()) {
+                (seededVariations + variationOrder.ordered(customVariations) { it.id }).forEachIndexed { index, v ->
+                    Row(
+                        Modifier
+                            .then(
+                                if (v.isSeeded) Modifier
+                                else Modifier.reorderItemFeedback(variationOrder, v.id, index - seededVariations.size)
+                            )
+                            .animateContentSize(),
+                    ) {
                         if (!v.isSeeded && customVariations.size > 1) ReorderHandle(variationOrder, v.id, v.name)
                         Text(v.name,Modifier.weight(1f))
                         IconButton(onClick = { configuringVariation = v }) {

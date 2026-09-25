@@ -83,6 +83,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -465,7 +466,8 @@ internal fun HomeScreen(
     }
     val mapNextStates = if (reducedMotion || !sliderDragging) null else upperStates
     val mapInterpolationFraction = if (mapNextStates == null) 0f else sliderPosition - lowerDay
-    val horizontalGutter = ((LocalConfiguration.current.screenWidthDp.dp - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val horizontalGutter = ((screenWidth - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
     Column(
         Modifier.fillMaxSize().padding(horizontal = horizontalGutter, vertical = VibeSpacing.medium),
         verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
@@ -518,7 +520,8 @@ internal fun HomeScreen(
                 }
             }
         }
-        VibeCard(Modifier.weight(1f), fillHeight = true) {
+        HomeDashboardLayout(isWide = screenWidth >= 600.dp, modifier = Modifier.weight(1f)) {
+        VibeCard(fillHeight = true) {
             TechnicalBackdrop(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -638,6 +641,7 @@ internal fun HomeScreen(
             )
             Text("0 none · 1 low · 2 medium · 3+ strong", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
         }
+        }
     }
     selectedMuscle?.let { muscleId ->
         MuscleDetailsSheet(
@@ -655,6 +659,44 @@ internal fun HomeScreen(
                 requester.requestFocus()
             },
         )
+    }
+}
+
+@Composable
+private fun HomeDashboardLayout(
+    isWide: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val gap = VibeSpacing.medium
+    Layout(content = content, modifier = modifier) { measurables, constraints ->
+        require(measurables.size == 2)
+        val gapPx = gap.roundToPx()
+        if (isWide) {
+            val availableWidth = (constraints.maxWidth - gapPx).coerceAtLeast(0)
+            val secondaryWidth = (availableWidth * 0.38f).roundToInt()
+            val primaryWidth = availableWidth - secondaryWidth
+            val primary = measurables[0].measure(
+                constraints.copy(minWidth = primaryWidth, maxWidth = primaryWidth, minHeight = constraints.maxHeight),
+            )
+            val secondary = measurables[1].measure(
+                constraints.copy(minWidth = secondaryWidth, maxWidth = secondaryWidth, minHeight = constraints.maxHeight),
+            )
+            layout(constraints.maxWidth, constraints.maxHeight) {
+                primary.placeRelative(0, 0)
+                secondary.placeRelative(primaryWidth + gapPx, 0)
+            }
+        } else {
+            val secondary = measurables[1].measure(constraints.copy(minHeight = 0))
+            val primaryHeight = (constraints.maxHeight - secondary.height - gapPx).coerceAtLeast(0)
+            val primary = measurables[0].measure(
+                constraints.copy(minHeight = primaryHeight, maxHeight = primaryHeight),
+            )
+            layout(constraints.maxWidth, constraints.maxHeight) {
+                primary.placeRelative(0, 0)
+                secondary.placeRelative(0, primary.height + gapPx)
+            }
+        }
     }
 }
 
@@ -826,11 +868,18 @@ internal fun ScreenList(
 ) {
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
         val sidePadding = ((maxWidth - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = sidePadding, vertical = VibeSpacing.medium),
-            verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
-            content = content,
-        )
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        val reorderContext = rememberReorderScrollContext(listState)
+        androidx.compose.runtime.CompositionLocalProvider(LocalReorderScrollContext provides reorderContext) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .reorderScrollViewport(reorderContext),
+                contentPadding = PaddingValues(horizontal = sidePadding, vertical = VibeSpacing.medium),
+                verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
+                content = content,
+            )
+        }
     }
 }

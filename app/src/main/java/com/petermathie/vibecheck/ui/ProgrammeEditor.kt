@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
@@ -99,10 +100,16 @@ fun ProgrammeEditor(
             if (programmeRows.isEmpty()) {
                 item { com.petermathie.vibecheck.ui.components.VibeStatePanel("Create a programme to organize strength or stretch sessions.") }
             }
-            items(programmeOrder.ordered(programmeRows) { it.id }, key = { it.id }) { p ->
+            itemsIndexed(programmeOrder.ordered(programmeRows) { it.id }, key = { _, row -> row.id }) { index, p ->
                 val expanded = expandedProgrammeId == p.id
                 val previewDays = days.filter { it.programmeId == p.id }.sortedBy { it.position }
-                VibeSurface(VibeSurfaceLevel.CARD, Modifier.fillMaxWidth().animateItem().animateContentSize()) {
+                VibeSurface(
+                    VibeSurfaceLevel.CARD,
+                    Modifier
+                        .fillMaxWidth()
+                        .reorderItemFeedback(programmeOrder, p.id, index)
+                        .animateContentSize(),
+                ) {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         if (programmeRows.size > 1) ReorderHandle(programmeOrder, p.id, p.name)
                         Text(
@@ -194,12 +201,15 @@ fun ProgrammeEditor(
                     },
                 )
             }
-            items(dayOrder.ordered(dayRows) { it.id }, key = { it.id }) { d ->
+            itemsIndexed(dayOrder.ordered(dayRows) { it.id }, key = { _, row -> row.id }) { dayIndex, d ->
                 val dayEntries = entries.filter { it.programmeDayId == d.id }.sortedBy { it.position }
                 val entryOrder = rememberReorderState(dayEntries.map { it.id }) { key, from, to ->
                     vm.moveEntry(key as String, to - from)
                 }
-                VibeSurface(VibeSurfaceLevel.CARD, Modifier.fillMaxWidth().animateItem()) {
+                VibeSurface(
+                    VibeSurfaceLevel.CARD,
+                    Modifier.fillMaxWidth().reorderItemFeedback(dayOrder, d.id, dayIndex),
+                ) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (dayRows.size > 1) {
                             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
