@@ -7,6 +7,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +41,7 @@ enum class AnatomyView { FRONT, BACK }
 internal const val MUSCLE_COLOR_TRANSITION_MILLIS = 35
 internal const val MUSCLE_MAP_HORIZONTAL_SCALE = 1.12f
 internal const val MUSCLE_MAP_VERTICAL_STRETCH = 1.10f
+internal const val MUSCLE_MAP_GLOW_OVERFLOW = 8f
 
 private data class ParsedOutline(val def: OutlinePathDef, val path: Path)
 private data class ParsedMuscle(val def: MusclePathDef, val path: Path, val region: Region)
@@ -53,13 +55,14 @@ internal data class MuscleMapTransform(
 internal fun muscleMapTransform(
     canvasWidth: Float,
     canvasHeight: Float,
-    diagramWidth: Float,
+    contentLeft: Float,
+    contentRight: Float,
     contentTop: Float,
     contentBottom: Float,
 ): MuscleMapTransform {
     val targetYScale = MUSCLE_MAP_HORIZONTAL_SCALE * MUSCLE_MAP_VERTICAL_STRETCH
     val fit = min(
-        canvasWidth / diagramWidth,
+        canvasWidth / ((contentRight - contentLeft) * MUSCLE_MAP_HORIZONTAL_SCALE),
         canvasHeight / ((contentBottom - contentTop) * targetYScale),
     )
     val scaleX = fit * MUSCLE_MAP_HORIZONTAL_SCALE
@@ -67,7 +70,7 @@ internal fun muscleMapTransform(
     return MuscleMapTransform(
         scaleX = scaleX,
         scaleY = scaleY,
-        offsetX = (canvasWidth - diagramWidth * scaleX) / 2f,
+        offsetX = canvasWidth / 2f - (contentLeft + contentRight) / 2f * scaleX,
         offsetY = canvasHeight / 2f - (contentTop + contentBottom) / 2f * scaleY,
     )
 }
@@ -84,6 +87,7 @@ fun MuscleMap(
     interpolationFraction: Float = 0f,
     directInterpolation: Boolean = false,
     celebratedMuscleIds: Set<String> = emptySet(),
+    alignToLegendBounds: Boolean = false,
 ) {
     val palette = LocalVibePalette.current
     val freshnessColors = palette.freshnessColors()
@@ -98,8 +102,21 @@ fun MuscleMap(
     val outlines = remember(diagram.id) {
         diagram.outline.map { ParsedOutline(it, PathParser().parsePathString(it.pathData).toPath()) }
     }
-    val contentTop = remember(outlines) { outlines.minOf { it.path.getBounds().top } }
-    val contentBottom = remember(outlines) { outlines.maxOf { it.path.getBounds().bottom } }
+    val outlineBounds = remember(outlines, diagram.centerX) {
+        val pathBounds = outlines.map { it.def to it.path.getBounds() }
+        val left = pathBounds.minOf { (definition, bounds) ->
+            if (definition.side == BodySide.LEFT) minOf(bounds.left, 2f * diagram.centerX - bounds.right) else bounds.left
+        }
+        val right = pathBounds.maxOf { (definition, bounds) ->
+            if (definition.side == BodySide.LEFT) maxOf(bounds.right, 2f * diagram.centerX - bounds.left) else bounds.right
+        }
+        androidx.compose.ui.geometry.Rect(
+            left - MUSCLE_MAP_GLOW_OVERFLOW,
+            pathBounds.minOf { it.second.top } - MUSCLE_MAP_GLOW_OVERFLOW,
+            right + MUSCLE_MAP_GLOW_OVERFLOW,
+            pathBounds.maxOf { it.second.bottom } + MUSCLE_MAP_GLOW_OVERFLOW,
+        )
+    }
     val muscles = remember(diagram.id) {
         diagram.muscles.map { definition ->
             val path = PathParser().parsePathString(definition.pathData).toPath()
@@ -128,13 +145,15 @@ fun MuscleMap(
         color
     }
 
-    Canvas(
-        modifier = modifier
+    val canvasModifier = if (alignToLegendBounds) {
+        modifier.fillMaxSize()
+    } else {
+        modifier
             .fillMaxWidth()
-            .aspectRatio(
-                diagram.viewBoxWidth /
-                    (diagram.viewBoxHeight * MUSCLE_MAP_HORIZONTAL_SCALE * MUSCLE_MAP_VERTICAL_STRETCH),
-            )
+            .aspectRatio(outlineBounds.width / (outlineBounds.height * MUSCLE_MAP_VERTICAL_STRETCH))
+    }
+    Canvas(
+        modifier = canvasModifier
             .semantics {
                 contentDescription = "${sex.name.lowercase()} ${view.name.lowercase()} freshness map"
                 stateDescription = selectedGroup?.let { "Selected ${it.replace('_', ' ').lowercase()}" }
@@ -151,9 +170,10 @@ fun MuscleMap(
                     val transform = muscleMapTransform(
                         size.width.toFloat(),
                         size.height.toFloat(),
-                        diagram.viewBoxWidth,
-                        contentTop,
-                        contentBottom,
+                        outlineBounds.left,
+                        outlineBounds.right,
+                        outlineBounds.top,
+                        outlineBounds.bottom,
                     )
                     val vectorX = (tap.x - transform.offsetX) / transform.scaleX
                     val vectorY = (tap.y - transform.offsetY) / transform.scaleY
@@ -166,7 +186,14 @@ fun MuscleMap(
                 }
             },
     ) {
-        val transform = muscleMapTransform(size.width, size.height, diagram.viewBoxWidth, contentTop, contentBottom)
+        val transform = muscleMapTransform(
+            size.width,
+            size.height,
+            outlineBounds.left,
+            outlineBounds.right,
+            outlineBounds.top,
+            outlineBounds.bottom,
+        )
         withTransform({
             translate(transform.offsetX, transform.offsetY)
             scale(transform.scaleX, transform.scaleY, Offset.Zero)

@@ -84,6 +84,7 @@ import com.petermathie.vibecheck.domain.model.MuscleRecency
 import com.petermathie.vibecheck.domain.model.TrainingMode
 import com.petermathie.vibecheck.ui.anatomy.AnatomyView
 import com.petermathie.vibecheck.ui.anatomy.FreshnessLegend
+import com.petermathie.vibecheck.ui.anatomy.FreshnessNoDataKey
 import com.petermathie.vibecheck.ui.anatomy.MuscleMap
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
@@ -434,35 +435,43 @@ internal fun HomeScreen(
                 ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
             }
             Box(Modifier.fillMaxWidth().weight(1f)) {
-                Row(
+                Column(
                     Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.End,
                 ) {
-                    MuscleMap(
-                        sex = sex,
-                        view = AnatomyView.FRONT,
-                        states = mapStates,
-                        onMuscleTap = { selectedMuscle = it },
-                        modifier = Modifier.weight(1f).fillMaxSize(),
-                        selectedMuscleId = selectedMuscle,
-                        nextStates = mapNextStates,
-                        interpolationFraction = mapInterpolationFraction,
-                        directInterpolation = sliderDragging,
-                        celebratedMuscleIds = celebratedMuscles,
-                    )
-                    MuscleMap(
-                        sex = sex,
-                        view = AnatomyView.BACK,
-                        states = mapStates,
-                        onMuscleTap = { selectedMuscle = it },
-                        modifier = Modifier.weight(1f).fillMaxSize(),
-                        selectedMuscleId = selectedMuscle,
-                        nextStates = mapNextStates,
-                        interpolationFraction = mapInterpolationFraction,
-                        directInterpolation = sliderDragging,
-                        celebratedMuscleIds = celebratedMuscles,
-                    )
-                    FreshnessLegend()
+                    Row(
+                        Modifier.fillMaxWidth().weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        MuscleMap(
+                            sex = sex,
+                            view = AnatomyView.FRONT,
+                            states = mapStates,
+                            onMuscleTap = { selectedMuscle = it },
+                            modifier = Modifier.weight(1f).fillMaxSize(),
+                            selectedMuscleId = selectedMuscle,
+                            nextStates = mapNextStates,
+                            interpolationFraction = mapInterpolationFraction,
+                            directInterpolation = sliderDragging,
+                            celebratedMuscleIds = celebratedMuscles,
+                            alignToLegendBounds = true,
+                        )
+                        MuscleMap(
+                            sex = sex,
+                            view = AnatomyView.BACK,
+                            states = mapStates,
+                            onMuscleTap = { selectedMuscle = it },
+                            modifier = Modifier.weight(1f).fillMaxSize(),
+                            selectedMuscleId = selectedMuscle,
+                            nextStates = mapNextStates,
+                            interpolationFraction = mapInterpolationFraction,
+                            directInterpolation = sliderDragging,
+                            celebratedMuscleIds = celebratedMuscles,
+                            alignToLegendBounds = true,
+                        )
+                        FreshnessLegend(includeNoData = false)
+                    }
+                    FreshnessNoDataKey()
                 }
                 confettiEventId?.let { eventId ->
                     CompletionConfetti(eventId, Modifier.fillMaxSize())
@@ -483,7 +492,7 @@ internal fun HomeScreen(
                 }
             }
             Text(
-                "Freshness through ${selectedRecencyDate.format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
+                "Freshness, ${selectedRecencyDate.format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
                 color = palette.textSecondary,
             )
             Slider(

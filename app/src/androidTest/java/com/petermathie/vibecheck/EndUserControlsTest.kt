@@ -51,7 +51,27 @@ class EndUserControlsTest {
         }
 
         compose.onNodeWithText("FRESHNESS").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Freshness colour scale", substring = true).assertIsDisplayed()
+        val legend = compose.onNodeWithContentDescription("Freshness colour scale", substring = true)
+        legend.assertIsDisplayed()
+        val frontMapBounds = compose.onNodeWithContentDescription("male front freshness map").fetchSemanticsNode().boundsInRoot
+        val backMapBounds = compose.onNodeWithContentDescription("male back freshness map").fetchSemanticsNode().boundsInRoot
+        val legendBounds = legend.fetchSemanticsNode().boundsInRoot
+        assertTrue(
+            "front=$frontMapBounds legend=$legendBounds",
+            kotlin.math.abs(frontMapBounds.top - legendBounds.top) < 2f,
+        )
+        assertTrue(
+            "front=$frontMapBounds legend=$legendBounds",
+            kotlin.math.abs(frontMapBounds.bottom - legendBounds.bottom) < 2f,
+        )
+        assertTrue(
+            "back=$backMapBounds legend=$legendBounds",
+            kotlin.math.abs(backMapBounds.top - legendBounds.top) < 2f,
+        )
+        assertTrue(
+            "back=$backMapBounds legend=$legendBounds",
+            kotlin.math.abs(backMapBounds.bottom - legendBounds.bottom) < 2f,
+        )
         compose.onNodeWithText("Overview").assertDoesNotExist()
         compose.onNodeWithText("Recency, not recovery or fatigue").assertDoesNotExist()
         compose.onNodeWithText("Habits, workouts and stretching").assertDoesNotExist()
@@ -66,6 +86,9 @@ class EndUserControlsTest {
         assertEquals(TrainingMode.STRETCHING, selectedMode)
         val today = LocalDate.now()
         val targetDay = (today.dayOfMonth - 1).coerceAtLeast(1)
+        compose.onNodeWithText(
+            "Freshness, ${today.format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
+        ).assertIsDisplayed()
         val slider = compose.onNodeWithContentDescription("Freshness date")
         val range = slider.fetchSemanticsNode().config[SemanticsProperties.ProgressBarRangeInfo]
         assertEquals(1f, range.range.start)
@@ -76,6 +99,9 @@ class EndUserControlsTest {
         }
         compose.waitUntil(15_000) { previewDay == today.withDayOfMonth(targetDay).toEpochDay() }
         assertEquals(today.withDayOfMonth(targetDay).toEpochDay(), previewDay)
+        compose.onNodeWithText(
+            "Freshness, ${today.withDayOfMonth(targetDay).format(DateTimeFormatter.ofPattern("d MMM yyyy"))}",
+        ).assertIsDisplayed()
 
         compose.onNodeWithText("Earlier").performClick()
         val previousMonth = YearMonth.from(today).minusMonths(1)

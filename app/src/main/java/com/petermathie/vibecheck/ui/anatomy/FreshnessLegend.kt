@@ -26,7 +26,10 @@ import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 import com.petermathie.vibecheck.ui.theme.freshnessColors
 
 @Composable
-fun FreshnessLegend(modifier: Modifier = Modifier) {
+fun FreshnessLegend(
+    modifier: Modifier = Modifier,
+    includeNoData: Boolean = true,
+) {
     val palette = LocalVibePalette.current
     val colors = palette.freshnessColors()
     val shape = RoundedCornerShape(50)
@@ -57,12 +60,19 @@ fun FreshnessLegend(modifier: Modifier = Modifier) {
                 .border(1.dp, palette.border, shape),
         )
         Text("Least\nrecent", style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Box(Modifier.width(14.dp).height(10.dp).background(colors.noData, RoundedCornerShape(50)))
-            Text("No data", style = MaterialTheme.typography.labelSmall)
-        }
+        if (includeNoData) FreshnessNoDataKey()
+    }
+}
+
+@Composable
+fun FreshnessNoDataKey(modifier: Modifier = Modifier) {
+    val colors = LocalVibePalette.current.freshnessColors()
+    Row(
+        modifier = modifier.padding(top = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Box(Modifier.width(14.dp).height(10.dp).background(colors.noData, RoundedCornerShape(50)))
+        Text("No data", style = MaterialTheme.typography.labelSmall)
     }
 }
