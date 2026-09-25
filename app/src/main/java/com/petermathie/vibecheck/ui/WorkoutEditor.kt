@@ -8,6 +8,8 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.*
+import com.petermathie.vibecheck.ui.components.VibeSurface
+import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -215,7 +217,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
         } else result
         updateDraft(draftAt(ordinal).copy(performance = performance, updatedAt = System.currentTimeMillis()))
     }
-    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    VibeSurface(VibeSurfaceLevel.CARD, Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(exercise?.canonicalName.orEmpty(), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
             IconButton(onClick = { RestTimer.start(context, restSeconds) }) {

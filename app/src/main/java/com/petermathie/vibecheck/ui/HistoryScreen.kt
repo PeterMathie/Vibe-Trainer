@@ -19,9 +19,10 @@ fun HistoryScreen(vm:EditorViewModel,onMap:(Long)->Unit) {
     val exerciseRows by vm.workoutExercises.collectAsStateWithLifecycle()
     val exercises by vm.exercises.collectAsStateWithLifecycle()
     var query by remember { mutableStateOf("") };var selected by remember { mutableStateOf<String?>(null) };var date by remember { mutableStateOf(LocalDate.now().toString()) }
+    val filteredWorkouts = workouts.filter { workout -> workout.status=="FINISHED"&&(workout.name.contains(query,true)||exerciseRows.any { row -> row.workoutId==workout.id && (row.notes.contains(query,true)||row.exerciseName.contains(query,true)||exercises.any { it.id==row.actualExerciseId && it.canonicalName.contains(query,true) }) }) }
     BackHandler(selected!=null){selected=null}
     if(selected!=null) { Column(Modifier.fillMaxSize()) { VibeActionButton("Back to history", { selected=null }, importance = ActionImportance.COMPACT);Box(Modifier.weight(1f)){WorkoutEditor(vm,selected,{}, {selected=null})} };return }
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+    ScreenList {
         item {
             Text("History",style=MaterialTheme.typography.headlineSmall)
             VibeCard {
@@ -30,7 +31,10 @@ fun HistoryScreen(vm:EditorViewModel,onMap:(Long)->Unit) {
                 VibeActionButton("View historical body map", { runCatching { LocalDate.parse(date).toEpochDay() }.getOrNull()?.let(onMap) }, modifier = Modifier.fillMaxWidth(), importance = ActionImportance.SECONDARY)
             }
         }
-        items(workouts.filter { workout -> workout.status=="FINISHED"&&(workout.name.contains(query,true)||exerciseRows.any { row -> row.workoutId==workout.id && (row.notes.contains(query,true)||row.exerciseName.contains(query,true)||exercises.any { it.id==row.actualExerciseId && it.canonicalName.contains(query,true) }) }) },key={it.id}) { w ->
+        if (filteredWorkouts.isEmpty()) {
+            item { com.petermathie.vibecheck.ui.components.VibeStatePanel(if (query.isBlank()) "Finished workouts will appear here." else "No workouts match this search.") }
+        }
+        items(filteredWorkouts,key={it.id}) { w ->
             VibeCard {
                 Text(w.name, style = MaterialTheme.typography.titleMedium)
                 Text(Instant.ofEpochMilli(w.finishedAt ?: w.startedAt).atZone(ZoneId.systemDefault()).toLocalDate().toString(), style = MaterialTheme.typography.bodySmall)

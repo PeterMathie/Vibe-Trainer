@@ -78,7 +78,7 @@ fun SettingsScreen(
     val preciseTimerSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         preciseTimersEnabled = arePreciseTimersEnabled(context)
     }
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+    ScreenList {
         item {
             Text("Settings and data",style=MaterialTheme.typography.headlineSmall)
             VibeActionButton("Colour palette", onStyle, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
@@ -436,7 +436,7 @@ fun MeasurementsScreen(vm:EditorViewModel) {
             prefs.edit().putString("card-order", reordered.joinToString("|")).putBoolean("card-order-customized", true).apply()
         }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    ScreenList {
         item { Text("Bodyweight and photos", style = MaterialTheme.typography.headlineSmall) }
         item {
             VibeCard {

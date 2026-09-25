@@ -63,7 +63,7 @@ fun ExerciseEditor(vm: EditorViewModel) {
     val visibleExercises = filteredExercises.filter {
         it.tag == exerciseType || it.tag == "BOTH"
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+    ScreenList {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Exercises",style=MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))

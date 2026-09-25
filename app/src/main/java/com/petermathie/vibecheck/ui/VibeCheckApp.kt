@@ -821,10 +821,13 @@ internal fun ScreenList(
     modifier: Modifier = Modifier,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = VibeSpacing.medium, vertical = VibeSpacing.medium),
-        verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
-        content = content,
-    )
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
+        val sidePadding = ((maxWidth - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = sidePadding, vertical = VibeSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
+            content = content,
+        )
+    }
 }

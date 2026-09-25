@@ -38,6 +38,8 @@ import com.petermathie.vibecheck.domain.tracker.HabitFieldForm
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
 import com.petermathie.vibecheck.ui.components.VibeGraph
 import com.petermathie.vibecheck.ui.components.VibeGraphStyle
+import com.petermathie.vibecheck.ui.components.VibeSurface
+import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
 import java.time.Instant
 import java.time.ZoneId
 import java.io.File
@@ -437,11 +439,7 @@ private fun unitSuffix(unit: String?): String = unit?.let { " $it" }.orEmpty()
 
 @Composable
 private fun PersonalRecordValue(label:String,value:String,detail:String?=null) {
-    Surface(
-        color=MaterialTheme.colorScheme.surfaceVariant,
-        shape=MaterialTheme.shapes.medium,
-        modifier=Modifier.fillMaxWidth(),
-    ) {
+    VibeSurface(VibeSurfaceLevel.INSET, Modifier.fillMaxWidth()) {
         Row(
             Modifier.padding(horizontal=14.dp,vertical=10.dp),
             horizontalArrangement=Arrangement.spacedBy(12.dp),

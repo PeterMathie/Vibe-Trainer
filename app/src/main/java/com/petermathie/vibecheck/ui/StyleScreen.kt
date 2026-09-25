@@ -41,6 +41,9 @@ import com.petermathie.vibecheck.ui.theme.VibePalettePreset
 import com.petermathie.vibecheck.ui.theme.VibePalettes
 import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.VibeThemeMode
+import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
+import com.petermathie.vibecheck.ui.theme.VibeSurfaceState
+import com.petermathie.vibecheck.ui.components.VibeSurface
 
 @Composable
 internal fun StyleScreen(
@@ -113,16 +116,15 @@ private fun PaletteCard(preset: VibePalettePreset, selected: Boolean, onSelect: 
         palette.tertiary,
         palette.danger,
     )
-    Card(
+    VibeSurface(
+        level = if (selected) VibeSurfaceLevel.SELECTED else VibeSurfaceLevel.RAISED,
+        state = if (selected) VibeSurfaceState.SELECTED else VibeSurfaceState.RESTING,
         onClick = onSelect,
         modifier = Modifier.semantics {
             contentDescription =
                 "${preset.displayName} palette, ${if (darkPreview) "dark" else "light"} preview" +
                     if (selected) ", selected" else ""
         },
-        colors = CardDefaults.cardColors(containerColor = LocalVibePalette.current.surface),
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) LocalVibePalette.current.accent else LocalVibePalette.current.border),
-        shape = RoundedCornerShape(VibeShapes.card),
     ) {
         Column(
             Modifier.fillMaxWidth().padding(18.dp),

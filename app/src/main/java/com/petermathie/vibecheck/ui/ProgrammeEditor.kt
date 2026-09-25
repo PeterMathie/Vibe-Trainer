@@ -21,6 +21,8 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.*
+import com.petermathie.vibecheck.ui.components.VibeSurface
+import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -73,7 +75,7 @@ fun ProgrammeEditor(
         else onStart(dayId, false)
     }
     BackHandler(selected != null) { selected = null }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    ScreenList {
         item {
             Row(
                 Modifier.fillMaxWidth(),
@@ -94,10 +96,13 @@ fun ProgrammeEditor(
             }
         }
         if (selected == null) {
+            if (programmeRows.isEmpty()) {
+                item { com.petermathie.vibecheck.ui.components.VibeStatePanel("Create a programme to organize strength or stretch sessions.") }
+            }
             items(programmeOrder.ordered(programmeRows) { it.id }, key = { it.id }) { p ->
                 val expanded = expandedProgrammeId == p.id
                 val previewDays = days.filter { it.programmeId == p.id }.sortedBy { it.position }
-                Card(Modifier.fillMaxWidth().animateItem().animateContentSize()) {
+                VibeSurface(VibeSurfaceLevel.CARD, Modifier.fillMaxWidth().animateItem().animateContentSize()) {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         if (programmeRows.size > 1) ReorderHandle(programmeOrder, p.id, p.name)
                         Text(
@@ -194,7 +199,7 @@ fun ProgrammeEditor(
                 val entryOrder = rememberReorderState(dayEntries.map { it.id }) { key, from, to ->
                     vm.moveEntry(key as String, to - from)
                 }
-                Card(Modifier.fillMaxWidth().animateItem()) {
+                VibeSurface(VibeSurfaceLevel.CARD, Modifier.fillMaxWidth().animateItem()) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (dayRows.size > 1) {
                             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {

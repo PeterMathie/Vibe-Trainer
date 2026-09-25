@@ -45,7 +45,7 @@ fun TrackerScreen(vm: EditorViewModel) {
     val trackerOrder = rememberReorderState(activeTrackers.map { it.id }) { key, from, to ->
         vm.moveTracker(key as String, to - from)
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    ScreenList {
         item {
             Row(
                 Modifier.fillMaxWidth(),
@@ -54,6 +54,9 @@ fun TrackerScreen(vm: EditorViewModel) {
                 Text("Habits", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
                 Button(onClick = { newHabit = TrackerEntity(newId(), "", false) }) { Text("New habit") }
             }
+        }
+        if (activeTrackers.isEmpty()) {
+            item { com.petermathie.vibecheck.ui.components.VibeStatePanel("Create a habit to record today's entry.") }
         }
         itemsIndexed(
             trackerOrder.ordered(activeTrackers) { it.id },
