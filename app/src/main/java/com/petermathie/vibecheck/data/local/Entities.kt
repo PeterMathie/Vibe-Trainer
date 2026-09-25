@@ -276,10 +276,10 @@ data class WorkoutSetEntity(
     val result: String,
     val variationId: String?,
     val weightKg: Double?,
-    val reps: Int?,
+    val reps: Double?,
     val holdMillis: Long?,
-    val leftReps: Int?,
-    val rightReps: Int?,
+    val leftReps: Double?,
+    val rightReps: Double?,
     val leftHoldMillis: Long?,
     val rightHoldMillis: Long?,
     val addedWeightKg: Double?,
@@ -296,6 +296,9 @@ data class WorkoutSetEntity(
     @androidx.room.ColumnInfo(defaultValue = "''") val variationNameSnapshot: String = "",
     @androidx.room.ColumnInfo(defaultValue = "''") val variationTrackingTypeSnapshot: String = "",
     @androidx.room.ColumnInfo(defaultValue = "''") val variationInputConfigSnapshot: String = "",
+    val legacyReps: Int? = null,
+    val legacyLeftReps: Int? = null,
+    val legacyRightReps: Int? = null,
 )
 
 @Entity(

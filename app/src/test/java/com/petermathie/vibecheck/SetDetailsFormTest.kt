@@ -31,7 +31,7 @@ class SetDetailsFormTest {
         assertEquals(42L, result.set?.loggedAt)
         assertEquals(99L, result.set?.updatedAt)
         assertEquals(100.0, result.set?.weightKg ?: 0.0, 0.00001)
-        assertEquals(5, result.set?.reps)
+        assertEquals(5.0, result.set?.reps)
         assertEquals(8.5, result.set?.rpe ?: 0.0, 0.0)
         assertEquals("WARM_UP", result.set?.setType)
         assertEquals("variation", result.set?.variationId)
@@ -77,9 +77,9 @@ class SetDetailsFormTest {
 
         assertNull(result.error)
         assertEquals("FAILED", result.set?.result)
-        assertEquals(0, result.set?.reps)
-        assertEquals(0, result.set?.leftReps)
-        assertEquals(0, result.set?.rightReps)
+        assertEquals(0.0, result.set?.reps)
+        assertEquals(0.0, result.set?.leftReps)
+        assertEquals(0.0, result.set?.rightReps)
         assertNull(result.set?.romValue)
     }
 
@@ -90,7 +90,7 @@ class SetDetailsFormTest {
 
         assertEquals("RPE must be 0–10", baseline.copy(rpe = "11", leftValue = "-1").buildSet(original, false, false, false).error)
         assertEquals("Use finite, non-negative numbers", baseline.copy(leftValue = "-1").buildSet(original, false, false, false).error)
-        assertEquals("Repetitions must be whole numbers", baseline.copy(leftValue = "1.5").buildSet(original, false, false, false).error)
+        assertEquals(1.5, baseline.copy(leftValue = "1.5").buildSet(original, false, false, false).set?.leftReps)
         assertEquals("Enter a valid result", baseline.buildSet(original, false, false, false).error)
     }
 

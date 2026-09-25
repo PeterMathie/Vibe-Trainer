@@ -9,9 +9,9 @@ import org.junit.Assert.*
 
 class SessionProgressTest {
     @Test fun zeroAndWarmupsAreExcluded(){
-        val set=emptySet("e",1).copy(weightKg=100.0,reps=0)
+        val set=emptySet("e",1).copy(weightKg=100.0,reps=0.0)
         assertNull(SessionProgress.score(set,80.0,0.0))
-        assertNull(SessionProgress.score(set.copy(reps=5,setType="WARM_UP"),80.0,0.0))
+        assertNull(SessionProgress.score(set.copy(reps=5.0,setType="WARM_UP"),80.0,0.0))
     }
     @Test fun stacksReduceDifficultyWithinVariation(){
         val set=emptySet("e",1).copy(holdMillis=10000)
@@ -20,11 +20,11 @@ class SessionProgressTest {
     @Test fun compactWeightedEntryConvertsPounds(){
         val set=parsePerformance(emptySet("e",1),"220.46226218 x 5",false,true,true)!!
         assertEquals(100.0,set.weightKg!!,0.00001)
-        assertEquals(5,set.reps)
+        assertEquals(5.0,set.reps)
         assertNull(parsePerformance(set,"100 x -2",false,true,false))
     }
     @Test fun removingLastBandKeepsTheSameAssistanceScale(){
-        val set=emptySet("e",1).copy(reps=5)
+        val set=emptySet("e",1).copy(reps=5.0)
         val band=SessionProgress.score(set,80.0,0.6,"ASSISTED_REPS")!!
         val free=SessionProgress.score(set,80.0,0.0,"ASSISTED_REPS")!!
         assertEquals(1.6,free/band,0.00001)
@@ -41,8 +41,8 @@ class SessionProgressTest {
         assertEquals(listOf(10.0,12.0),series.getValue("cm").map { it.romValue })
     }
     @Test fun recordsExposeHighestScoredPerformanceInsteadOfRepetitionCount(){
-        val lowerScore=emptySet("e",1).copy(weightKg=50.0,reps=12)
-        val higherScore=emptySet("e",2).copy(weightKg=100.0,reps=3)
+        val lowerScore=emptySet("e",1).copy(weightKg=50.0,reps=12.0)
+        val higherScore=emptySet("e",2).copy(weightKg=100.0,reps=3.0)
         val points=listOf(
             com.petermathie.vibecheck.domain.progress.ProgressPoint(1,60.0,lowerScore,"",null,emptyList()),
             com.petermathie.vibecheck.domain.progress.ProgressPoint(2,110.0,higherScore,"",null,emptyList()),
@@ -69,7 +69,7 @@ class SessionProgressTest {
     @Test fun savedVariationRankAndBandDefinitionRemainHistorical(){
         val workout=WorkoutEntity("w",null,"Workout","STRENGTH","FINISHED",1,2,"",80.0,false)
         val exercise=WorkoutExerciseEntity("we","w","e","e",0,"",60,null,"Exercise","ASSISTED_REPS","")
-        val set=emptySet("we",1).copy(reps=5,variationId="variation",variationRankSnapshot=2)
+        val set=emptySet("we",1).copy(reps=5.0,variationId="variation",variationRankSnapshot=2)
         val link=WorkoutSetBandEntity(set.id,"band",0,"Original",0.6)
         val changedBand=BandEntity("band","Changed",3.1,0)
         val changedVariation=ExerciseVariationEntity("variation","e","Variation",9,false)

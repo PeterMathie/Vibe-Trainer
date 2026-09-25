@@ -54,7 +54,7 @@ class WorkoutWorkflowTest {
         assertNotNull(draft)
 
         val firstExercise = requireNotNull(draft).exercises.first()
-        repository.addSet(firstExercise.id, SetDraft(reps = 5, notes = "Emulator workflow"))
+        repository.addSet(firstExercise.id, SetDraft(reps = 5.0, notes = "Emulator workflow"))
 
         val autosaved = repository.observeDraft().first { active ->
             active?.exercises?.firstOrNull()?.sets?.isNotEmpty() == true
@@ -78,7 +78,7 @@ class WorkoutWorkflowTest {
             val day = days.first { it.mode == mode }
             val workoutId = repository.startWorkout(day.id, replaceExisting = true)
             val draft = requireNotNull(repository.observeDraft().first { it?.id == workoutId })
-            repository.addSet(draft.exercises.first().id, SetDraft(reps = 1, holdMillis = 1_000))
+            repository.addSet(draft.exercises.first().id, SetDraft(reps = 1.0, holdMillis = 1_000))
 
             val completion = requireNotNull(repository.finishWorkout(workoutId))
             assertEquals(mode, completion.mode)
@@ -113,7 +113,7 @@ class WorkoutWorkflowTest {
         assertNull(viewModel.completionEvents.value)
 
         val draft = requireNotNull(repository.observeDraft().first { it?.id == workoutId })
-        repository.addSet(draft.exercises.first().id, SetDraft(reps = 5))
+        repository.addSet(draft.exercises.first().id, SetDraft(reps = 5.0))
         val finished = CompletableDeferred<Unit>()
         viewModel.finishWorkout(
             workoutId,

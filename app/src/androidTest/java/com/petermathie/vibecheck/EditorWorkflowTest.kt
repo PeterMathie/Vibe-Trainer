@@ -49,7 +49,7 @@ class EditorWorkflowTest {
         val day=repository.observeProgrammeDays().first().first()
         val id=repository.startWorkout(day.id)
         val exercise=repository.observeDraft().first { it!=null }!!.exercises.first()
-        repository.addSet(exercise.id,com.petermathie.vibecheck.domain.model.SetDraft(reps=5))
+        repository.addSet(exercise.id,com.petermathie.vibecheck.domain.model.SetDraft(reps=5.0))
         assertTrue(repository.observeMuscleRecency(day.mode).first().isEmpty())
         repository.finishWorkout(id)
         val before=repository.observeMuscleRecency(day.mode,Long.MAX_VALUE/2).first()

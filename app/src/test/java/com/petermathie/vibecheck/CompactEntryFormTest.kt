@@ -14,7 +14,7 @@ class CompactEntryFormTest {
             .buildSet(emptySet("exercise", 1), hold = false, weighted = true, pounds = true)
 
         assertEquals(100.0, set?.weightKg ?: 0.0, 0.00001)
-        assertEquals(5, set?.reps)
+        assertEquals(5.0, set?.reps)
         assertEquals(8.5, set?.rpe ?: 0.0, 0.0)
     }
 

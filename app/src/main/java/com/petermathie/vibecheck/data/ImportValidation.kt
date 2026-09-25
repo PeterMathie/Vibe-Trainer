@@ -11,8 +11,9 @@ import java.math.BigDecimal
 internal object ImportValidation {
     data class Column(val name: String, val type: String, val required: Boolean, val key: Boolean)
     private val booleanFields = setOf("isCustom", "isArchived", "isSeeded", "isDemo", "booleanValue", "targetMet")
-    private val nonNegative = setOf("position", "ordinal", "progressionRank", "variationRankSnapshot", "widthCentimetresSnapshot", "targetSets", "targetRepsMin", "targetRepsMax", "targetHoldSeconds", "restSeconds", "reps", "leftReps", "rightReps", "holdMillis", "leftHoldMillis", "rightHoldMillis", "weightKg", "addedWeightKg", "assistanceKg", "startedAt", "finishedAt", "loggedAt", "updatedAt", "recordedAt")
-    private val intFields = setOf("position", "ordinal", "progressionRank", "variationRankSnapshot", "targetSets", "targetRepsMin", "targetRepsMax", "targetHoldSeconds", "restSeconds", "reps", "leftReps", "rightReps", "version")
+    private val nonNegative = setOf("position", "ordinal", "progressionRank", "variationRankSnapshot", "widthCentimetresSnapshot", "targetSets", "targetRepsMin", "targetRepsMax", "targetHoldSeconds", "restSeconds", "reps", "leftReps", "rightReps", "legacyReps", "legacyLeftReps", "legacyRightReps", "holdMillis", "leftHoldMillis", "rightHoldMillis", "weightKg", "addedWeightKg", "assistanceKg", "startedAt", "finishedAt", "loggedAt", "updatedAt", "recordedAt")
+    private val intFields = setOf("position", "ordinal", "progressionRank", "variationRankSnapshot", "targetSets", "targetRepsMin", "targetRepsMax", "targetHoldSeconds", "restSeconds", "legacyReps", "legacyLeftReps", "legacyRightReps", "version")
+    private val boundedQuantitative = setOf("reps", "leftReps", "rightReps", "weightKg", "addedWeightKg", "assistanceKg", "romValue")
     private val numericTrackers = setOf("NUMBER", "COUNT", "DURATION", "RATING")
 
     fun columns(sql: SupportSQLiteDatabase, table: String): List<Column> = buildList {
@@ -42,6 +43,9 @@ internal object ImportValidation {
                 "REAL" -> require(value is Number && value.toDouble().isFinite()) { "$table.$key must be a finite number" }
             }
             if (!row.isNull(key) && key in nonNegative) require(row.getDouble(key) >= 0) { "$table.$key cannot be negative" }
+            if (!row.isNull(key) && column.type == "REAL" && key in boundedQuantitative) {
+                require(row.getDouble(key) <= 1_000_000_000.0) { "$table.$key is out of range" }
+            }
         }
         fun oneOf(field: String, choices: Set<String>) {
             if (row.has(field) && !row.isNull(field)) require(row.getString(field) in choices) { "Invalid $table.$field: ${row.get(field)}" }

@@ -125,6 +125,16 @@ object DataTransfer {
                         }
                         row.put("variationRankSnapshot", rank ?: JSONObject.NULL)
                     }
+                    if (table == "workout_sets" && !row.has("legacyReps")) {
+                        fun legacyCount(name: String): Any {
+                            if (row.isNull(name)) return JSONObject.NULL
+                            val value = row.getDouble(name)
+                            return if (value % 1.0 == 0.0 && value <= Int.MAX_VALUE) value.toInt() else JSONObject.NULL
+                        }
+                        row.put("legacyReps", legacyCount("reps"))
+                        row.put("legacyLeftReps", legacyCount("leftReps"))
+                        row.put("legacyRightReps", legacyCount("rightReps"))
+                    }
                     if (table == "workout_sets" && !row.has("variationNameSnapshot")) {
                         val variationId = row.optString("variationId").takeIf(String::isNotBlank)
                         val variation = variationId?.let {

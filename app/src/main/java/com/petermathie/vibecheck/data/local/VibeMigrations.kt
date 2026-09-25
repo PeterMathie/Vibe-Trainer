@@ -465,3 +465,92 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
         }
     }
 }
+
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TEMP TABLE workout_set_bands_backup AS
+            SELECT setId,bandId,ordinal,nameSnapshot,widthCentimetresSnapshot
+            FROM workout_set_bands
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE TABLE workout_sets_new (
+                id TEXT NOT NULL,
+                workoutExerciseId TEXT NOT NULL,
+                ordinal INTEGER NOT NULL,
+                setType TEXT NOT NULL,
+                result TEXT NOT NULL,
+                variationId TEXT,
+                weightKg REAL,
+                reps REAL,
+                holdMillis INTEGER,
+                leftReps REAL,
+                rightReps REAL,
+                leftHoldMillis INTEGER,
+                rightHoldMillis INTEGER,
+                addedWeightKg REAL,
+                assistanceKg REAL,
+                rpe REAL,
+                romValue REAL,
+                romUnit TEXT,
+                notes TEXT NOT NULL,
+                loggedAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                variationRankSnapshot INTEGER,
+                timeUnderTensionMillis INTEGER,
+                bandResistance INTEGER NOT NULL DEFAULT 0,
+                variationNameSnapshot TEXT NOT NULL DEFAULT '',
+                variationTrackingTypeSnapshot TEXT NOT NULL DEFAULT '',
+                variationInputConfigSnapshot TEXT NOT NULL DEFAULT '',
+                legacyReps INTEGER,
+                legacyLeftReps INTEGER,
+                legacyRightReps INTEGER,
+                PRIMARY KEY(id),
+                FOREIGN KEY(workoutExerciseId) REFERENCES workout_exercises(id)
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO workout_sets_new (
+                id,workoutExerciseId,ordinal,setType,result,variationId,weightKg,
+                reps,holdMillis,leftReps,rightReps,leftHoldMillis,rightHoldMillis,
+                addedWeightKg,assistanceKg,rpe,romValue,romUnit,notes,loggedAt,updatedAt,
+                variationRankSnapshot,timeUnderTensionMillis,bandResistance,
+                variationNameSnapshot,variationTrackingTypeSnapshot,variationInputConfigSnapshot,
+                legacyReps,legacyLeftReps,legacyRightReps
+            )
+            SELECT
+                id,workoutExerciseId,ordinal,setType,result,variationId,weightKg,
+                CAST(reps AS REAL),holdMillis,CAST(leftReps AS REAL),CAST(rightReps AS REAL),
+                leftHoldMillis,rightHoldMillis,addedWeightKg,assistanceKg,rpe,romValue,romUnit,
+                notes,loggedAt,updatedAt,variationRankSnapshot,timeUnderTensionMillis,bandResistance,
+                variationNameSnapshot,variationTrackingTypeSnapshot,variationInputConfigSnapshot,
+                reps,leftReps,rightReps
+            FROM workout_sets
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE workout_sets")
+        db.execSQL("ALTER TABLE workout_sets_new RENAME TO workout_sets")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_workout_sets_workoutExerciseId ON workout_sets(workoutExerciseId)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_workout_sets_loggedAt ON workout_sets(loggedAt)",
+        )
+        db.execSQL(
+            """
+            INSERT OR IGNORE INTO workout_set_bands (
+                setId,bandId,ordinal,nameSnapshot,widthCentimetresSnapshot
+            )
+            SELECT setId,bandId,ordinal,nameSnapshot,widthCentimetresSnapshot
+            FROM workout_set_bands_backup
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE workout_set_bands_backup")
+    }
+}

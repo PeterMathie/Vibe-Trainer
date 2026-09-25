@@ -34,10 +34,10 @@ object SessionProgress {
         }
     }
 
-    fun valid(s: WorkoutSetEntity): Boolean = s.setType == "WORKING" && s.result == "COMPLETED" && s.romValue == null && ((s.reps ?: 0)>0 || (s.holdMillis ?: 0)>0 || (s.leftReps ?: 0)>0 || (s.rightReps ?: 0)>0 || (s.leftHoldMillis ?: 0)>0 || (s.rightHoldMillis ?: 0)>0)
+    fun valid(s: WorkoutSetEntity): Boolean = s.setType == "WORKING" && s.result == "COMPLETED" && s.romValue == null && ((s.reps ?: 0.0)>0.0 || (s.holdMillis ?: 0)>0 || (s.leftReps ?: 0.0)>0.0 || (s.rightReps ?: 0.0)>0.0 || (s.leftHoldMillis ?: 0)>0 || (s.rightHoldMillis ?: 0)>0)
     fun score(s: WorkoutSetEntity, bodyweight: Double?, width: Double, trackingType: String? = null): Double? {
         if(!valid(s)) return null
-        val reps = s.reps ?: listOfNotNull(s.leftReps,s.rightReps).minOrNull() ?: 0
+        val reps = s.reps ?: listOfNotNull(s.leftReps,s.rightReps).minOrNull() ?: 0.0
         val hold = s.holdMillis ?: listOfNotNull(s.leftHoldMillis,s.rightHoldMillis).minOrNull()
         if(hold != null && hold>0) return ProgressScorer.assistedHold(hold,width)
         if(width>0 || trackingType=="ASSISTED_REPS") {
@@ -45,7 +45,7 @@ object SessionProgress {
             return ProgressScorer.assistedReps(reps,width)*loadRatio
         }
         val load = s.weightKg ?: bodyweight?.let { (it+(s.addedWeightKg ?: 0.0)-(s.assistanceKg ?: 0.0)).coerceAtLeast(0.0) }
-        return if(load != null && load>0) ProgressScorer.weightedReps(load,reps) else reps.toDouble()
+        return if(load != null && load>0) ProgressScorer.weightedReps(load,reps) else reps
     }
     /** Assistance is normalised only within a variation. Never compare band force between movements. */
     fun points(exerciseId:String, workouts:List<WorkoutEntity>, exercises:List<WorkoutExerciseEntity>, sets:List<WorkoutSetEntity>, links:List<WorkoutSetBandEntity>, bands:List<BandEntity>, filter:String?=null, variations:List<ExerciseVariationEntity> = emptyList()):List<ProgressPoint> {

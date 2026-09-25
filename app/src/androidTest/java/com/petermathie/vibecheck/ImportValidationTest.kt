@@ -96,8 +96,7 @@ class ImportValidationTest {
     @Test(timeout=120000) fun invalidSetValuesRollBack() = runBlocking {
         rejected(rows("workout_sets", fixture("workout_sets").put("setType", "TYPO")), "setType")
         rejected(rows("workout_sets", fixture("workout_sets").put("reps", -1)), "reps")
-        rejected(rows("workout_sets", fixture("workout_sets").put("reps", 2.5)), "integer")
-        rejected(rows("workout_sets", fixture("workout_sets").put("reps", 2147483648L)), "range")
+        rejected(rows("workout_sets", fixture("workout_sets").put("reps", 1_000_000_001.0)), "range")
         rejected(rows("workout_sets", fixture("workout_sets").put("weightKg", "NaN")), "finite")
         rejected(rows("workout_sets", fixture("workout_sets").put("rpe", 11)), "rpe")
         rejected(rows("workout_sets", fixture("workout_sets").put("result", "FAILED").put("reps", 5)), "zero")
