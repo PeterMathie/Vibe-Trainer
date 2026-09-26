@@ -43,6 +43,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     val sets = dao.sets().live()
     val bands = dao.bands().live()
     val setBands = dao.setBands().live()
+    val entryDrafts = dao.observeEntryDrafts().live()
     val trackers = dao.trackers().live()
     val fields = dao.fields().live()
     val values = dao.values().live()
@@ -151,14 +152,28 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     suspend fun entryDraft(workoutExerciseId: String) = dao.entryDraft(workoutExerciseId)
     suspend fun entryDrafts(workoutExerciseId: String) = dao.entryDrafts(workoutExerciseId)
     fun saveEntryDraft(row: WorkoutEntryDraftEntity) = write {
-        if (
-            !row.detailsOpen &&
-            row.performance.isBlank() &&
-            row.rpe.isBlank() &&
-            row.timeHeld.isBlank() &&
-            row.timeUnderTension.isBlank()
-        ) dao.deleteEntryDraft(row.workoutExerciseId, row.ordinal)
-        else dao.persistEntryDraft(row)
+        db.withTransaction {
+            if (!dao.belongsToDraftWorkout(row.workoutExerciseId)) return@withTransaction
+            dao.deleteSet(row.setId)
+            if (
+                !row.detailsOpen &&
+                row.variationId == null &&
+                row.performance.isBlank() &&
+                row.rpe.isBlank() &&
+                row.leftValue.isBlank() &&
+                row.rightValue.isBlank() &&
+                row.addedWeight.isBlank() &&
+                row.assistance.isBlank() &&
+                row.romValue.isBlank() &&
+                row.timeHeld.isBlank() &&
+                row.timeUnderTension.isBlank() &&
+                row.bandIds == "[]"
+            ) {
+                dao.deleteEntryDraft(row.workoutExerciseId, row.ordinal)
+            } else {
+                dao.entryDraft(row)
+            }
+        }
     }
     fun discardEntryDraft(workoutExerciseId: String, ordinal: Int) = write { dao.deleteEntryDraft(workoutExerciseId, ordinal) }
     fun moveVariation(id: String, delta: Int) = write {
@@ -174,7 +189,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun removeDay(id: String) = write { dao.deleteDay(id) }
     fun removeEntry(id: String) = write { dao.deleteEntry(id) }
     fun removeSet(id: String) = write { dao.deleteSet(id) }
-    fun removeWorkout(id: String) = write { dao.deleteWorkout(id) }
+    fun removeWorkout(id: String, onRemoved: () -> Unit = {}) = write(onRemoved) { dao.deleteWorkout(id) }
     fun clearValue(id: String, day: Long) = write { trackerStore.clearValue(id, day) }
     fun removeMeasurement(id: String) = write { dao.deleteMeasurement(id) }
     fun saveSet(row: WorkoutSetEntity, bandIds: List<String>) = write {

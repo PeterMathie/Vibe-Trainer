@@ -2,7 +2,6 @@ package com.petermathie.vibecheck
 
 import android.content.Context
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -11,9 +10,14 @@ import com.petermathie.vibecheck.data.local.VibeDatabase
 import com.petermathie.vibecheck.ui.EditorViewModel
 import com.petermathie.vibecheck.ui.TrackerScreen
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceIntensity
+import com.petermathie.vibecheck.domain.tracker.decodeHabitChoices
+import com.petermathie.vibecheck.domain.tracker.encodeHabitChoices
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceOption
+import com.petermathie.vibecheck.ui.HabitFieldDialog
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -21,12 +25,13 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class HabitUiTest {
-    @get:Rule
-    val compose = createComposeRule()
     private lateinit var database: VibeDatabase
 
-    @After
-    fun close() = database.close()
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+    private val compose get() = lifecycle.compose
 
     @Test(timeout = 120_000)
     fun configureAndRecordChoiceField() {
@@ -54,7 +59,7 @@ class HabitUiTest {
                 ),
             )
         }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { TrackerScreen(viewModel) } }
 
         compose.onNodeWithText("Date (YYYY-MM-DD)").assertDoesNotExist()
@@ -104,35 +109,31 @@ class HabitUiTest {
         assertEquals(2, field.choiceDarkFrom)
         compose.onNodeWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Choose from a list").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Choice 3").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Light · 1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Medium · 1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Dark · 1").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("What would you like to track?").assertDoesNotExist()
-        compose.onNodeWithText("Heat-map intensity").assertDoesNotExist()
         compose.onNodeWithText("Archive habit").assertDoesNotExist()
         val actions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =
-            compose.onNodeWithContentDescription("Reorder Happy")
+            compose.onNodeWithContentDescription("Happy intensity controls")
                 .fetchSemanticsNode()
                 .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
-        assertEquals(true, actions.first { it.label == "Move earlier" }.action())
+        assertEquals(true, actions.first { it.label == "Move to Medium" }.action())
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Add choice").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Choice 3").performTextInput("Great")
-        val greatActions: List<androidx.compose.ui.semantics.CustomAccessibilityAction> =
-            compose.onNodeWithContentDescription("Reorder Great")
-                .fetchSemanticsNode()
-                .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
-        assertEquals(true, greatActions.first { it.label == "Move later" }.action())
-        compose.onNodeWithContentDescription("Low to medium boundary").assertExists()
-        compose.onNodeWithContentDescription("Medium to strong boundary").assertExists()
+        compose.onNodeWithContentDescription("light choice 2").performTextInput("Great")
         compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) {
             runBlocking {
                 database.editorDao().fields().first().single().let {
-                    it.choiceOptions == "Sad\nHappy\nOkay\nGreat" &&
-                        it.choiceLightThrough == 0 &&
-                        it.choiceDarkFrom == 3
+                    val choices = decodeHabitChoices(it)
+                    choices.first { option -> option.label == "Happy" }.intensity == HabitChoiceIntensity.MEDIUM &&
+                        choices.first { option -> option.label == "Great" }.intensity == HabitChoiceIntensity.LIGHT
                 }
             }
         }
+        val historical = runBlocking { database.editorDao().values().first().single() }
+        assertEquals("DARK", historical.choiceIntensity)
         compose.onNodeWithContentDescription("Edit Wellbeing settings", useUnmergedTree = true).performClick()
         compose.onNodeWithText("Delete habit permanently").assertDoesNotExist()
         compose.onNodeWithText("Archive").performClick()
@@ -152,7 +153,8 @@ class HabitUiTest {
                 listOf(TrackerEntity("disposable", "Disposable", false)),
             )
         }
-        val viewModel = EditorViewModel(database)
+
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { TrackerScreen(viewModel) } }
 
         compose.waitUntil(15_000) {
@@ -171,5 +173,61 @@ class HabitUiTest {
             runBlocking { database.editorDao().trackers().first().isEmpty() }
         }
         compose.onNodeWithText("Disposable").assertDoesNotExist()
+    }
+
+    @Test(timeout = 120_000)
+    fun deletingChoicesAcrossBucketsAllowsEmptyGroupsWithoutStaleKeys() {
+        database = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext<Context>(),
+            VibeDatabase::class.java,
+        ).build()
+        val options = listOf(
+            HabitChoiceOption("light-only", "Light only", HabitChoiceIntensity.LIGHT, 0),
+            HabitChoiceOption("medium-only", "Medium only", HabitChoiceIntensity.MEDIUM, 0),
+            HabitChoiceOption("dark-a", "Dark A", HabitChoiceIntensity.DARK, 0),
+            HabitChoiceOption("dark-b", "Dark B", HabitChoiceIntensity.DARK, 1),
+            HabitChoiceOption("dark-c", "Dark C", HabitChoiceIntensity.DARK, 2),
+        )
+        val field = com.petermathie.vibecheck.data.local.TrackerFieldEntity(
+            id = "choices",
+            trackerId = "tracker",
+            name = "Feeling",
+            valueType = "CHOICE",
+            unit = null,
+            targetComparison = null,
+            targetValue = null,
+            position = 0,
+            choiceOptions = options.joinToString("\n", transform = HabitChoiceOption::label),
+            choiceOptionsJson = encodeHabitChoices(options),
+        )
+        runBlocking {
+            database.trackerDao().insertTrackers(listOf(TrackerEntity("tracker", "Mood", false)))
+            database.trackerDao().insertFields(listOf(field))
+        }
+        val viewModel = lifecycle.own(EditorViewModel(database))
+        compose.setContent {
+            VibeCheckTheme {
+                HabitFieldDialog(viewModel, field, Color(0xFF42A5F5), {})
+            }
+        }
+
+        compose.onNodeWithContentDescription("Remove Light only").performScrollTo().performClick()
+        compose.onNodeWithText("Light · 0").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Remove Medium only").performScrollTo().performClick()
+        compose.onNodeWithText("Medium · 0").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Remove Dark A").performScrollTo().performClick()
+        compose.onNodeWithText("Dark · 2").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Save").performClick()
+
+        compose.waitUntil(15_000) {
+            runBlocking {
+                decodeHabitChoices(database.editorDao().fields().first().single()).map {
+                    Triple(it.id, it.intensity, it.position)
+                }
+            } == listOf(
+                Triple("dark-b", HabitChoiceIntensity.DARK, 0),
+                Triple("dark-c", HabitChoiceIntensity.DARK, 1),
+            )
+        }
     }
 }

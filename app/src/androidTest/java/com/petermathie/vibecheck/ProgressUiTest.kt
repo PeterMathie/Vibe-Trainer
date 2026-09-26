@@ -2,7 +2,6 @@ package com.petermathie.vibecheck
 
 import android.content.Context
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,14 +26,17 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class ProgressUiTest {
-    @get:Rule
-    val compose = createComposeRule()
     private lateinit var database: VibeDatabase
     private var preservedPhotoNames: Set<String>? = null
 
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+    private val compose get() = lifecycle.compose
+
     @After
-    fun close() {
-        database.close()
+    fun cleanUpPhotos() {
         preservedPhotoNames?.let { preserved ->
             File(ApplicationProvider.getApplicationContext<Context>().filesDir, "progress-photos")
                 .listFiles()
@@ -82,7 +84,7 @@ class ProgressUiTest {
             }
             bitmap.recycle()
         }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { ProgressScreen(viewModel) } }
 
         compose.onNodeWithText("Overall training trend").assertExists()
@@ -99,6 +101,20 @@ class ProgressUiTest {
         compose.onNodeWithContentDescription("Piano icon").assertExists()
         compose.onNodeWithContentDescription("Meditation icon").assertExists()
         compose.onNodeWithContentDescription("Protein icon").assertExists()
+        listOf("Piano", "Meditation", "Protein", "Mood", "Journal", "Reading").forEach { habit ->
+            compose
+                .onNodeWithContentDescription("${habit.lowercase()} intensity date navigation")
+                .performScrollTo()
+            val headerBounds = compose.onNodeWithText(habit).fetchSemanticsNode().boundsInRoot
+            val navigationBounds = compose
+                .onNodeWithContentDescription("${habit.lowercase()} intensity date navigation")
+                .fetchSemanticsNode()
+                .boundsInRoot
+            assertTrue(
+                "$habit heat map must start below its header: header=$headerBounds navigation=$navigationBounds",
+                navigationBounds.top >= headerBounds.bottom,
+            )
+        }
         compose.waitUntil(15_000) {
             compose.onAllNodesWithContentDescription("kg", substring = true).fetchSemanticsNodes().isNotEmpty()
         }
@@ -192,7 +208,7 @@ class ProgressUiTest {
                         result = "COMPLETED",
                         variationId = null,
                         weightKg = 10.0,
-                        reps = 5,
+                        reps = 5.0,
                         holdMillis = null,
                         leftReps = null,
                         rightReps = null,
@@ -210,7 +226,7 @@ class ProgressUiTest {
                 )
             }
         }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { ProgressScreen(viewModel) } }
         compose.waitUntil(15_000) {
             runCatching {

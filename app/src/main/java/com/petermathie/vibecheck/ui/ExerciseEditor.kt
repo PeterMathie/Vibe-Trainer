@@ -63,7 +63,7 @@ fun ExerciseEditor(vm: EditorViewModel) {
     val visibleExercises = filteredExercises.filter {
         it.tag == exerciseType || it.tag == "BOTH"
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+    ScreenList {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Exercises",style=MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
@@ -122,13 +122,26 @@ fun ExerciseEditor(vm: EditorViewModel) {
                 val variationOrder = rememberReorderState(customVariations.map { it.id }) { key, from, to ->
                     vm.moveVariation(key as String, to - from)
                 }
-                (seededVariations + variationOrder.ordered(customVariations) { it.id }).forEach { v ->
-                    Row(Modifier.animateContentSize()) {
-                        if (!v.isSeeded && customVariations.size > 1) ReorderHandle(variationOrder, v.id, v.name)
-                        Text(v.name,Modifier.weight(1f))
-                        IconButton(onClick = { configuringVariation = v }) {
-                            Icon(Icons.Outlined.Settings, contentDescription = "Settings for ${v.name}")
+                (seededVariations + variationOrder.ordered(customVariations) { it.id }).forEachIndexed { index, v ->
+                    val variationContent: @Composable () -> Unit = {
+                        Row(Modifier.fillMaxWidth().animateContentSize()) {
+                            if (!v.isSeeded && customVariations.size > 1) ReorderHandle(variationOrder, v.id, v.name)
+                            Text(v.name,Modifier.weight(1f))
+                            IconButton(onClick = { configuringVariation = v }) {
+                                Icon(Icons.Outlined.Settings, contentDescription = "Settings for ${v.name}")
+                            }
                         }
+                    }
+                    if (v.isSeeded) {
+                        variationContent()
+                    } else {
+                        ReorderItem(
+                            variationOrder,
+                            v.id,
+                            index - seededVariations.size,
+                            Modifier.fillMaxWidth(),
+                            variationContent,
+                        )
                     }
                 }
                 videos.filter { it.exerciseId == e.id }.forEach { video ->

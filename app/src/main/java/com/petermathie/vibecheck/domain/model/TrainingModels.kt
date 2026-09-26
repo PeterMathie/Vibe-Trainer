@@ -40,7 +40,7 @@ data class ProgrammeDaySummary(
 
 data class SetDraft(
     val weightKg: Double? = null,
-    val reps: Int? = null,
+    val reps: Double? = null,
     val holdMillis: Long? = null,
     val rpe: Double? = null,
     val notes: String = "",
@@ -52,7 +52,7 @@ data class WorkoutSetLog(
     val id: String,
     val ordinal: Int,
     val weightKg: Double?,
-    val reps: Int?,
+    val reps: Double?,
     val holdMillis: Long?,
     val rpe: Double?,
     val notes: String,

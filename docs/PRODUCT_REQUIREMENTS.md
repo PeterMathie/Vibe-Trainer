@@ -26,7 +26,7 @@ Debug builds automatically load removable representative data: three strength pr
 - Targets for sets, reps, holds, rest and optional RPE.
 - Immediate set autosave and recovery of one active draft after process death.
 - Drafts affect no history-derived view until **Finish workout**.
-- Finish immediately without incomplete-workout warnings.
+- Finish requires at least one completed non-zero working set. A rejected finish preserves the active workout and pending input; once that minimum is met, finish immediately without warnings about other incomplete rows.
 - Notes at workout and exercise level. Set logging stays deliberately compact; individual sets do not have notes.
 - Warm-up/working labels; failed/partial attempts are stored as zero and excluded from calculations.
 - Previous performance, substitutions, supersets and circuits.

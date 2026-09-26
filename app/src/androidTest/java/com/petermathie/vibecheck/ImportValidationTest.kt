@@ -96,8 +96,7 @@ class ImportValidationTest {
     @Test(timeout=120000) fun invalidSetValuesRollBack() = runBlocking {
         rejected(rows("workout_sets", fixture("workout_sets").put("setType", "TYPO")), "setType")
         rejected(rows("workout_sets", fixture("workout_sets").put("reps", -1)), "reps")
-        rejected(rows("workout_sets", fixture("workout_sets").put("reps", 2.5)), "integer")
-        rejected(rows("workout_sets", fixture("workout_sets").put("reps", 2147483648L)), "range")
+        rejected(rows("workout_sets", fixture("workout_sets").put("reps", 1_000_000_001.0)), "range")
         rejected(rows("workout_sets", fixture("workout_sets").put("weightKg", "NaN")), "finite")
         rejected(rows("workout_sets", fixture("workout_sets").put("rpe", 11)), "rpe")
         rejected(rows("workout_sets", fixture("workout_sets").put("result", "FAILED").put("reps", 5)), "zero")
@@ -142,8 +141,10 @@ class ImportValidationTest {
         rejected(rows("tracker_daily_values",fixture("tracker_daily_values").put("epochDay",Long.MAX_VALUE)), "calendar range")
         val choiceField=fixture("tracker_fields").put("id","choice-field").put("valueType","CHOICE").put("unit",JSONObject.NULL)
             .put("targetComparison",JSONObject.NULL).put("targetValue",JSONObject.NULL).put("targetMaxValue",JSONObject.NULL).put("choiceOptions","Good\nBad")
+        choiceField.remove("choiceOptionsJson")
         val choiceValue=fixture("tracker_daily_values").put("fieldId","choice-field").put("numericValue",JSONObject.NULL).put("booleanValue",JSONObject.NULL).put("textValue","Unknown")
-        rejected(rows("tracker_fields",choiceField).put("tracker_daily_values",JSONArray().put(choiceValue)), "configured option")
+            .put("choiceOptionId","choice-field:bad").put("choiceIntensity","INVALID")
+        rejected(rows("tracker_fields",choiceField).put("tracker_daily_values",JSONArray().put(choiceValue)), "choiceIntensity")
     }
 
     @Test(timeout=120000) fun failedZeroAndBooleanInputAreAccepted() = runBlocking {
@@ -153,6 +154,50 @@ class ImportValidationTest {
         DataTransfer.import(db,document(rows("exercises",exercise).put("workout_sets",JSONArray().put(set))))
         val after=JSONObject(DataTransfer.export(db)).getJSONObject("tables").getJSONArray("exercises")
         assertTrue((0 until after.length()).any { after.getJSONObject(it).getString("id")=="valid-custom" })
+    }
+
+    @Test(timeout=120000) fun legacyChoiceBackupGainsStableIndependentSnapshots() = runBlocking {
+        val trackerId = fixture("trackers").getString("id")
+        val field = fixture("tracker_fields")
+            .put("id", "legacy-choice")
+            .put("trackerId", trackerId)
+            .put("name", "Legacy mood")
+            .put("valueType", "CHOICE")
+            .put("unit", JSONObject.NULL)
+            .put("targetComparison", JSONObject.NULL)
+            .put("targetValue", JSONObject.NULL)
+            .put("targetMaxValue", JSONObject.NULL)
+            .put("choiceOptions", "Low\nOkay\nHigh")
+            .put("choiceLightThrough", 0)
+            .put("choiceDarkFrom", 2)
+        field.remove("choiceOptionsJson")
+        val value = fixture("tracker_daily_values")
+            .put("fieldId", "legacy-choice")
+            .put("numericValue", JSONObject.NULL)
+            .put("booleanValue", JSONObject.NULL)
+            .put("textValue", "Okay")
+        value.remove("choiceOptionId")
+        value.remove("choiceIntensity")
+
+        DataTransfer.import(
+            db,
+            document(
+                JSONObject()
+                    .put("tracker_fields", JSONArray().put(field))
+                    .put("tracker_daily_values", JSONArray().put(value)),
+            ),
+        )
+
+        val exportedTables = JSONObject(DataTransfer.export(db)).getJSONObject("tables")
+        val exportedField = (0 until exportedTables.getJSONArray("tracker_fields").length())
+            .map { exportedTables.getJSONArray("tracker_fields").getJSONObject(it) }
+            .single { it.getString("id") == "legacy-choice" }
+        val exportedValue = (0 until exportedTables.getJSONArray("tracker_daily_values").length())
+            .map { exportedTables.getJSONArray("tracker_daily_values").getJSONObject(it) }
+            .single { it.getString("fieldId") == "legacy-choice" }
+        assertTrue(exportedField.getString("choiceOptionsJson").contains("\"id\":\"legacy-choice:choice:1\""))
+        assertEquals("legacy-choice:choice:1", exportedValue.getString("choiceOptionId"))
+        assertEquals("MEDIUM", exportedValue.getString("choiceIntensity"))
     }
 
     @Test(timeout=120000) fun multipleActiveDraftsRollBack() = runBlocking {

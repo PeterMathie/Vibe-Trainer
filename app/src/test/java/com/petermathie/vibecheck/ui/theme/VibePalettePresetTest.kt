@@ -2,6 +2,7 @@ package com.petermathie.vibecheck.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -59,7 +60,56 @@ class VibePalettePresetTest {
             assertContrast(palette.onSecondary, palette.secondary, 4.5)
             assertContrast(palette.onTertiary, palette.tertiary, 4.5)
             assertContrast(palette.onDanger, palette.danger, 4.5)
+            assertTrue(palette.surfaceInset != Color.Unspecified)
+            assertTrue(palette.surfaceFloating != Color.Unspecified)
+            assertTrue(palette.surfaceModal != Color.Unspecified)
+            assertContrast(palette.focusRing, palette.background, 3.0)
+            assertContrast(palette.accent, palette.surfaceInset, 3.0)
         }
+    }
+
+    @Test
+    fun selectedDaySurfaceForegroundsMeetContrastInDarkPresetsAndMonoLight() {
+        val auditedPalettes = VibePalettes.presets.map { it.dark } + VibePalettes.Mono.light
+        auditedPalettes.forEach { palette ->
+            val surfaces = listOf(
+                palette.surfaceInset,
+                palette.surface,
+                palette.surfaceRaised,
+                palette.surfaceSelected,
+                palette.surfaceFloating,
+                palette.surfaceModal,
+            )
+            surfaces.forEach { surface ->
+                assertContrast(palette.textPrimary, surface, 4.5)
+                assertContrast(palette.textSecondary, surface, 4.5)
+            }
+            assertContrast(palette.focusRing, palette.surface, 3.0)
+        }
+    }
+
+    @Test
+    fun monoSurfaceLadderMatchesApprovedReference() {
+        with(VibePalettes.Mono.dark) {
+            assertEquals(Color(0xFF171819), background)
+            assertEquals(Color(0xFF141516), surfaceInset)
+            assertEquals(Color(0xFF1F2123), surface)
+            assertEquals(Color(0xFF282B2E), surfaceRaised)
+            assertEquals(Color(0xFF33373B), surfaceSelected)
+            assertEquals(Color(0xFF303337), surfaceFloating)
+            assertEquals(Color(0xFF34373B), surfaceModal)
+            assertEquals(Color(0xFF9CCFE8), accent)
+        }
+    }
+
+    @Test
+    fun shapeHierarchyUsesSharperDashboardRadii() {
+        assertEquals(4.dp, VibeShapes.tooltip)
+        assertEquals(6.dp, VibeShapes.small)
+        assertEquals(8.dp, VibeShapes.control)
+        assertEquals(8.dp, VibeShapes.card)
+        assertEquals(12.dp, VibeShapes.panel)
+        assertEquals(12.dp, VibeShapes.dialog)
     }
 
     private fun assertContrast(foreground: Color, background: Color, minimum: Double) {

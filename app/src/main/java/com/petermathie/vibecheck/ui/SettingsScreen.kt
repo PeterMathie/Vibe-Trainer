@@ -78,7 +78,7 @@ fun SettingsScreen(
     val preciseTimerSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         preciseTimersEnabled = arePreciseTimersEnabled(context)
     }
-    LazyColumn(Modifier.fillMaxSize(),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+    ScreenList {
         item {
             Text("Settings and data",style=MaterialTheme.typography.headlineSmall)
             VibeActionButton("Colour palette", onStyle, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
@@ -168,7 +168,7 @@ private fun demoRemovalMessage(summary: DemoRemovalSummary): String =
         "${summary.trackers} habits, ${summary.measurements} body entries and ${summary.photos} photos."
 
 private fun timerNotificationsEnabled(context: android.content.Context): Boolean =
-    context.getSystemService(NotificationManager::class.java).areNotificationsEnabled() &&
+    (Build.VERSION.SDK_INT < 24 || context.getSystemService(NotificationManager::class.java).areNotificationsEnabled()) &&
         (Build.VERSION.SDK_INT < 33 ||
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
 
@@ -436,7 +436,7 @@ fun MeasurementsScreen(vm:EditorViewModel) {
             prefs.edit().putString("card-order", reordered.joinToString("|")).putBoolean("card-order-customized", true).apply()
         }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    ScreenList {
         item { Text("Bodyweight and photos", style = MaterialTheme.typography.headlineSmall) }
         item {
             VibeCard {
@@ -444,11 +444,15 @@ fun MeasurementsScreen(vm:EditorViewModel) {
                 EditField("Bodyweight", value) { value = it }
                 EditField("Unit", unit) { unit = it }
                 EditField("Notes", note) { note = it }
-                Button(enabled = value.toDoubleOrNull()?.isFinite() == true, onClick = {
-                    val timestamp = today.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    vm.save(todayMeasurement?.copy(recordedAt = timestamp, value = value.toDouble(), unit = unit, notes = note) ?: BodyMeasurementEntity(newId(), timestamp, "Bodyweight", value.toDouble(), unit, note, false))
-                    value = ""
-                }) { Text(if (todayMeasurement == null) "Save bodyweight" else "Update bodyweight") }
+                Button(
+                    enabled = value.toDoubleOrNull()?.isFinite() == true,
+                    onClick = {
+                        val timestamp = today.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        vm.save(todayMeasurement?.copy(recordedAt = timestamp, value = value.toDouble(), unit = unit, notes = note) ?: BodyMeasurementEntity(newId(), timestamp, "Bodyweight", value.toDouble(), unit, note, false))
+                        value = ""
+                    },
+                    shape = MaterialTheme.shapes.medium,
+                ) { Text(if (todayMeasurement == null) "Save bodyweight" else "Update bodyweight") }
                 todayMeasurement?.let { row ->
                     Row {
                         Text("Bodyweight: ${formatBodyweight(row.value)} ${row.unit}", Modifier.weight(1f))
@@ -464,10 +468,12 @@ fun MeasurementsScreen(vm:EditorViewModel) {
         reorder.ordered(cardOrder) { it }.forEachIndexed { index, cardKey ->
             when (cardKey) {
                 "trend" -> if (bodyweights.isNotEmpty()) item {
-                    VibeCard(modifier = Modifier.reorderItemFeedback(reorder, cardKey, index)) {
+                    ReorderItem(reorder, cardKey, index, Modifier.fillMaxWidth()) {
+                        VibeCard {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Bodyweight trend", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                             ReorderHandle(reorder, cardKey, "Bodyweight trend")
+                            }
                         }
                         MiniChart(values = bodyweights.map { if (it.unit.equals("lb", true)) it.value / 2.2046226218 else it.value }, dates = bodyweights.map { it.recordedAt }, unit = "kg") { idx ->
                             val day = Instant.ofEpochMilli(bodyweights[idx].recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -476,10 +482,12 @@ fun MeasurementsScreen(vm:EditorViewModel) {
                     }
                 }
                 "calendar" -> item {
-                    VibeCard(modifier = Modifier.reorderItemFeedback(reorder, cardKey, index)) {
+                    ReorderItem(reorder, cardKey, index, Modifier.fillMaxWidth()) {
+                        VibeCard {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Calendar", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                             ReorderHandle(reorder, cardKey, "Calendar")
+                            }
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             VibeActionButton("‹", { displayedMonth = month.minusMonths(1).toString() }, modifier = Modifier.semantics { contentDescription = "Previous month" }, importance = ActionImportance.COMPACT)
@@ -510,10 +518,12 @@ fun MeasurementsScreen(vm:EditorViewModel) {
                     }
                 }
                 "photos" -> item {
-                    VibeCard(modifier = Modifier.reorderItemFeedback(reorder, cardKey, index)) {
+                    ReorderItem(reorder, cardKey, index, Modifier.fillMaxWidth()) {
+                        VibeCard {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Photos", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                             ReorderHandle(reorder, cardKey, "Photos")
+                            }
                         }
                         Text(selectedDate.format(DateTimeFormatter.ofPattern("d MMMM yyyy")), style = MaterialTheme.typography.titleLarge)
                         selectedMeasurement?.let { row -> Text("Bodyweight: ${formatBodyweight(row.value)} ${row.unit}") }

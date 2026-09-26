@@ -3,7 +3,6 @@ package com.petermathie.vibecheck.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,7 +23,7 @@ internal fun ArchiveScreen(vm: EditorViewModel) {
     ScreenList {
         item { Text("Archive", style = MaterialTheme.typography.headlineLarge) }
         if (programmes.isEmpty() && archivedExercises.isEmpty() && archivedTrackers.isEmpty()) {
-            item { Text("Nothing archived") }
+            item { com.petermathie.vibecheck.ui.components.VibeStatePanel("Archived plans, exercises, and habits will appear here.") }
         }
         if (programmes.isNotEmpty()) {
             item { Text("Plans", style = MaterialTheme.typography.titleLarge) }
@@ -52,7 +51,7 @@ internal fun ArchiveScreen(vm: EditorViewModel) {
 
 @Composable
 private fun ArchivedItem(name: String, onRestore: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    VibeCard {
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

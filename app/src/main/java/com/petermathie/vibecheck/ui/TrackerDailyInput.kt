@@ -35,6 +35,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.petermathie.vibecheck.data.local.TrackerDailyValueEntity
 import com.petermathie.vibecheck.data.local.TrackerFieldEntity
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceOption
+import com.petermathie.vibecheck.domain.tracker.decodeHabitChoices
+import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 
 @Composable
@@ -73,13 +76,12 @@ internal fun HabitDailyInput(
             when (field.valueType) {
                 "CHOICE" -> ChoiceInput(
                     field.name,
-                    field.choiceOptions.lineSequence().filter(String::isNotBlank).toList(),
+                    decodeHabitChoices(field),
+                    value?.choiceOptionId,
                     text,
                     habitColour,
-                    field.choiceLightThrough,
-                    field.choiceDarkFrom,
-                ) {
-                    text = it
+                ) { option ->
+                    text = option.label
                     epoch?.let { day ->
                         vm.save(
                             TrackerDailyValueEntity(
@@ -87,9 +89,11 @@ internal fun HabitDailyInput(
                                 day,
                                 null,
                                 null,
-                                it,
+                                option.label,
                                 "",
                                 System.currentTimeMillis(),
+                                option.id,
+                                option.intensity.name,
                             ),
                             onLogged,
                         )
@@ -126,18 +130,21 @@ internal fun HabitDailyInput(
 @Composable
 private fun ChoiceInput(
     label: String,
-    options: List<String>,
-    selected: String,
+    options: List<HabitChoiceOption>,
+    selectedId: String?,
+    selectedLabel: String,
     habitColour: Color,
-    lightThrough: Int,
-    darkFrom: Int,
-    onSelect: (String) -> Unit,
+    onSelect: (HabitChoiceOption) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium)
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(selected.ifBlank { "Choose…" })
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(selectedLabel.ifBlank { "Choose…" })
         }
     }
     if (expanded) {
@@ -152,8 +159,8 @@ private fun ChoiceInput(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    itemsIndexed(options) { index, option ->
-                        val level = choiceShadeLevel(options.size, index, lightThrough, darkFrom)
+                    itemsIndexed(options, key = { _, option -> option.id }) { _, option ->
+                        val level = option.intensity.heatmapLevel
                         val alpha = when (level) {
                             1 -> 0.38f
                             2 -> 0.68f
@@ -167,15 +174,15 @@ private fun ChoiceInput(
                                 expanded = false
                             },
                             modifier = Modifier.semantics {
-                                contentDescription = "$option, ${when (level) { 1 -> "light"; 2 -> "medium"; else -> "dark" }} shade"
+                                contentDescription = "${option.label}, ${option.intensity.name.lowercase()} shade"
                             },
                             color = container,
                             contentColor = if (displayed.luminance() > 0.5f) Color.Black else Color.White,
-                            border = if (option == selected) BorderStroke(2.dp, palette.textPrimary) else null,
-                            shape = RoundedCornerShape(14.dp),
+                            border = if (option.id == selectedId || selectedId == null && option.label == selectedLabel) BorderStroke(2.dp, palette.textPrimary) else null,
+                            shape = RoundedCornerShape(VibeShapes.control),
                         ) {
                             Text(
-                                option,
+                                option.label,
                                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 18.dp),
                                 style = MaterialTheme.typography.labelLarge,
                                 textAlign = TextAlign.Center,

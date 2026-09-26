@@ -20,6 +20,8 @@ import com.petermathie.vibecheck.data.local.SeedMetadataEntity
 import com.petermathie.vibecheck.data.local.TrackerDailyValueEntity
 import com.petermathie.vibecheck.data.local.TrackerEntity
 import com.petermathie.vibecheck.data.local.TrackerFieldEntity
+import com.petermathie.vibecheck.domain.tracker.encodeHabitChoices
+import com.petermathie.vibecheck.domain.tracker.legacyHabitChoices
 import com.petermathie.vibecheck.data.local.VibeDatabase
 import com.petermathie.vibecheck.data.local.WorkoutEntity
 import com.petermathie.vibecheck.data.local.WorkoutExerciseEntity
@@ -136,7 +138,7 @@ class DatabaseSeeder @Inject constructor(
                     result = SetResult.COMPLETED.name,
                     variationId = null,
                     weightKg = weight,
-                    reps = reps,
+                    reps = reps?.toDouble(),
                     holdMillis = hold,
                     leftReps = null,
                     rightReps = null,
@@ -322,15 +324,23 @@ class DatabaseSeeder @Inject constructor(
                         ),
                     )
                 }
+                val moodOption = legacyHabitChoices(
+                    "demo-mood-feeling",
+                    MOOD_CHOICES.joinToString("\n"),
+                    2,
+                    6,
+                )[(week + day) % MOOD_CHOICES.size]
                 database.trackerDao().upsertValue(
                     TrackerDailyValueEntity(
                         "demo-mood-feeling",
                         weekStart + day,
                         null,
                         null,
-                        MOOD_CHOICES[(week + day) % MOOD_CHOICES.size],
+                        moodOption.label,
                         "",
                         now,
+                        moodOption.id,
+                        moodOption.intensity.name,
                     ),
                 )
                 if (day in listOf(1, 4)) {
@@ -453,7 +463,7 @@ class DatabaseSeeder @Inject constructor(
             result = SetResult.COMPLETED.name,
             variationId = variation,
             weightKg = weight,
-            reps = reps,
+            reps = reps?.toDouble(),
             holdMillis = hold,
             leftReps = null,
             rightReps = null,
@@ -688,6 +698,9 @@ class DatabaseSeeder @Inject constructor(
                 choiceOptions = MOOD_CHOICES.joinToString("\n"),
                 choiceLightThrough = 2,
                 choiceDarkFrom = 6,
+                choiceOptionsJson = encodeHabitChoices(
+                    legacyHabitChoices("demo-mood-feeling", MOOD_CHOICES.joinToString("\n"), 2, 6),
+                ),
             ),
             TrackerFieldEntity("demo-journal-entry", "demo-journal", "Entry", "TEXT", null, null, null, 0),
             TrackerFieldEntity("demo-reading-completed", "demo-reading", "Read today", "BOOLEAN", null, null, null, 0),

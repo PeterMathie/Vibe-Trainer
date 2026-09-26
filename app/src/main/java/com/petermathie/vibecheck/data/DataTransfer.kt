@@ -1,6 +1,10 @@
 package com.petermathie.vibecheck.data
 
 import com.petermathie.vibecheck.data.local.VibeDatabase
+import com.petermathie.vibecheck.domain.tracker.decodeHabitChoices
+import com.petermathie.vibecheck.domain.tracker.encodeHabitChoices
+import com.petermathie.vibecheck.domain.tracker.legacyHabitChoices
+import com.petermathie.vibecheck.domain.tracker.legacyHabitChoiceSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -53,6 +57,44 @@ object DataTransfer {
                 val seen=mutableSetOf<List<Any>>()
                 repeat(rows.length()) { i ->
                     val row=rows.getJSONObject(i)
+                    if (table == "tracker_fields" && !row.has("choiceOptionsJson")) {
+                        val options = if (row.optString("valueType") == "CHOICE") {
+                            legacyHabitChoices(
+                                row.getString("id"),
+                                row.optString("choiceOptions"),
+                                row.optInt("choiceLightThrough", -1),
+                                row.optInt("choiceDarkFrom", -1),
+                            )
+                        } else {
+                            emptyList()
+                        }
+                        row.put("choiceOptionsJson", encodeHabitChoices(options))
+                    }
+                    if (
+                        table == "tracker_daily_values" &&
+                        (!row.has("choiceOptionId") || row.isNull("choiceOptionId") ||
+                            !row.has("choiceIntensity") || row.isNull("choiceIntensity"))
+                    ) {
+                        if (!row.has("choiceOptionId")) row.put("choiceOptionId", JSONObject.NULL)
+                        if (!row.has("choiceIntensity")) row.put("choiceIntensity", JSONObject.NULL)
+                        val text = row.optString("textValue").takeIf(String::isNotBlank)
+                        if (text != null) {
+                            sql.query(
+                                "SELECT choiceOptionsJson FROM tracker_fields WHERE id=? AND UPPER(valueType)='CHOICE'",
+                                arrayOf(row.getString("fieldId")),
+                            ).use { cursor ->
+                                if (cursor.moveToFirst()) {
+                                    val option = legacyHabitChoiceSnapshot(
+                                        row.getString("fieldId"),
+                                        text,
+                                        decodeHabitChoices(cursor.getString(0)),
+                                    )
+                                    row.put("choiceOptionId", option.id)
+                                    row.put("choiceIntensity", option.intensity.name)
+                                }
+                            }
+                        }
+                    }
                     if (table == "workout_exercises" && !row.has("targetSets")) {
                         val assignment = sql.query(
                             """
@@ -82,6 +124,16 @@ object DataTransfer {
                             sql.query("SELECT progressionRank FROM exercise_variations WHERE id=?", arrayOf(variationId)).use { if (it.moveToFirst()) it.getInt(0) else null }
                         }
                         row.put("variationRankSnapshot", rank ?: JSONObject.NULL)
+                    }
+                    if (table == "workout_sets" && !row.has("legacyReps")) {
+                        fun legacyCount(name: String): Any {
+                            if (row.isNull(name)) return JSONObject.NULL
+                            val value = row.getDouble(name)
+                            return if (value % 1.0 == 0.0 && value <= Int.MAX_VALUE) value.toInt() else JSONObject.NULL
+                        }
+                        row.put("legacyReps", legacyCount("reps"))
+                        row.put("legacyLeftReps", legacyCount("leftReps"))
+                        row.put("legacyRightReps", legacyCount("rightReps"))
                     }
                     if (table == "workout_sets" && !row.has("variationNameSnapshot")) {
                         val variationId = row.optString("variationId").takeIf(String::isNotBlank)

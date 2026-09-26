@@ -19,9 +19,9 @@ data class CompactEntryForm(
         pounds: Boolean,
     ): WorkoutSetEntity? {
         val parsed = parsePerformance(base, performance, hold, weighted, pounds) ?: return null
-        val parsedRpe = rpe.toDoubleOrNull()
-        if (rpe.isNotBlank() && (parsedRpe == null || parsedRpe !in MIN_RPE..MAX_RPE)) return null
-        return parsed.copy(rpe = parsedRpe)
+        val parsedRpe = quantitativeInput(rpe, MAX_RPE)
+        if (rpe.isNotBlank() && !parsedRpe.isValid) return null
+        return parsed.copy(rpe = parsedRpe.value)
     }
 
     companion object {

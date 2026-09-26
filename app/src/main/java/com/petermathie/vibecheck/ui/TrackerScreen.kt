@@ -45,15 +45,21 @@ fun TrackerScreen(vm: EditorViewModel) {
     val trackerOrder = rememberReorderState(activeTrackers.map { it.id }) { key, from, to ->
         vm.moveTracker(key as String, to - from)
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    ScreenList {
         item {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             ) {
                 Text("Habits", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-                Button(onClick = { newHabit = TrackerEntity(newId(), "", false) }) { Text("New habit") }
+                Button(
+                    onClick = { newHabit = TrackerEntity(newId(), "", false) },
+                    shape = MaterialTheme.shapes.medium,
+                ) { Text("New habit") }
             }
+        }
+        if (activeTrackers.isEmpty()) {
+            item { com.petermathie.vibecheck.ui.components.VibeStatePanel("Create a habit to record today's entry.") }
         }
         itemsIndexed(
             trackerOrder.ordered(activeTrackers) { it.id },
@@ -61,9 +67,8 @@ fun TrackerScreen(vm: EditorViewModel) {
         ) { trackerIndex, tracker ->
             val trackerFields = fields.filter { it.trackerId == tracker.id }
             val activeFields = trackerFields.filterNot { it.isArchived }.sortedBy { it.position }
-            VibeCard(
-                modifier = Modifier.reorderItemFeedback(trackerOrder, tracker.id, trackerIndex),
-            ) {
+            ReorderItem(trackerOrder, tracker.id, trackerIndex, Modifier.fillMaxWidth()) {
+                VibeCard {
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Icon(
                         HabitIconCatalog.icon(tracker.iconName),
@@ -97,6 +102,7 @@ fun TrackerScreen(vm: EditorViewModel) {
                         Color(tracker.colourArgb.toInt()),
                     )
                 }
+            }
             }
         }
         if (archivedTrackers.isNotEmpty()) {
@@ -241,17 +247,26 @@ private fun HabitSettingsDialog(
     }
     val unit = activeFields.firstOrNull { it.valueType == "NUMBER" }?.unit
     val suffix = unit?.let { " ($it)" }.orEmpty()
+    val settingsListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val reorderContext = rememberReorderScrollContext(settingsListState)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("${tracker.name} settings") },
         text = {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item {
+            androidx.compose.runtime.CompositionLocalProvider(LocalReorderScrollContext provides reorderContext) {
+                ReorderOverlayHost {
+                    LazyColumn(
+                        state = settingsListState,
+                        modifier = Modifier.reorderScrollViewport(reorderContext),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                    item {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         EditField("Habit name", name) { name = it }
                         OutlinedButton(
                             onClick = { coloursOpen = !coloursOpen },
                             modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
                         ) {
                             Box(Modifier.size(20.dp).background(Color(colour.toInt()), CircleShape))
                             Spacer(Modifier.width(8.dp))
@@ -280,6 +295,7 @@ private fun HabitSettingsDialog(
                         OutlinedButton(
                             onClick = { iconsOpen = true },
                             modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
                         ) {
                             Icon(
                                 HabitIconCatalog.icon(iconName),
@@ -317,27 +333,29 @@ private fun HabitSettingsDialog(
                             )
                         }
                         Text("Measurements", style = MaterialTheme.typography.titleMedium)
-                        fieldOrder.ordered(activeFields) { it.id }.forEach { habitField ->
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                    if (activeFields.size > 1) {
-                                        ReorderHandle(fieldOrder, habitField.id, habitField.name)
+                        fieldOrder.ordered(activeFields) { it.id }.forEachIndexed { fieldIndex, habitField ->
+                            ReorderItem(fieldOrder, habitField.id, fieldIndex, Modifier.fillMaxWidth()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                        if (activeFields.size > 1) {
+                                            ReorderHandle(fieldOrder, habitField.id, habitField.name)
+                                        }
+                                        Text(habitTypeLabel(habitField.valueType), modifier = Modifier.weight(1f))
+                                        if (habitField.valueType != HabitFieldForm.CHOICE) {
+                                            TextButton(onClick = {
+                                                haptics.perform(VibeHapticEvent.EDIT)
+                                                onEditMeasurement(habitField)
+                                            }) { Text("Edit") }
+                                        }
                                     }
-                                    Text(habitTypeLabel(habitField.valueType), modifier = Modifier.weight(1f))
-                                    if (habitField.valueType != HabitFieldForm.CHOICE) {
-                                        TextButton(onClick = {
-                                            haptics.perform(VibeHapticEvent.EDIT)
-                                            onEditMeasurement(habitField)
-                                        }) { Text("Edit") }
-                                    }
-                                }
-                                choiceForms[habitField.id]?.let { form ->
-                                    ChoiceScaleEditor(
-                                        fieldKey = habitField.id,
-                                        form = form,
-                                        habitColour = Color(colour.toInt()),
-                                    ) {
-                                        choiceForms[habitField.id] = it
+                                    choiceForms[habitField.id]?.let { form ->
+                                        ChoiceScaleEditor(
+                                            fieldKey = habitField.id,
+                                            form = form,
+                                            habitColour = Color(colour.toInt()),
+                                        ) {
+                                            choiceForms[habitField.id] = it
+                                        }
                                     }
                                 }
                             }
@@ -360,6 +378,8 @@ private fun HabitSettingsDialog(
                             }
                         }
                     }
+                    }
+                }
                 }
             }
         },

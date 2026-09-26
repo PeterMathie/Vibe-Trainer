@@ -49,6 +49,8 @@ interface EditorDao {
     suspend fun entryDraft(workoutExerciseId: String): WorkoutEntryDraftEntity?
     @Query("SELECT * FROM workout_entry_drafts WHERE workoutExerciseId = :workoutExerciseId ORDER BY ordinal")
     suspend fun entryDrafts(workoutExerciseId: String): List<WorkoutEntryDraftEntity>
+    @Query("SELECT * FROM workout_entry_drafts ORDER BY workoutExerciseId, ordinal")
+    fun observeEntryDrafts(): Flow<List<WorkoutEntryDraftEntity>>
     @Upsert suspend fun entryDraft(row: WorkoutEntryDraftEntity)
     @Query("SELECT EXISTS(SELECT 1 FROM workout_sets WHERE id = :setId)")
     suspend fun hasSet(setId: String): Boolean

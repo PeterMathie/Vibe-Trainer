@@ -3,7 +3,7 @@ package com.petermathie.vibecheck
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -20,7 +20,6 @@ import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
@@ -30,12 +29,13 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class HistoryUiTest {
-    @get:Rule
-    val compose = createComposeRule()
     private lateinit var database: VibeDatabase
 
-    @After
-    fun close() = database.close()
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+    private val compose get() = lifecycle.compose
 
     @Test
     fun navigatesHistoricalDaysAndSwitchesMapModesWithSelectedSemantics() {
@@ -49,7 +49,7 @@ class HistoryUiTest {
             database.trackerDao(),
             context,
         )
-        val viewModel = MainViewModel(repository, database.catalogueDao())
+        val viewModel = lifecycle.own(MainViewModel(repository, database.catalogueDao()))
         val firstDay = LocalDate.now().minusDays(1)
         viewModel.selectHistoryDay(firstDay.toEpochDay())
         runBlocking {
@@ -86,6 +86,27 @@ class HistoryUiTest {
             compose.onAllNodesWithText("Planche + Push").fetchSemanticsNodes().isNotEmpty()
         }
 
+        val frontMap = compose.onNodeWithContentDescription("male front freshness map")
+        val mapBoundsBefore = frontMap.fetchSemanticsNode().boundsInRoot
+        val inspectChest = frontMap.fetchSemanticsNode().config[SemanticsActions.CustomActions]
+            .first { it.label.startsWith("Inspect CHEST") }
+        compose.runOnIdle { inspectChest.action() }
+        compose.onNodeWithText("Chest Freshness details").assertIsDisplayed()
+        val mapBoundsDuring = frontMap.fetchSemanticsNode().boundsInRoot
+        assertEquals(mapBoundsBefore.left, mapBoundsDuring.left, 0.5f)
+        assertEquals(mapBoundsBefore.top, mapBoundsDuring.top, 0.5f)
+        assertEquals(mapBoundsBefore.right, mapBoundsDuring.right, 0.5f)
+        assertEquals(mapBoundsBefore.bottom, mapBoundsDuring.bottom, 0.5f)
+        compose.onNodeWithContentDescription("Close muscle details").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Chest Freshness details").assertDoesNotExist()
+        frontMap.assertIsFocused()
+        val mapBoundsAfter = frontMap.fetchSemanticsNode().boundsInRoot
+        assertEquals(mapBoundsBefore.left, mapBoundsAfter.left, 0.5f)
+        assertEquals(mapBoundsBefore.top, mapBoundsAfter.top, 0.5f)
+        assertEquals(mapBoundsBefore.right, mapBoundsAfter.right, 0.5f)
+        assertEquals(mapBoundsBefore.bottom, mapBoundsAfter.bottom, 0.5f)
+
         compose.onNodeWithContentDescription("Previous day").performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodesWithText(
@@ -102,10 +123,10 @@ class HistoryUiTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         DatabaseSeeder(context, database).seedIfNeeded()
-        val viewModel = MainViewModel(
+        val viewModel = lifecycle.own(MainViewModel(
             TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao(), context),
             database.catalogueDao(),
-        )
+        ))
         val previewDay = LocalDate.now().minusDays(10).toEpochDay()
 
         viewModel.selectHomeRecencyDay(previewDay)

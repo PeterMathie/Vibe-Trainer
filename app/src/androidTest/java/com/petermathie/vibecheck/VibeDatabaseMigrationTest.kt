@@ -14,6 +14,8 @@ import com.petermathie.vibecheck.data.local.MIGRATION_9_10
 import com.petermathie.vibecheck.data.local.MIGRATION_10_11
 import com.petermathie.vibecheck.data.local.MIGRATION_11_12
 import com.petermathie.vibecheck.data.local.MIGRATION_12_13
+import com.petermathie.vibecheck.data.local.MIGRATION_13_14
+import com.petermathie.vibecheck.data.local.MIGRATION_14_15
 import com.petermathie.vibecheck.data.local.VibeDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -30,6 +32,82 @@ class VibeDatabaseMigrationTest {
         InstrumentationRegistry.getInstrumentation(),
         VibeDatabase::class.java,
     )
+
+    @Test
+    fun migrate14To15UsesRealColumnsForFractionalRepetitions() {
+        helper.createDatabase(databaseName, 14).apply {
+            execSQL(
+                """
+                INSERT INTO exercises
+                    (id,canonicalName,tag,trackingType,equipment,instructions,source,isCustom,isArchived,inputConfig,
+                     targetSets,targetRepsMin,targetRepsMax,targetRpe,restSeconds)
+                VALUES ('exercise','Exercise','STRENGTH','WEIGHT_REPS',NULL,NULL,'user',1,0,
+                        'weightUnit=kg;bandResistance=true;timeHeld=false;timeUnderTension=false;reps=true',
+                        3,5,8,7.5,90)
+                """.trimIndent(),
+            )
+            execSQL("INSERT INTO bands (id,name,widthCentimetres,colourArgb) VALUES ('band','Band',1.2,0)")
+            execSQL("INSERT INTO workouts (id,programmeDayId,name,mode,status,startedAt,finishedAt,notes,bodyweightKg,isDemo) VALUES ('workout',NULL,'Workout','STRENGTH','FINISHED',1,2,'',80,0)")
+            execSQL(
+                """
+                INSERT INTO workout_exercises
+                    (id,workoutId,plannedExerciseId,actualExerciseId,position,notes,restSeconds,supersetGroup,
+                     exerciseName,trackingType,targets,inputConfig)
+                VALUES ('entry','workout','exercise','exercise',0,'',90,NULL,'Exercise','WEIGHT_REPS','','')
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_sets
+                    (id,workoutExerciseId,ordinal,setType,result,variationId,weightKg,reps,holdMillis,
+                     leftReps,rightReps,leftHoldMillis,rightHoldMillis,addedWeightKg,assistanceKg,rpe,
+                     romValue,romUnit,notes,loggedAt,updatedAt)
+                VALUES ('set','entry',1,'WORKING','COMPLETED',NULL,20,7,NULL,6,5,NULL,NULL,NULL,NULL,8,
+                        NULL,NULL,'',1,1)
+                """.trimIndent(),
+            )
+            execSQL(
+                """
+                INSERT INTO workout_set_bands
+                    (setId,bandId,ordinal,nameSnapshot,widthCentimetresSnapshot)
+                VALUES ('set','band',0,'Band',1.2)
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(databaseName, 15, true, MIGRATION_14_15).use { migrated ->
+            migrated.query("PRAGMA table_info(workout_sets)").use { cursor ->
+                val types = buildMap {
+                    while (cursor.moveToNext()) {
+                        put(cursor.getString(cursor.getColumnIndexOrThrow("name")), cursor.getString(cursor.getColumnIndexOrThrow("type")))
+                    }
+                }
+                assertEquals("REAL", types["reps"])
+                assertEquals("REAL", types["leftReps"])
+                assertEquals("REAL", types["rightReps"])
+                assertEquals("INTEGER", types["legacyReps"])
+            }
+            migrated.query(
+                "SELECT reps,leftReps,rightReps,legacyReps,legacyLeftReps,legacyRightReps FROM workout_sets WHERE id='set'",
+            ).use {
+                assertTrue(it.moveToFirst())
+                assertEquals(7.0, it.getDouble(0), 0.0)
+                assertEquals(6.0, it.getDouble(1), 0.0)
+                assertEquals(5.0, it.getDouble(2), 0.0)
+                assertEquals(7, it.getInt(3))
+                assertEquals(6, it.getInt(4))
+                assertEquals(5, it.getInt(5))
+            }
+            migrated.query(
+                "SELECT nameSnapshot,widthCentimetresSnapshot FROM workout_set_bands WHERE setId='set'",
+            ).use {
+                assertTrue(it.moveToFirst())
+                assertEquals("Band", it.getString(0))
+                assertEquals(1.2, it.getDouble(1), 0.0)
+            }
+        }
+    }
 
     @Test
     fun migrate12To13PreservesAssignmentsBackfillsEmptyOnesAndSnapshotsWorkouts() {
@@ -432,5 +510,38 @@ fun migrate10To11AddsChoiceBoundariesAndHabitIconsWithoutLosingData() {
             assertEquals(-1, it.getInt(3))
         }
     }
+    }
+
+    @Test
+    fun migrate13To14SnapshotsStableChoiceIdentityAndIntensity() {
+        helper.createDatabase(databaseName, 13).apply {
+                execSQL("INSERT INTO trackers (id,name,isDemo,isArchived,colourArgb,position,heatmapLightBelow,heatmapMediumBelow,iconName) VALUES ('mood','Mood',0,0,1,0,7,15,'habit')")
+                execSQL(
+                    """
+                    INSERT INTO tracker_fields (
+                        id,trackerId,name,valueType,unit,targetComparison,targetValue,position,
+                        choiceOptions,targetMaxValue,isArchived,choiceLightThrough,choiceDarkFrom
+                    ) VALUES ('mood-choice','mood','Mood','CHOICE',NULL,NULL,NULL,0,
+                        'Low
+                    Okay
+                    High',NULL,0,0,2)
+                    """.trimIndent(),
+                )
+                execSQL("INSERT INTO tracker_daily_values (fieldId,epochDay,numericValue,booleanValue,textValue,notes,updatedAt) VALUES ('mood-choice',1,NULL,NULL,'Okay','',1)")
+                close()
+        }
+
+        helper.runMigrationsAndValidate(databaseName, 14, true, MIGRATION_13_14).use { migrated ->
+            migrated.query("SELECT choiceOptionsJson FROM tracker_fields WHERE id='mood-choice'").use {
+                assertTrue(it.moveToFirst())
+                assertTrue(it.getString(0).contains("\"intensity\":\"MEDIUM\""))
+            }
+            migrated.query("SELECT choiceOptionId,choiceIntensity,textValue FROM tracker_daily_values").use {
+                assertTrue(it.moveToFirst())
+                assertEquals("mood-choice:choice:1", it.getString(0))
+                assertEquals("MEDIUM", it.getString(1))
+                assertEquals("Okay", it.getString(2))
+            }
+        }
     }
 }

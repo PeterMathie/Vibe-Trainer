@@ -2,7 +2,6 @@ package com.petermathie.vibecheck
 
 import android.content.Context
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -13,28 +12,29 @@ import com.petermathie.vibecheck.data.local.VibeDatabase
 import com.petermathie.vibecheck.ui.EditorViewModel
 import com.petermathie.vibecheck.ui.SettingsScreen
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
-import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+@android.annotation.SuppressLint("ViewModelConstructorInComposable")
 class SettingsUiTest {
-    @get:Rule
-    val compose = createComposeRule()
-
     private lateinit var database: VibeDatabase
 
-    @After
-    fun close() = database.close()
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+    private val compose get() = lifecycle.compose
 
     @Test
     fun permissionsUseSwitchesAndNoticesRenderMarkdown() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             VibeCheckTheme {
-                SettingsScreen(EditorViewModel(database), onStyle = {}, onRemoveDemo = {})
+                SettingsScreen(viewModel, onStyle = {}, onRemoveDemo = {})
             }
         }
 
@@ -56,10 +56,11 @@ class SettingsUiTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         var invoked = false
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             VibeCheckTheme {
                 SettingsScreen(
-                    EditorViewModel(database),
+                    viewModel,
                     onStyle = {},
                     onRemoveDemo = { report ->
                         invoked = true

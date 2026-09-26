@@ -10,17 +10,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,6 +61,13 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -67,6 +81,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
@@ -75,6 +92,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petermathie.vibecheck.domain.model.ActivityDay
@@ -86,6 +104,10 @@ import com.petermathie.vibecheck.ui.anatomy.AnatomyView
 import com.petermathie.vibecheck.ui.anatomy.FreshnessLegend
 import com.petermathie.vibecheck.ui.anatomy.FreshnessNoDataKey
 import com.petermathie.vibecheck.ui.anatomy.MuscleMap
+import com.petermathie.vibecheck.ui.components.VibeSurface
+import com.petermathie.vibecheck.ui.components.MuscleDetailsSheet
+import com.petermathie.vibecheck.ui.components.TechnicalBackdrop
+import com.petermathie.vibecheck.ui.components.muscleDetailsUiState
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
 import com.petermathie.vibecheck.ui.theme.LocalVibeReducedMotion
 import com.petermathie.vibecheck.ui.theme.VibePalette
@@ -93,9 +115,12 @@ import com.petermathie.vibecheck.ui.theme.VibePalettes
 import com.petermathie.vibecheck.ui.theme.VibeThemeMode
 import com.petermathie.vibecheck.ui.theme.VibeShapes
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
+import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
+import com.petermathie.vibecheck.ui.theme.LocalVibeMotion
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import com.petermathie.vibecheck.ui.theme.habitHeatmapColors
 import com.petermathie.vibecheck.ui.theme.heatmapOutlineColor
+import com.petermathie.vibecheck.ui.theme.freshnessColors
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -148,6 +173,8 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
     }
 
     VibeCheckTheme(palette) {
+        val motion = LocalVibeMotion.current
+        val travelPx = with(LocalDensity.current) { motion.travelDp.dp.roundToPx() }
         if (state.selectedHistoryDay != null) {
             BackHandler { viewModel.selectHistoryDay(null) }
             HistoryDayScreen(
@@ -167,7 +194,20 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
             BackHandler(destination in moreDestinations) { destination = Destination.MORE }
             Column(Modifier.fillMaxSize().padding(padding)) {
                 if(error != null) TextButton(onClick = { editor.error.value = null }) { Text(error.orEmpty(),color=MaterialTheme.colorScheme.error) }
-                when (destination) {
+                AnimatedContent(
+                    targetState = destination,
+                    modifier = Modifier.weight(1f),
+                    transitionSpec = {
+                        if (motion.travelDp == 0) {
+                            fadeIn(tween(motion.pageEnterMillis)) togetherWith fadeOut(tween(motion.pageExitMillis))
+                        } else {
+                            (fadeIn(tween(motion.pageEnterMillis)) + slideInHorizontally(tween(motion.pageEnterMillis)) { travelPx }) togetherWith
+                                (fadeOut(tween(motion.pageExitMillis)) + slideOutHorizontally(tween(motion.pageExitMillis)) { -travelPx })
+                        }
+                    },
+                    label = "destination content",
+                ) { visibleDestination ->
+                when (visibleDestination) {
                     Destination.HOME -> HomeScreen(
                         state,
                         viewModel::selectHistoryDay,
@@ -195,6 +235,7 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
                         },
                         onChoose = { destination = Destination.PROGRAMMES },
                         onDoneEditing = { destination = Destination.HOME },
+                        onDeleted = { destination = Destination.HOME },
                     )
                     Destination.EXERCISES -> ExerciseEditor(editor)
                     Destination.PROGRESS -> ProgressScreen(editor)
@@ -212,6 +253,7 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
                         { themeMode = it; prefs.edit().putString("themeMode", it.id).apply() },
                     ) { result -> viewModel.removeDemoData(result) }
                     Destination.ARCHIVE -> ArchiveScreen(editor)
+                }
                 }
             }
         }
@@ -293,6 +335,7 @@ internal fun MoreScreen(onSelect: (Destination) -> Unit) {
                     onSelect(destination)
                 },
                 modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
             ) {
                 Row(
                     Modifier.fillMaxWidth(),
@@ -347,6 +390,7 @@ internal fun HomeScreen(
 ) {
     val sex = if(LocalContext.current.getSharedPreferences("settings",0).getBoolean("female",false)) AnatomySex.FEMALE else AnatomySex.MALE
     var selectedMuscle by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedMuscleView by rememberSaveable { mutableStateOf<AnatomyView?>(null) }
     val selected = state.recency.firstOrNull { it.muscleId == selectedMuscle }
     val today = LocalDate.now()
     val selectedRecencyDate = LocalDate.ofEpochDay(state.homeRecencyDay ?: today.toEpochDay())
@@ -363,6 +407,14 @@ internal fun HomeScreen(
     var celebratedMuscles by remember { mutableStateOf(emptySet<String>()) }
     var confettiEventId by remember { mutableStateOf<String?>(null) }
     var completionAnnouncement by remember { mutableStateOf<String?>(null) }
+    val frontMapFocusRequester = remember { FocusRequester() }
+    val backMapFocusRequester = remember { FocusRequester() }
+    val sheetTitleFocusRequester = remember { FocusRequester() }
+    val selectMuscle: (String, AnatomyView) -> Unit = { muscleId, view ->
+        selectedMuscle = muscleId
+        selectedMuscleView = view
+        haptics.perform(VibeHapticEvent.SELECTION)
+    }
     LaunchedEffect(completionEvent?.id) {
         val event = completionEvent ?: return@LaunchedEffect
         onCompletionConsumed(event.id)
@@ -385,7 +437,11 @@ internal fun HomeScreen(
         delay(plan.highlightHoldMillis)
         celebratedMuscles = emptySet()
         confettiEventId = null
+        delay(2_500)
         completionAnnouncement = null
+    }
+    LaunchedEffect(selectedMuscle) {
+        if (selectedMuscle != null) sheetTitleFocusRequester.requestFocus()
     }
     LaunchedEffect(selectedRecencyDate, sliderDragging) {
         if (!sliderDragging) sliderPosition = selectedRecencyDate.dayOfMonth.toFloat()
@@ -405,34 +461,39 @@ internal fun HomeScreen(
     }
     val mapNextStates = if (reducedMotion || !sliderDragging) null else upperStates
     val mapInterpolationFraction = if (mapNextStates == null) 0f else sliderPosition - lowerDay
-    Column(
-        Modifier.fillMaxSize().padding(VibeSpacing.medium),
-        verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
-    ) {
-        state.activeWorkout?.let { workout ->
-            VibeCard {
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val freshnessPanelHeight = (LocalConfiguration.current.screenHeightDp.dp * 0.62f)
+        .coerceIn(420.dp, 560.dp)
+    val horizontalGutter = ((screenWidth - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
+    val scrollState = rememberScrollState()
+    LaunchedEffect(state.activeWorkout?.id) {
+        if (state.activeWorkout == null) scrollState.scrollTo(0)
+    }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val compactHomeChrome = LocalDensity.current.fontScale <= 1.05f &&
+            maxWidth >= 360.dp &&
+            maxHeight >= 700.dp
+        val verticalPadding = if (compactHomeChrome) VibeSpacing.xSmall else VibeSpacing.medium
+        val sectionSpacing = if (compactHomeChrome) VibeSpacing.xSmall else VibeSpacing.medium
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .semantics { contentDescription = "Home content" }
+                .padding(horizontal = horizontalGutter, vertical = verticalPadding),
+            verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+        ) {
+        VibeCard(modifier = Modifier.height(freshnessPanelHeight), fillHeight = true) {
+            TechnicalBackdrop(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("ACTIVE WORKOUT", color = palette.accent, style = MaterialTheme.typography.labelLarge)
-                        Text(workout.name, style = MaterialTheme.typography.titleLarge)
-                        Text("${workout.exercises.sumOf { it.sets.size }} sets autosaved", color = palette.textSecondary)
-                    }
-                    Button(onClick = {
-                        haptics.perform(VibeHapticEvent.PLAY)
-                        onContinue()
-                    }) { Text("Continue") }
+                    Text(
+                        "FRESHNESS",
+                        modifier = Modifier.weight(1f),
+                        color = palette.accent,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
                 }
-            }
-        }
-        VibeCard(Modifier.weight(1f), fillHeight = true) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "FRESHNESS",
-                    modifier = Modifier.weight(1f),
-                    color = palette.accent,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
             }
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 Column(
@@ -447,8 +508,8 @@ internal fun HomeScreen(
                             sex = sex,
                             view = AnatomyView.FRONT,
                             states = mapStates,
-                            onMuscleTap = { selectedMuscle = it },
-                            modifier = Modifier.weight(1f).fillMaxSize(),
+                            onMuscleTap = { selectMuscle(it, AnatomyView.FRONT) },
+                            modifier = Modifier.weight(1f).fillMaxSize().focusRequester(frontMapFocusRequester).focusable(),
                             selectedMuscleId = selectedMuscle,
                             nextStates = mapNextStates,
                             interpolationFraction = mapInterpolationFraction,
@@ -460,8 +521,8 @@ internal fun HomeScreen(
                             sex = sex,
                             view = AnatomyView.BACK,
                             states = mapStates,
-                            onMuscleTap = { selectedMuscle = it },
-                            modifier = Modifier.weight(1f).fillMaxSize(),
+                            onMuscleTap = { selectMuscle(it, AnatomyView.BACK) },
+                            modifier = Modifier.weight(1f).fillMaxSize().focusRequester(backMapFocusRequester).focusable(),
                             selectedMuscleId = selectedMuscle,
                             nextStates = mapNextStates,
                             interpolationFraction = mapInterpolationFraction,
@@ -478,16 +539,14 @@ internal fun HomeScreen(
                 }
                 completionAnnouncement?.let { announcement ->
                     Text(
-                        announcement,
+                        text = announcement,
+                        color = Color.Transparent,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .background(palette.surfaceRaised, RoundedCornerShape(50))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
                             .semantics {
                                 liveRegion = LiveRegionMode.Polite
                                 contentDescription = announcement
                             },
-                        style = MaterialTheme.typography.labelLarge,
                     )
                 }
             }
@@ -525,33 +584,77 @@ internal fun HomeScreen(
                 ),
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Freshness date" },
             )
-            selectedMuscle?.let { muscle ->
-                Text(muscle.replace('_', ' '), fontWeight = FontWeight.Bold)
-                Text(
-                    selected?.let { "${it.band.name.replace('_', ' ').lowercase()} · ${"%.1f".format(it.setEquivalents)} set-equivalents in 7 days" }
-                        ?: "Never recorded",
-                    color = palette.textSecondary,
-                )
-                selected?.contributingExerciseNames?.takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(), color = palette.textFaint) }
-                selected?.lastTrainedAt?.let { Text("Last trained: ${java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy HH:mm"))}") }
+        }
+        state.activeWorkout?.let { workout ->
+            VibeCard {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("ACTIVE WORKOUT", color = palette.accent, style = MaterialTheme.typography.labelLarge)
+                        Text(workout.name, style = MaterialTheme.typography.titleLarge)
+                        Text("${workout.exercises.sumOf { it.sets.size }} sets autosaved", color = palette.textSecondary)
+                    }
+                    Button(onClick = {
+                        haptics.perform(VibeHapticEvent.PLAY)
+                        onContinue()
+                    }, shape = MaterialTheme.shapes.medium) { Text("Continue") }
+                }
             }
         }
-        VibeCard {
-            Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelLarge)
-            MonthlyActivityHeatmap(
-                days = state.activityDays,
-                selectedDate = selectedRecencyDate,
-                today = today,
-                onDayClick = { date ->
-                    onRecencyDayChange(date.toEpochDay())
-                    onDayClick(date.toEpochDay())
-                },
-                onMonthChange = { month ->
-                    onRecencyDayChange(freshnessDateInMonth(selectedRecencyDate, month, today).toEpochDay())
-                },
-            )
-            Text("0 none · 1 low · 2 medium · 3+ strong", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
+            val trackerContent: @Composable ColumnScope.() -> Unit = {
+                if (!compactHomeChrome) {
+                    Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelLarge)
+                }
+                MonthlyActivityHeatmap(
+                    days = state.activityDays,
+                    selectedDate = selectedRecencyDate,
+                    today = today,
+                    compact = compactHomeChrome,
+                    onDayClick = { date ->
+                        onRecencyDayChange(date.toEpochDay())
+                        onDayClick(date.toEpochDay())
+                    },
+                    onMonthChange = { month ->
+                        onRecencyDayChange(freshnessDateInMonth(selectedRecencyDate, month, today).toEpochDay())
+                    },
+                )
+                Text(
+                    "0 none · 1 low · 2 medium · 3+ strong",
+                    color = palette.textFaint,
+                    style = if (compactHomeChrome) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium,
+                )
+            }
+            if (compactHomeChrome) {
+                VibeSurface(
+                    level = VibeSurfaceLevel.CARD,
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Work tracker card" },
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(horizontal = VibeSpacing.small, vertical = VibeSpacing.xSmall),
+                        verticalArrangement = Arrangement.spacedBy(VibeSpacing.xSmall),
+                        content = trackerContent,
+                    )
+                }
+            } else {
+                VibeCard(content = trackerContent)
+            }
         }
+    }
+    selectedMuscle?.let { muscleId ->
+        MuscleDetailsSheet(
+            state = muscleDetailsUiState(
+                muscleId = muscleId,
+                recency = selected,
+                mode = state.mode,
+                colour = palette.freshnessColors().forBand(selected?.band ?: com.petermathie.vibecheck.domain.model.MuscleRecencyBand.NEVER),
+            ),
+            titleFocusRequester = sheetTitleFocusRequester,
+            onDismiss = {
+                val requester = if (selectedMuscleView == AnatomyView.BACK) backMapFocusRequester else frontMapFocusRequester
+                selectedMuscle = null
+                selectedMuscleView = null
+                requester.requestFocus()
+            },
+        )
     }
 }
 
@@ -560,6 +663,7 @@ private fun MonthlyActivityHeatmap(
     days: List<ActivityDay>,
     selectedDate: LocalDate,
     today: LocalDate,
+    compact: Boolean = false,
     onDayClick: (LocalDate) -> Unit,
     onMonthChange: (YearMonth) -> Unit,
 ) {
@@ -575,12 +679,16 @@ private fun MonthlyActivityHeatmap(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         VibeActionButton("Earlier", { onMonthChange(range.month.minusMonths(1)) }, importance = ActionImportance.COMPACT)
-        Text(
-            range.month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-            Modifier.weight(1f),
-            style = MaterialTheme.typography.labelSmall,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        )
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (compact) {
+                Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelSmall)
+            }
+            Text(
+                range.month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+        }
         VibeActionButton(
             "Later",
             { onMonthChange(range.month.plusMonths(1)) },
@@ -588,10 +696,14 @@ private fun MonthlyActivityHeatmap(
             enabled = range.month < YearMonth.from(today),
         )
     }
+    val outerCount = if (compact) 7 else weekCount
+    val innerCount = if (compact) weekCount else 7
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        repeat(weekCount) { week ->
+        repeat(outerCount) { outer ->
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                repeat(7) { weekday ->
+                repeat(innerCount) { inner ->
+                    val week = if (compact) inner else outer
+                    val weekday = if (compact) outer else inner
                     val dayOfMonth = week * 7 + weekday - leadingDays + 1
                     if (dayOfMonth in 1..range.dayCount) {
                         val date = range.month.atDay(dayOfMonth)
@@ -607,11 +719,11 @@ private fun MonthlyActivityHeatmap(
                                     contentDescription = "$date: $count activities" +
                                         if (date == selectedDate) ", selected freshness date" else ""
                                 }
-                                .background(color, RoundedCornerShape(5.dp))
+                                .background(color, RoundedCornerShape(VibeShapes.tooltip))
                                 .border(
                                     width = if (date == selectedDate) 2.dp else 1.dp,
                                     color = outlineColor,
-                                    shape = RoundedCornerShape(5.dp),
+                                    shape = RoundedCornerShape(VibeShapes.tooltip),
                                 )
                                 .clickable { onDayClick(date) },
                         )
@@ -641,7 +753,7 @@ fun ActivityHeatmap(
     val cellSpacing = if (compact) 4.dp else 6.dp
     val cellHeight = if (compact) 14.dp else 22.dp
     Row(
-        Modifier.fillMaxWidth().semantics { contentDescription = "Activity date navigation" },
+        Modifier.fillMaxWidth().semantics { contentDescription = "$itemLabel date navigation" },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -665,11 +777,11 @@ fun ActivityHeatmap(
                     Box(
                         Modifier.fillMaxWidth().height(cellHeight)
                             .semantics { contentDescription = "${LocalDate.ofEpochDay(epochDay)}: $count $itemLabel" }
-                            .background(color, RoundedCornerShape(5.dp))
+                            .background(color, RoundedCornerShape(VibeShapes.tooltip))
                             .border(
                                 width = 1.dp,
                                 color = if (isToday) palette.heatmapOutlineColor(color) else Color.Transparent,
-                                shape = RoundedCornerShape(5.dp),
+                                shape = RoundedCornerShape(VibeShapes.tooltip),
                             )
                             .clickable { onDayClick(epochDay) },
                     )
@@ -707,11 +819,8 @@ internal fun VibeCard(
    fillHeight: Boolean = false,
    content: @Composable ColumnScope.() -> Unit,
 ) {
-    val palette = LocalVibePalette.current
-    Card(
-        colors = CardDefaults.cardColors(containerColor = palette.surface),
-        border = BorderStroke(1.dp, palette.border),
-        shape = RoundedCornerShape(VibeShapes.card),
+    VibeSurface(
+        level = VibeSurfaceLevel.CARD,
         modifier = modifier.fillMaxWidth(),
     ) {
         val contentModifier = if (fillHeight) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
@@ -724,10 +833,22 @@ internal fun ScreenList(
     modifier: Modifier = Modifier,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = VibeSpacing.medium, vertical = VibeSpacing.medium),
-        verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
-        content = content,
-    )
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
+        val sidePadding = ((maxWidth - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        val reorderContext = rememberReorderScrollContext(listState)
+        ReorderOverlayHost(Modifier.fillMaxSize()) {
+            androidx.compose.runtime.CompositionLocalProvider(LocalReorderScrollContext provides reorderContext) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .reorderScrollViewport(reorderContext),
+                    contentPadding = PaddingValues(horizontal = sidePadding, vertical = VibeSpacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
+                    content = content,
+                )
+            }
+        }
+    }
 }

@@ -35,7 +35,13 @@ import com.petermathie.vibecheck.domain.progress.PersonalRecords
 import com.petermathie.vibecheck.domain.progress.PersonalRecordVisibility
 import com.petermathie.vibecheck.domain.model.ActivityDay
 import com.petermathie.vibecheck.domain.tracker.HabitFieldForm
+import com.petermathie.vibecheck.domain.tracker.HabitChoiceIntensity
+import com.petermathie.vibecheck.domain.tracker.decodeHabitChoices
 import com.petermathie.vibecheck.ui.theme.VibeSpacing
+import com.petermathie.vibecheck.ui.components.VibeGraph
+import com.petermathie.vibecheck.ui.components.VibeGraphStyle
+import com.petermathie.vibecheck.ui.components.VibeSurface
+import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
 import java.time.Instant
 import java.time.ZoneId
 import java.io.File
@@ -158,28 +164,30 @@ fun ProgressScreen(vm:EditorViewModel) {
                             }
                             cardKey.startsWith("habit:") -> {
                                 activeTrackers.find { "habit:${it.id}" == cardKey }?.let { tracker ->
-                                    VibeCard(modifier = Modifier.reorderItemFeedback(progressOrder, cardKey, cardIndex)) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable(onClickLabel = if (expanded) "Collapse ${tracker.name}" else "Expand ${tracker.name}") { toggleExpanded() },
-                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                                        ) {
-                                            Icon(HabitIconCatalog.icon(tracker.iconName), contentDescription = "${tracker.name} icon", tint = Color(tracker.colourArgb.toInt()))
-                                            Spacer(Modifier.width(8.dp))
-                                            Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                                            ReorderHandle(progressOrder, cardKey, tracker.name)
-                                        }
-                                        if (expanded) {
-                                            val trackerFields = fields.filter { it.trackerId == tracker.id && !it.isArchived }
-                                            val fieldIds = trackerFields.map { it.id }.toSet()
-                                            val habitDays = values.filter { it.fieldId in fieldIds }
-                                                .groupBy { it.epochDay }
-                                                .map { (epochDay, dailyValues) -> ActivityDay(epochDay, habitHeatmapLevel(tracker, trackerFields, dailyValues)) }
-                                            val numericField = trackerFields.firstOrNull { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") }
-                                            val unit = numericField?.unit
-                                            Text(habitIntensityDescription(tracker, trackerFields, unit), style = MaterialTheme.typography.bodySmall)
-                                            ActivityHeatmap(days = habitDays, onDayClick = {}, activityColor = Color(tracker.colourArgb.toInt()), itemLabel = "${tracker.name.lowercase()} intensity")
+                                    ReorderItem(progressOrder, cardKey, cardIndex, Modifier.fillMaxWidth()) {
+                                        VibeCard {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable(onClickLabel = if (expanded) "Collapse ${tracker.name}" else "Expand ${tracker.name}") { toggleExpanded() },
+                                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                            ) {
+                                                Icon(HabitIconCatalog.icon(tracker.iconName), contentDescription = "${tracker.name} icon", tint = Color(tracker.colourArgb.toInt()))
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                                                ReorderHandle(progressOrder, cardKey, tracker.name)
+                                            }
+                                            if (expanded) {
+                                                val trackerFields = fields.filter { it.trackerId == tracker.id && !it.isArchived }
+                                                val fieldIds = trackerFields.map { it.id }.toSet()
+                                                val habitDays = values.filter { it.fieldId in fieldIds }
+                                                    .groupBy { it.epochDay }
+                                                    .map { (epochDay, dailyValues) -> ActivityDay(epochDay, habitHeatmapLevel(tracker, trackerFields, dailyValues)) }
+                                                val numericField = trackerFields.firstOrNull { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") }
+                                                val unit = numericField?.unit
+                                                Text(habitIntensityDescription(tracker, trackerFields, unit), style = MaterialTheme.typography.bodySmall)
+                                                ActivityHeatmap(days = habitDays, onDayClick = {}, activityColor = Color(tracker.colourArgb.toInt()), itemLabel = "${tracker.name.lowercase()} intensity")
+                                            }
                                         }
                                     }
                                 }
@@ -282,12 +290,12 @@ private fun ProgressCardShell(
     onToggleExpanded: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    VibeCard(
-        modifier = Modifier.reorderItemFeedback(order, cardKey, cardIndex),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            ProgressCardHeader(order, cardKey, title, expanded, onToggleExpanded)
-            if (expanded) content()
+    ReorderItem(order, cardKey, cardIndex, Modifier.fillMaxWidth()) {
+        VibeCard {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                ProgressCardHeader(order, cardKey, title, expanded, onToggleExpanded)
+                if (expanded) content()
+            }
         }
     }
 }
@@ -313,6 +321,7 @@ private fun ExerciseProgressSelectors(
             onClick = onChooseExercise,
             enabled = eligible,
             modifier = Modifier.weight(1f),
+            shape = MaterialTheme.shapes.medium,
         ) {
             Text(
                 exercises.find { it.id == exerciseId }?.canonicalName ?: "Choose exercise",
@@ -326,6 +335,7 @@ private fun ExerciseProgressSelectors(
                 onClick = { onVariationMenu(true) },
                 enabled = exerciseVariations.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
             ) {
                 Text(
                     exerciseVariations.find { it.id == filter }?.name ?: "Variations",
@@ -403,13 +413,12 @@ internal fun habitHeatmapLevel(
         when (field.valueType) {
             "BOOLEAN" -> value.booleanValue?.let { if (it) 3 else 1 }
             HabitFieldForm.CHOICE -> {
-                val options = field.choiceOptions.lineSequence().filter(String::isNotBlank).toList()
-                val index = options.indexOf(value.textValue)
-                if (index < 0 || options.isEmpty()) {
-                    null
-                } else {
-                    choiceShadeLevel(options.size, index, field.choiceLightThrough, field.choiceDarkFrom)
-                }
+                value.choiceIntensity?.let {
+                    runCatching { HabitChoiceIntensity.valueOf(it).heatmapLevel }.getOrNull()
+                } ?: decodeHabitChoices(field)
+                    .firstOrNull { it.id == value.choiceOptionId || value.choiceOptionId == null && it.label == value.textValue }
+                    ?.intensity
+                    ?.heatmapLevel
             }
             "TEXT", "DATETIME" -> value.textValue?.takeIf(String::isNotBlank)?.let { 2 }
             else -> null
@@ -426,7 +435,7 @@ private fun habitIntensityDescription(
         "Low < ${formatAxis(tracker.heatmapLightBelow)}${unitSuffix(unit)} · " +
             "medium < ${formatAxis(tracker.heatmapMediumBelow)}${unitSuffix(unit)} · strong at or above"
     fields.any { it.valueType == HabitFieldForm.CHOICE } ->
-        "Choices run from low to strong in the order configured."
+        "Each choice uses its configured Light, Medium, or Dark intensity."
     fields.any { it.valueType == "BOOLEAN" } -> "No is low · Yes is strong"
     else -> "A written entry uses the medium shade."
 }
@@ -435,11 +444,7 @@ private fun unitSuffix(unit: String?): String = unit?.let { " $it" }.orEmpty()
 
 @Composable
 private fun PersonalRecordValue(label:String,value:String,detail:String?=null) {
-    Surface(
-        color=MaterialTheme.colorScheme.surfaceVariant,
-        shape=MaterialTheme.shapes.medium,
-        modifier=Modifier.fillMaxWidth(),
-    ) {
+    VibeSurface(VibeSurfaceLevel.INSET, Modifier.fillMaxWidth()) {
         Row(
             Modifier.padding(horizontal=14.dp,vertical=10.dp),
             horizontalArrangement=Arrangement.spacedBy(12.dp),
@@ -506,88 +511,25 @@ private fun ProgressExercisePicker(
 
 @Composable
 fun MiniChart(values:List<Double>,smooth:List<Double?> = emptyList(),dates:List<Long> = emptyList(),unit:String = "",onSelect:(Int)->Unit) {
-    val color=MaterialTheme.colorScheme.primary; val secondary=MaterialTheme.colorScheme.secondary;val axis=MaterialTheme.colorScheme.outline
-    val finite=values.filter { it.isFinite() }
-    if(finite.isEmpty())return
-    val min=finite.minOrNull() ?: 0.0;val max=finite.maxOrNull() ?: 1.0
-    fun select(x:Float,width:Float) {
-        if(values.isNotEmpty())onSelect(((x/width)*(values.size-1)).toInt().coerceIn(values.indices))
-    }
-    Column(Modifier.semantics { contentDescription="Progress chart from ${formatChartDate(dates.firstOrNull())} to ${formatChartDate(dates.lastOrNull())}, $min to $max $unit" }) {
-        Text("${formatAxis(max)} $unit",style=MaterialTheme.typography.labelSmall)
-        Canvas(Modifier.fillMaxWidth().height(130.dp)
-            .pointerInput(values){detectTapGestures { select(it.x,size.width.toFloat()) }}
-            .pointerInput(values){awaitPointerEventScope { while(true) { val event=awaitPointerEvent();if(event.type==PointerEventType.Move || event.type==PointerEventType.Enter)event.changes.firstOrNull()?.position?.let { select(it.x,size.width.toFloat()) } } }}) {
-        val finite=values.filter { it.isFinite() }
-        if(finite.isEmpty())return@Canvas
-        val min=finite.minOrNull() ?: 0.0;val max=finite.maxOrNull() ?: 1.0;val span=(max-min).coerceAtLeast(1.0)
-        fun point(i:Int,v:Double)=Offset(if(values.size==1)size.width/2 else 16+(size.width-24)*i/(values.size-1),size.height-12-((v-min)/span*(size.height-20)).toFloat())
-        drawLine(axis,Offset(12f,4f),Offset(12f,size.height-10f),2f)
-        drawLine(axis,Offset(12f,size.height-10f),Offset(size.width,size.height-10f),2f)
-        values.forEachIndexed { i,v -> if(v.isFinite()) { if(i>0 && values[i-1].isFinite())drawLine(color,point(i-1,values[i-1]),point(i,v),3f);drawCircle(color,5f,point(i,v)) } }
-        smooth.forEachIndexed { i,v -> if(i>0 && v!=null && smooth[i-1]!=null)drawLine(secondary,point(i-1,smooth[i-1]!!),point(i,v),5f) }
-        }
-        Row(Modifier.fillMaxWidth()) {
-            Text(formatChartDate(dates.firstOrNull()),style=MaterialTheme.typography.labelSmall,modifier=Modifier.weight(1f))
-            Text(formatChartDate(dates.lastOrNull()),style=MaterialTheme.typography.labelSmall,textAlign=TextAlign.End,modifier=Modifier.weight(1f))
-        }
-        Text("${formatAxis(min)} $unit",style=MaterialTheme.typography.labelSmall)
-    }
+    VibeGraph(
+        values = values,
+        secondaryValues = smooth,
+        dates = dates,
+        unit = unit,
+        onSelect = onSelect,
+    )
 }
 
 @Composable
 private fun RpeBarChart(values: List<Double>, dates: List<Long>, onSelect: (Int) -> Unit) {
-    if (values.none(Double::isFinite)) return
-    val color = MaterialTheme.colorScheme.primary
-    val axis = MaterialTheme.colorScheme.outline
-    fun select(x: Float, width: Float) {
-        if (values.isNotEmpty()) onSelect(((x / width) * values.size).toInt().coerceIn(values.indices))
-    }
-    Column(
-        Modifier.semantics {
-            contentDescription =
-                "Progress chart from ${formatChartDate(dates.firstOrNull())} to ${formatChartDate(dates.lastOrNull())}, 0 to 10 RPE"
-        },
-    ) {
-        Text("10 RPE", style = MaterialTheme.typography.labelSmall)
-        Canvas(
-            Modifier.fillMaxWidth().height(130.dp)
-                .pointerInput(values) { detectTapGestures { select(it.x, size.width.toFloat()) } }
-                .pointerInput(values) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            if (event.type == PointerEventType.Move || event.type == PointerEventType.Enter) {
-                                event.changes.firstOrNull()?.position?.let { select(it.x, size.width.toFloat()) }
-                            }
-                        }
-                    }
-                },
-        ) {
-            val left = 12f
-            val bottom = size.height - 10f
-            val top = 4f
-            val slot = (size.width - left) / values.size
-            val barWidth = (slot * 0.72f).coerceAtLeast(1f)
-            drawLine(axis, Offset(left, top), Offset(left, bottom), 2f)
-            drawLine(axis, Offset(left, bottom), Offset(size.width, bottom), 2f)
-            values.forEachIndexed { index, value ->
-                if (value.isFinite()) {
-                    val height = ((value.coerceIn(0.0, 10.0) / 10.0) * (bottom - top)).toFloat()
-                    drawRect(
-                        color = color,
-                        topLeft = Offset(left + index * slot + (slot - barWidth) / 2f, bottom - height),
-                        size = androidx.compose.ui.geometry.Size(barWidth, height),
-                    )
-                }
-            }
-        }
-        Row(Modifier.fillMaxWidth()) {
-            Text(formatChartDate(dates.firstOrNull()), style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            Text(formatChartDate(dates.lastOrNull()), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
-        }
-        Text("0 RPE", style = MaterialTheme.typography.labelSmall)
-    }
+    VibeGraph(
+        values = values,
+        dates = dates,
+        unit = "RPE",
+        style = VibeGraphStyle.BARS,
+        fixedRange = 0.0..10.0,
+        onSelect = onSelect,
+    )
 }
 
 private fun formatChartDate(value:Long?):String=value?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate().toString() }.orEmpty()

@@ -4,15 +4,20 @@ import kotlin.math.max
 
 /** Pure scoring functions. Raw performance is always retained beside the derived score. */
 object ProgressScorer {
-    fun weightedReps(weightKg: Double, reps: Int): Double =
-        weightKg * (1.0 + max(0, reps) / 30.0)
+    fun weightedReps(weightKg: Double, reps: Int): Double = weightedReps(weightKg, reps.toDouble())
+
+    fun weightedReps(weightKg: Double, reps: Double): Double =
+        weightKg * (1.0 + max(0.0, reps) / 30.0)
 
     /**
      * Band width is a relative assistance proxy because the user's bands share material,
      * thickness and length. Scores are comparable only within one exercise variation.
      */
     fun assistedReps(reps: Int, totalBandWidthCm: Double): Double =
-        assistanceDifficulty(totalBandWidthCm) * (1.0 + max(0, reps) / 30.0)
+        assistedReps(reps.toDouble(), totalBandWidthCm)
+
+    fun assistedReps(reps: Double, totalBandWidthCm: Double): Double =
+        assistanceDifficulty(totalBandWidthCm) * (1.0 + max(0.0, reps) / 30.0)
 
     fun assistedHold(holdMillis: Long, totalBandWidthCm: Double): Double =
         assistanceDifficulty(totalBandWidthCm) * max(0L, holdMillis) / 1_000.0

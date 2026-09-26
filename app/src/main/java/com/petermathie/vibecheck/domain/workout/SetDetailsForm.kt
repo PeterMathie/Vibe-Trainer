@@ -37,16 +37,14 @@ data class SetDetailsForm(
         pounds: Boolean,
         updatedAt: Long = System.currentTimeMillis(),
     ): SetDetailsResult {
-        if (rpe.isNotBlank() && (rpe.toDoubleOrNull() == null || rpe.toDouble() !in MIN_RPE..MAX_RPE)) {
+        val parsedRpe = quantitativeInput(rpe, MAX_RPE)
+        if (rpe.isNotBlank() && !parsedRpe.isValid) {
             return SetDetailsResult(error = "RPE must be 0–10")
         }
         val sideValues = listOf(leftValue, rightValue)
         val numericValues = sideValues + listOf(addedWeight, assistance, romValue)
-        if (numericValues.any { it.isNotBlank() && (it.toDoubleOrNull()?.let { value -> !value.isFinite() || value < 0 } != false) }) {
+        if (numericValues.any { it.isNotBlank() && !quantitativeInput(it).isValid }) {
             return SetDetailsResult(error = "Use finite, non-negative numbers")
-        }
-        if (!hold && sideValues.any { it.isNotBlank() && it.toIntOrNull() == null }) {
-            return SetDetailsResult(error = "Repetitions must be whole numbers")
         }
 
         val parsed = parsePerformance(
@@ -60,7 +58,12 @@ data class SetDetailsForm(
             weighted,
             pounds,
         )
-        if (parsed == null && romValue.toDoubleOrNull() == null && leftValue.toDoubleOrNull() == null && rightValue.toDoubleOrNull() == null) {
+        if (
+            parsed == null &&
+            quantitativeInput(romValue).value == null &&
+            quantitativeInput(leftValue).value == null &&
+            quantitativeInput(rightValue).value == null
+        ) {
             return SetDetailsResult(error = "Enter a valid result")
         }
 
@@ -68,23 +71,23 @@ data class SetDetailsForm(
             setType = if (warmUp) "WARM_UP" else "WORKING",
             result = if (failed) "FAILED" else "COMPLETED",
             variationId = variationId,
-            rpe = rpe.toDoubleOrNull(),
-            leftReps = if (!hold) leftValue.toIntOrNull() else null,
-            rightReps = if (!hold) rightValue.toIntOrNull() else null,
-            leftHoldMillis = if (hold) leftValue.toDoubleOrNull()?.times(1000)?.toLong() else null,
-            rightHoldMillis = if (hold) rightValue.toDoubleOrNull()?.times(1000)?.toLong() else null,
-            addedWeightKg = addedWeight.toDoubleOrNull(),
-            assistanceKg = assistance.toDoubleOrNull(),
-            romValue = romValue.toDoubleOrNull(),
+            rpe = parsedRpe.value,
+            leftReps = if (!hold) quantitativeInput(leftValue).value else null,
+            rightReps = if (!hold) quantitativeInput(rightValue).value else null,
+            leftHoldMillis = if (hold) quantitativeInput(leftValue).value?.times(1000)?.toLong() else null,
+            rightHoldMillis = if (hold) quantitativeInput(rightValue).value?.times(1000)?.toLong() else null,
+            addedWeightKg = quantitativeInput(addedWeight).value,
+            assistanceKg = quantitativeInput(assistance).value,
+            romValue = quantitativeInput(romValue).value,
             romUnit = romUnit,
             updatedAt = updatedAt,
         )
         if (failed) {
             saved = saved.copy(
-                reps = 0,
+                reps = 0.0,
                 holdMillis = 0,
-                leftReps = 0,
-                rightReps = 0,
+                leftReps = 0.0,
+                rightReps = 0.0,
                 leftHoldMillis = 0,
                 rightHoldMillis = 0,
                 romValue = null,
@@ -145,27 +148,22 @@ fun parsePerformance(
     weighted: Boolean,
     pounds: Boolean,
 ): WorkoutSetEntity? {
-    val parts = text.lowercase()
-        .replace("kg", "")
-        .replace("lb", "")
-        .replace('×', 'x')
+    val parts = text.replace('×', 'x')
         .split('x')
         .map { it.trim() }
     if (hold) {
-        val seconds = parts.firstOrNull()?.removeSuffix("s")?.toDoubleOrNull() ?: return null
-        if (!seconds.isFinite() || seconds < 0) return null
+        val seconds = parts.singleOrNull()?.let(::quantitativeInput)?.value ?: return null
         return base.copy(
             holdMillis = (seconds * 1000).toLong(),
             result = if (seconds == 0.0) "FAILED" else "COMPLETED",
         )
     }
-    val reps = parts.lastOrNull()?.toIntOrNull() ?: return null
-    val weight = if (weighted) parts.takeIf { it.size == 2 }?.first()?.toDoubleOrNull() ?: return null else null
-    if (reps < 0 || weight?.let { !it.isFinite() || it < 0 } == true) return null
+    val reps = parts.lastOrNull()?.let(::quantitativeInput)?.value ?: return null
+    val weight = if (weighted) parts.takeIf { it.size == 2 }?.first()?.let(::quantitativeInput)?.value ?: return null else null
     return base.copy(
         reps = reps,
         weightKg = weight?.let { if (pounds) it / POUNDS_PER_KILOGRAM else it },
-        result = if (reps == 0) "FAILED" else "COMPLETED",
+        result = if (reps == 0.0) "FAILED" else "COMPLETED",
     )
 }
 

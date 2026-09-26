@@ -16,6 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -25,6 +26,11 @@ class ExerciseReferenceVideoTest {
     private lateinit var database: VibeDatabase
     private lateinit var source: File
 
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+
     @Before
     fun setUp() = runBlocking {
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
@@ -33,14 +39,13 @@ class ExerciseReferenceVideoTest {
     }
 
     @After
-    fun tearDown() {
-        database.close()
-        source.delete()
+    fun cleanUpSource() {
+        if (::source.isInitialized) source.delete()
     }
 
     @Test
     fun attachingAndDeletingReferenceVideoOwnsTheCopiedFile() = runBlocking {
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
 
         viewModel.attachReferenceVideo(context, "core:handstand", Uri.fromFile(source), "Best handstand")
         val attached = viewModel.referenceVideos.first { it.size == 1 }.single()

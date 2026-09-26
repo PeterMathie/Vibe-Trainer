@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
@@ -21,6 +22,9 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.*
+import com.petermathie.vibecheck.ui.components.VibeDivider
+import com.petermathie.vibecheck.ui.components.VibeSurface
+import com.petermathie.vibecheck.ui.theme.VibeSurfaceLevel
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -73,7 +77,7 @@ fun ProgrammeEditor(
         else onStart(dayId, false)
     }
     BackHandler(selected != null) { selected = null }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    ScreenList {
         item {
             Row(
                 Modifier.fillMaxWidth(),
@@ -94,67 +98,82 @@ fun ProgrammeEditor(
             }
         }
         if (selected == null) {
-            items(programmeOrder.ordered(programmeRows) { it.id }, key = { it.id }) { p ->
+            if (programmeRows.isEmpty()) {
+                item { com.petermathie.vibecheck.ui.components.VibeStatePanel("Create a programme to organize strength or stretch sessions.") }
+            }
+            itemsIndexed(programmeOrder.ordered(programmeRows) { it.id }, key = { _, row -> row.id }) { index, p ->
                 val expanded = expandedProgrammeId == p.id
                 val previewDays = days.filter { it.programmeId == p.id }.sortedBy { it.position }
-                Card(Modifier.fillMaxWidth().animateItem().animateContentSize()) {
-                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        if (programmeRows.size > 1) ReorderHandle(programmeOrder, p.id, p.name)
-                        Text(
-                            p.name,
-                            Modifier
-                                .weight(1f)
-                                .clickable {
-                                    expandedProgrammeId = if (expanded) null else p.id
-                                }
-                                .semantics {
-                                    stateDescription = if (expanded) "Exercises shown" else "Exercises hidden"
-                                },
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-                        IconButton(onClick = {
-                            haptics.perform(VibeHapticEvent.EDIT)
-                            selected = p.id
-                        }) {
-                            Icon(Icons.Outlined.Edit, contentDescription = "Edit programme ${p.name}")
+                ReorderItem(
+                    state = programmeOrder,
+                    itemKey = p.id,
+                    index = index,
+                    modifier = Modifier.fillMaxWidth().animateContentSize(),
+                ) {
+                    VibeSurface(VibeSurfaceLevel.CARD, Modifier.fillMaxWidth()) {
+                    Column(Modifier.fillMaxWidth()) {
+                        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            if (programmeRows.size > 1) ReorderHandle(programmeOrder, p.id, p.name)
+                            Text(
+                                p.name,
+                                Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        expandedProgrammeId = if (expanded) null else p.id
+                                    }
+                                    .semantics {
+                                        stateDescription = if (expanded) "Exercises shown" else "Exercises hidden"
+                                    },
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                            IconButton(onClick = {
+                                haptics.perform(VibeHapticEvent.EDIT)
+                                selected = p.id
+                            }) {
+                                Icon(Icons.Outlined.Edit, contentDescription = "Edit programme ${p.name}")
+                            }
+                            IconButton(
+                                onClick = { previewDays.firstOrNull()?.let { requestStart(it.id) } },
+                                enabled = previewDays.isNotEmpty(),
+                            ) {
+                                Icon(Icons.Outlined.PlayArrow, contentDescription = "Start ${p.name}")
+                            }
                         }
-                        IconButton(
-                            onClick = { previewDays.firstOrNull()?.let { requestStart(it.id) } },
-                            enabled = previewDays.isNotEmpty(),
+                        AnimatedVisibility(
+                            visible = expanded,
+                            enter = if (reducedMotion) EnterTransition.None else expandVertically() + fadeIn(),
+                            exit = if (reducedMotion) ExitTransition.None else shrinkVertically() + fadeOut(),
                         ) {
-                            Icon(Icons.Outlined.PlayArrow, contentDescription = "Start ${p.name}")
-                        }
-                    }
-                    AnimatedVisibility(
-                        visible = expanded,
-                        enter = if (reducedMotion) EnterTransition.None else expandVertically() + fadeIn(),
-                        exit = if (reducedMotion) ExitTransition.None else shrinkVertically() + fadeOut(),
-                    ) {
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(start = 60.dp, end = 16.dp, bottom = 16.dp)
-                                .semantics { contentDescription = "Read-only exercises for ${p.name}" },
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            previewDays.forEach { day ->
-                                if (previewDays.size > 1) {
-                                    Text(day.name, style = MaterialTheme.typography.titleMedium)
-                                }
-                                val previewEntries = entries
-                                    .filter { it.programmeDayId == day.id }
-                                    .sortedBy { it.position }
-                                if (previewEntries.isEmpty()) {
-                                    Text("No exercises yet", style = MaterialTheme.typography.bodyMedium)
-                                } else {
-                                    previewEntries.forEach { entry ->
-                                        val exerciseName = exercises
-                                            .find { it.id == entry.exerciseId }
-                                            ?.canonicalName
-                                            .orEmpty()
-                                        Column {
-                                            Text(exerciseName, style = MaterialTheme.typography.bodyLarge)
-                                            Text(prescriptionSummary(entry), style = MaterialTheme.typography.bodySmall)
+                            Column(Modifier.fillMaxWidth()) {
+                                VibeDivider()
+                                Column(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 60.dp, top = 12.dp, end = 16.dp, bottom = 16.dp)
+                                        .semantics { contentDescription = "Read-only exercises for ${p.name}" },
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    previewDays.forEach { day ->
+                                        if (previewDays.size > 1) {
+                                            Text(day.name, style = MaterialTheme.typography.titleMedium)
+                                        }
+                                        val previewEntries = entries
+                                            .filter { it.programmeDayId == day.id }
+                                            .sortedBy { it.position }
+                                        if (previewEntries.isEmpty()) {
+                                            Text("No exercises yet", style = MaterialTheme.typography.bodyMedium)
+                                        } else {
+                                            previewEntries.forEach { entry ->
+                                                val exerciseName = exercises
+                                                    .find { it.id == entry.exerciseId }
+                                                    ?.canonicalName
+                                                    .orEmpty()
+                                                Column {
+                                                    Text(exerciseName, style = MaterialTheme.typography.bodyLarge)
+                                                    Text(prescriptionSummary(entry), style = MaterialTheme.typography.bodySmall)
+                                                }
+                                            }
+                                        }
                                         }
                                     }
                                 }
@@ -169,6 +188,7 @@ fun ProgrammeEditor(
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics { contentDescription = "Add programme" },
+                    shape = MaterialTheme.shapes.medium,
                 ) {
                     Icon(Icons.Outlined.Add, contentDescription = null)
                 }
@@ -189,12 +209,13 @@ fun ProgrammeEditor(
                     },
                 )
             }
-            items(dayOrder.ordered(dayRows) { it.id }, key = { it.id }) { d ->
+            itemsIndexed(dayOrder.ordered(dayRows) { it.id }, key = { _, row -> row.id }) { dayIndex, d ->
                 val dayEntries = entries.filter { it.programmeDayId == d.id }.sortedBy { it.position }
                 val entryOrder = rememberReorderState(dayEntries.map { it.id }) { key, from, to ->
                     vm.moveEntry(key as String, to - from)
                 }
-                Card(Modifier.fillMaxWidth().animateItem()) {
+                ReorderItem(dayOrder, d.id, dayIndex, Modifier.fillMaxWidth()) {
+                    VibeSurface(VibeSurfaceLevel.CARD, Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (dayRows.size > 1) {
                             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -235,12 +256,13 @@ fun ProgrammeEditor(
                         entryOrder.ordered(dayEntries) { it.id }.forEachIndexed { index, entry ->
                             key(entry.id) {
                                 val exerciseName = exercises.find { it.id == entry.exerciseId }?.canonicalName.orEmpty()
-                                Column(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .reorderItemFeedback(entryOrder, entry.id, index)
-                                        .animateContentSize(),
+                                ReorderItem(
+                                    entryOrder,
+                                    entry.id,
+                                    index,
+                                    Modifier.fillMaxWidth().animateContentSize(),
                                 ) {
+                                    Column(Modifier.fillMaxWidth()) {
                                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                                         if (dayEntries.size > 1) {
                                             ReorderHandle(entryOrder, entry.id, exerciseName)
@@ -263,12 +285,15 @@ fun ProgrammeEditor(
                                 }
                             }
                         }
+                        }
                         Button(
                             onClick = { addExerciseDayId = d.id },
                             modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
                         ) { Icon(Icons.Outlined.Add, contentDescription = "Add exercise") }
                     }
                 }
+            }
             }
                 item {
                     Row(

@@ -1,11 +1,15 @@
 package com.petermathie.vibecheck.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.focusable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.KeyboardArrowLeft
@@ -15,24 +19,28 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.petermathie.vibecheck.domain.model.AnatomySex
 import com.petermathie.vibecheck.ui.anatomy.AnatomyView
 import com.petermathie.vibecheck.ui.anatomy.MuscleMap
+import com.petermathie.vibecheck.ui.components.MuscleDetailsSheet
+import com.petermathie.vibecheck.ui.components.muscleDetailsUiState
 import com.petermathie.vibecheck.ui.theme.LocalVibePalette
-import java.time.Instant
+import com.petermathie.vibecheck.ui.theme.freshnessColors
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -48,8 +56,29 @@ internal fun HistoryDayScreen(
     }
     val day = state.selectedHistoryDay ?: return
     val date = LocalDate.ofEpochDay(day)
+    val palette = LocalVibePalette.current
+    val haptics = rememberVibeHaptics()
     var selectedMuscle by rememberSaveable(day) { mutableStateOf<String?>(null) }
-    ScreenList(modifier = Modifier.statusBarsPadding()) {
+    var selectedMuscleView by rememberSaveable(day) { mutableStateOf<AnatomyView?>(null) }
+    val selectedRecency = state.recency.firstOrNull { it.muscleId == selectedMuscle }
+    val frontMapFocusRequester = remember { FocusRequester() }
+    val backMapFocusRequester = remember { FocusRequester() }
+    val sheetTitleFocusRequester = remember { FocusRequester() }
+    val selectMuscle: (String, AnatomyView) -> Unit = { muscleId, view ->
+        selectedMuscle = muscleId
+        selectedMuscleView = view
+        haptics.perform(VibeHapticEvent.SELECTION)
+    }
+    LaunchedEffect(selectedMuscle) {
+        if (selectedMuscle != null) sheetTitleFocusRequester.requestFocus()
+    }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(palette.background)
+            .semantics { contentDescription = "Historical day page" },
+    ) {
+        ScreenList(modifier = Modifier.statusBarsPadding()) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Back", tint = LocalVibePalette.current.textPrimary) }
@@ -81,38 +110,53 @@ internal fun HistoryDayScreen(
                         sex,
                         AnatomyView.FRONT,
                         state.recency.associate { it.muscleId to it.band },
-                        { selectedMuscle = it },
-                        Modifier.weight(1f),
+                        { selectMuscle(it, AnatomyView.FRONT) },
+                        Modifier.weight(1f).focusRequester(frontMapFocusRequester).focusable(),
                         selectedMuscle,
                     )
                     MuscleMap(
                         sex,
                         AnatomyView.BACK,
                         state.recency.associate { it.muscleId to it.band },
-                        { selectedMuscle = it },
-                        Modifier.weight(1f),
+                        { selectMuscle(it, AnatomyView.BACK) },
+                        Modifier.weight(1f).focusRequester(backMapFocusRequester).focusable(),
                         selectedMuscle,
                     )
-                }
-                selectedMuscle?.let { muscle ->
-                    Text(muscle.replace('_', ' '), fontWeight = FontWeight.Bold)
-                    val selected = state.recency.find { it.muscleId == muscle }
-                    Text(selected?.let { "${it.band.name.replace('_', ' ').lowercase()} · ${"%.1f".format(it.setEquivalents)} set-equivalents in the preceding 7 days" } ?: "Never recorded")
-                    selected?.lastTrainedAt?.let {
-                        Text("Last trained: ${Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM yyyy HH:mm"))}")
-                    }
-                    selected?.contributingExerciseNames?.let { Text(it.joinToString()) }
                 }
             }
         }
         val activities = state.historyDay?.activities.orEmpty()
-        if (activities.isEmpty()) item { VibeCard { Text("No logged activity") } }
+        if (activities.isEmpty()) item { VibeCard { Text("No logged activity", color = palette.textPrimary) } }
         items(activities) { activity ->
             VibeCard {
-                Text(activity.title, style = MaterialTheme.typography.titleMedium)
-                Text(activity.detail, color = LocalVibePalette.current.textSecondary)
-                if (activity.notes.isNotBlank()) Text(activity.notes, color = LocalVibePalette.current.textFaint)
+                Text(activity.title, style = MaterialTheme.typography.titleMedium, color = palette.textPrimary)
+                Text(activity.detail, color = palette.textSecondary)
+                if (activity.notes.isNotBlank()) Text(activity.notes, color = palette.textSecondary)
             }
+        }
+        }
+        selectedMuscle?.let { muscleId ->
+            MuscleDetailsSheet(
+                state = muscleDetailsUiState(
+                    muscleId = muscleId,
+                    recency = selectedRecency,
+                    mode = state.mode,
+                    colour = palette.freshnessColors().forBand(
+                        selectedRecency?.band ?: com.petermathie.vibecheck.domain.model.MuscleRecencyBand.NEVER,
+                    ),
+                ),
+                titleFocusRequester = sheetTitleFocusRequester,
+                onDismiss = {
+                    val requester = if (selectedMuscleView == AnatomyView.BACK) {
+                        backMapFocusRequester
+                    } else {
+                        frontMapFocusRequester
+                    }
+                    selectedMuscle = null
+                    selectedMuscleView = null
+                    requester.requestFocus()
+                },
+            )
         }
     }
 }

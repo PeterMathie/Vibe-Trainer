@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -95,7 +96,22 @@ class WorkoutEntryDraftTest {
     }
 
     @Test(timeout = 120_000)
-    fun cancellationFinishAndDeletionClearPendingInputWithoutDerivedHistory() = runBlocking {
+    fun fractionalRepsAndLoadPersistWithoutPrecisionLoss() = runBlocking {
+        val (_, exerciseId) = startWorkout()
+        database.editorDao().set(
+            pendingSet(pendingDraft(exerciseId), reps = 2).copy(
+                reps = 2.75,
+                weightKg = 72.125,
+            ),
+        )
+
+        val restored = database.editorDao().sets().first().single { it.workoutExerciseId == exerciseId }
+        assertEquals(2.75, restored.reps ?: 0.0, 0.0)
+        assertEquals(72.125, restored.weightKg ?: 0.0, 0.0)
+    }
+
+    @Test(timeout = 120_000)
+    fun cancellationRejectedFinishValidFinishAndDeletionRespectPendingInputLifecycle() = runBlocking {
         val (workoutId, exerciseId) = startWorkout()
         val dao = database.editorDao()
         dao.entryDraft(pendingDraft(exerciseId).copy(performance = "10"))
@@ -109,10 +125,14 @@ class WorkoutEntryDraftTest {
         assertEquals(finishDraft, dao.entryDraft(exerciseId))
         assertEquals(recencyBeforeFinish, repository.observeMuscleRecency(TrainingMode.STRENGTH).first())
 
-        dao.set(pendingSet(finishDraft, reps = 11))
-        repository.finishWorkout(workoutId)
-        assertNull(dao.entryDraft(exerciseId))
         dao.persistEntryDraft(pendingDraft(exerciseId).copy(performance = "stale write"))
+        val persistedDraft = requireNotNull(dao.entryDraft(exerciseId))
+        assertEquals("stale write", persistedDraft.performance)
+
+        dao.saveSetWithSnapshots(pendingSet(persistedDraft, reps = 5), emptyList(), consumeDraft = false)
+        assertNotNull(repository.finishWorkout(workoutId))
+        assertNull(dao.entryDraft(exerciseId))
+        dao.persistEntryDraft(pendingDraft(exerciseId).copy(performance = "stale write after finish"))
         assertNull(dao.entryDraft(exerciseId))
 
         val (nextWorkoutId, nextExerciseId) = startWorkout()
@@ -156,7 +176,7 @@ class WorkoutEntryDraftTest {
         result = "COMPLETED",
         variationId = null,
         weightKg = null,
-        reps = reps,
+        reps = reps.toDouble(),
         holdMillis = null,
         leftReps = null,
         rightReps = null,
@@ -182,6 +202,13 @@ class WorkoutEntryDraftTest {
                 com.petermathie.vibecheck.data.local.MIGRATION_5_6,
                 com.petermathie.vibecheck.data.local.MIGRATION_6_7,
                 com.petermathie.vibecheck.data.local.MIGRATION_7_8,
+                com.petermathie.vibecheck.data.local.MIGRATION_8_9,
+                com.petermathie.vibecheck.data.local.MIGRATION_9_10,
+                com.petermathie.vibecheck.data.local.MIGRATION_10_11,
+                com.petermathie.vibecheck.data.local.MIGRATION_11_12,
+                com.petermathie.vibecheck.data.local.MIGRATION_12_13,
+                com.petermathie.vibecheck.data.local.MIGRATION_13_14,
+                com.petermathie.vibecheck.data.local.MIGRATION_14_15,
             )
             .build()
         repository = TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao(), context)

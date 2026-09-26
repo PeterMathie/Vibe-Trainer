@@ -33,25 +33,30 @@ fun CompletionConfetti(
     val palette = LocalVibePalette.current
     val progress = remember(eventId) { Animatable(0f) }
     val colors = remember(palette) {
-        listOf(palette.accent, palette.secondary, palette.tertiary, palette.danger)
+        if (palette.id == "mono") {
+            listOf(palette.textPrimary, palette.textSecondary, palette.accent, palette.recencyUnder24)
+        } else {
+            listOf(palette.accent, palette.secondary, palette.tertiary, palette.danger)
+        }
     }
     LaunchedEffect(eventId) {
         progress.snapTo(0f)
         progress.animateTo(1f, tween(durationMillis = 650, easing = LinearEasing))
     }
     Canvas(modifier.clearAndSetSemantics { }) {
-        repeat(18) { index ->
+        repeat(if (palette.id == "mono") 14 else 18) { index ->
             val angle = (index * 137.5) * PI / 180.0
             val distance = size.minDimension * (0.08f + 0.42f * progress.value)
             val centre = Offset(
                 x = size.width / 2f + cos(angle).toFloat() * distance,
                 y = size.height * 0.42f + sin(angle).toFloat() * distance + size.height * 0.18f * progress.value,
             )
-            drawCircle(
-                color = colors[index % colors.size].copy(alpha = 1f - progress.value),
-                radius = 3f + (index % 3),
-                center = centre,
-            )
+            val colour = colors[index % colors.size].copy(alpha = 1f - progress.value)
+            if (palette.id == "mono" && index % 2 == 0) {
+                drawLine(colour, centre, centre + Offset(0f, 7f), strokeWidth = 2f)
+            } else {
+                drawCircle(colour, radius = 3f + (index % 3), center = centre)
+            }
         }
     }
 }

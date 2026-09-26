@@ -1,7 +1,6 @@
 package com.petermathie.vibecheck
 
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -22,9 +21,15 @@ import org.junit.runner.RunWith
 import kotlinx.coroutines.runBlocking
 
 @RunWith(AndroidJUnit4::class)
+@android.annotation.SuppressLint("ViewModelConstructorInComposable")
 class ExerciseEditorUiTest {
+    private lateinit var database: VibeDatabase
+
     @get:Rule
-    val compose = createComposeRule()
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+    private val compose get() = lifecycle.compose
 
     @Test
     fun canonicalSettingsCanBeEditedForSeededExercise() {
@@ -68,9 +73,10 @@ class ExerciseEditorUiTest {
     @Test
     fun catalogueGroupsMusclesAndExposesVariationSettingsAndVideos() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
+        database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         runBlocking { DatabaseSeeder(context, database).seedIfNeeded() }
-        compose.setContent { VibeCheckTheme { ExerciseEditor(EditorViewModel(database)) } }
+        val viewModel = lifecycle.own(EditorViewModel(database))
+        compose.setContent { VibeCheckTheme { ExerciseEditor(viewModel) } }
 
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Handstand"))
         assertTrue(compose.onAllNodesWithText("Primary", substring = true).fetchSemanticsNodes().isNotEmpty())
@@ -83,7 +89,5 @@ class ExerciseEditorUiTest {
         compose.onNodeWithContentDescription("Settings for Freestanding handstand").performClick()
         compose.onNodeWithContentDescription("Time Under Tension (seconds)").assertIsOff()
         compose.onNodeWithContentDescription("Total Time (seconds)").assertIsOn()
-
-        database.close()
     }
 }

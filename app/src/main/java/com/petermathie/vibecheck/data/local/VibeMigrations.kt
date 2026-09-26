@@ -2,6 +2,9 @@ package com.petermathie.vibecheck.data.local
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.petermathie.vibecheck.domain.tracker.encodeHabitChoices
+import com.petermathie.vibecheck.domain.tracker.legacyHabitChoices
+import com.petermathie.vibecheck.domain.tracker.legacyHabitChoiceSnapshot
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -409,5 +412,145 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
                     )
                 """.trimIndent(),
             )
+        }
+}
+
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE tracker_fields ADD COLUMN choiceOptionsJson TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE tracker_daily_values ADD COLUMN choiceOptionId TEXT")
+        db.execSQL("ALTER TABLE tracker_daily_values ADD COLUMN choiceIntensity TEXT")
+        val choicesByField = mutableMapOf<String, List<com.petermathie.vibecheck.domain.tracker.HabitChoiceOption>>()
+        db.query(
+            """
+            SELECT id,choiceOptions,choiceLightThrough,choiceDarkFrom
+            FROM tracker_fields
+            WHERE UPPER(valueType) = 'CHOICE'
+            """.trimIndent(),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val fieldId = cursor.getString(0)
+                val options = legacyHabitChoices(fieldId, cursor.getString(1), cursor.getInt(2), cursor.getInt(3))
+                choicesByField[fieldId] = options
+                db.execSQL(
+                    "UPDATE tracker_fields SET choiceOptionsJson=? WHERE id=?",
+                    arrayOf(encodeHabitChoices(options), fieldId),
+                )
+            }
+        }
+        db.query(
+            """
+            SELECT fieldId,epochDay,textValue
+            FROM tracker_daily_values
+            WHERE textValue IS NOT NULL
+              AND fieldId IN (SELECT id FROM tracker_fields WHERE valueType = 'CHOICE')
+            """.trimIndent(),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val fieldId = cursor.getString(0)
+                val option = legacyHabitChoiceSnapshot(
+                    fieldId,
+                    cursor.getString(2),
+                    choicesByField[fieldId].orEmpty(),
+                )
+                db.execSQL(
+                    """
+                    UPDATE tracker_daily_values
+                    SET choiceOptionId=?,choiceIntensity=?
+                    WHERE fieldId=? AND epochDay=?
+                    """.trimIndent(),
+                    arrayOf(option.id, option.intensity.name, fieldId, cursor.getLong(1)),
+                )
+            }
+        }
+    }
+}
+
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TEMP TABLE workout_set_bands_backup AS
+            SELECT setId,bandId,ordinal,nameSnapshot,widthCentimetresSnapshot
+            FROM workout_set_bands
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE TABLE workout_sets_new (
+                id TEXT NOT NULL,
+                workoutExerciseId TEXT NOT NULL,
+                ordinal INTEGER NOT NULL,
+                setType TEXT NOT NULL,
+                result TEXT NOT NULL,
+                variationId TEXT,
+                weightKg REAL,
+                reps REAL,
+                holdMillis INTEGER,
+                leftReps REAL,
+                rightReps REAL,
+                leftHoldMillis INTEGER,
+                rightHoldMillis INTEGER,
+                addedWeightKg REAL,
+                assistanceKg REAL,
+                rpe REAL,
+                romValue REAL,
+                romUnit TEXT,
+                notes TEXT NOT NULL,
+                loggedAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                variationRankSnapshot INTEGER,
+                timeUnderTensionMillis INTEGER,
+                bandResistance INTEGER NOT NULL DEFAULT 0,
+                variationNameSnapshot TEXT NOT NULL DEFAULT '',
+                variationTrackingTypeSnapshot TEXT NOT NULL DEFAULT '',
+                variationInputConfigSnapshot TEXT NOT NULL DEFAULT '',
+                legacyReps INTEGER,
+                legacyLeftReps INTEGER,
+                legacyRightReps INTEGER,
+                PRIMARY KEY(id),
+                FOREIGN KEY(workoutExerciseId) REFERENCES workout_exercises(id)
+                    ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO workout_sets_new (
+                id,workoutExerciseId,ordinal,setType,result,variationId,weightKg,
+                reps,holdMillis,leftReps,rightReps,leftHoldMillis,rightHoldMillis,
+                addedWeightKg,assistanceKg,rpe,romValue,romUnit,notes,loggedAt,updatedAt,
+                variationRankSnapshot,timeUnderTensionMillis,bandResistance,
+                variationNameSnapshot,variationTrackingTypeSnapshot,variationInputConfigSnapshot,
+                legacyReps,legacyLeftReps,legacyRightReps
+            )
+            SELECT
+                id,workoutExerciseId,ordinal,setType,result,variationId,weightKg,
+                CAST(reps AS REAL),holdMillis,CAST(leftReps AS REAL),CAST(rightReps AS REAL),
+                leftHoldMillis,rightHoldMillis,addedWeightKg,assistanceKg,rpe,romValue,romUnit,
+                notes,loggedAt,updatedAt,variationRankSnapshot,timeUnderTensionMillis,bandResistance,
+                variationNameSnapshot,variationTrackingTypeSnapshot,variationInputConfigSnapshot,
+                reps,leftReps,rightReps
+            FROM workout_sets
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE workout_sets")
+        db.execSQL("ALTER TABLE workout_sets_new RENAME TO workout_sets")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_workout_sets_workoutExerciseId ON workout_sets(workoutExerciseId)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_workout_sets_loggedAt ON workout_sets(loggedAt)",
+        )
+        db.execSQL(
+            """
+            INSERT OR IGNORE INTO workout_set_bands (
+                setId,bandId,ordinal,nameSnapshot,widthCentimetresSnapshot
+            )
+            SELECT setId,bandId,ordinal,nameSnapshot,widthCentimetresSnapshot
+            FROM workout_set_bands_backup
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE workout_set_bands_backup")
     }
 }

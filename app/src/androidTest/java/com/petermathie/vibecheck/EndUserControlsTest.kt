@@ -1,21 +1,37 @@
 package com.petermathie.vibecheck
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.petermathie.vibecheck.ui.HomeScreen
 import com.petermathie.vibecheck.ui.MainUiState
 import com.petermathie.vibecheck.ui.ReorderHandle
+import com.petermathie.vibecheck.ui.ReorderItem
+import com.petermathie.vibecheck.ui.ReorderOverlayHost
 import com.petermathie.vibecheck.ui.WorkoutCompletionEvent
 import com.petermathie.vibecheck.ui.rememberReorderState
 import com.petermathie.vibecheck.domain.model.TrainingMode
+import com.petermathie.vibecheck.domain.model.ActiveWorkout
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -128,12 +144,26 @@ class EndUserControlsTest {
         val moves = mutableListOf<Triple<Any, Int, Int>>()
         compose.setContent {
             VibeCheckTheme {
-                val state = rememberReorderState(listOf("one", "two")) { key, from, to ->
+                val keys = listOf("one", "two", "three", "four")
+                val state = rememberReorderState(keys) { key, from, to ->
                     moves += Triple(key, from, to)
                 }
-                Column {
-                    ReorderHandle(state, "one", "one")
-                    ReorderHandle(state, "two", "two")
+
+                ReorderOverlayHost {
+                    Column {
+                        state.ordered(keys) { it }.forEachIndexed { index, key ->
+                            ReorderItem(
+                                state,
+                                key,
+                                index,
+                                Modifier
+                                    .fillMaxWidth()
+                                    .semantics { contentDescription = "Tile $key" },
+                            ) {
+                                ReorderHandle(state, key, key)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -141,13 +171,164 @@ class EndUserControlsTest {
         compose.onNodeWithContentDescription("Reorder one").performTouchInput {
             down(center)
             advanceEventTime(1_000)
-            moveBy(Offset(0f, 300f))
-            advanceEventTime(100)
+            repeat(3) {
+                moveBy(Offset(0f, 60f))
+                advanceEventTime(100)
+            }
             up()
         }
         compose.waitForIdle()
 
         assertEquals(listOf(Triple("one", 0, 1)), moves)
+        val firstTile = compose.onNodeWithContentDescription("Tile one").fetchSemanticsNode().boundsInRoot
+        val secondTile = compose.onNodeWithContentDescription("Tile two").fetchSemanticsNode().boundsInRoot
+        assertTrue(firstTile.top > secondTile.top)
+    }
+
+    @Test
+    fun muscleDetailsSheetPreservesMapGeometryAndDismissesWithClose() {
+        compose.setContent {
+            VibeCheckTheme {
+                HomeScreen(
+                    state = MainUiState(),
+                    onDayClick = {},
+                    onContinue = {},
+                    onRecencyDayChange = {},
+                    onModeChange = {},
+                )
+            }
+        }
+        val map = compose.onNodeWithContentDescription("male front freshness map")
+        val before = map.fetchSemanticsNode().boundsInRoot
+        val inspectChest = map.fetchSemanticsNode().config[SemanticsActions.CustomActions]
+            .first { it.label.startsWith("Inspect CHEST") }
+
+        compose.runOnIdle { inspectChest.action() }
+        compose.onNodeWithText("Chest Freshness details").assertIsDisplayed()
+        val during = map.fetchSemanticsNode().boundsInRoot
+        assertEquals(before.left, during.left, 0.5f)
+        assertEquals(before.top, during.top, 0.5f)
+        assertEquals(before.right, during.right, 0.5f)
+        assertEquals(before.bottom, during.bottom, 0.5f)
+
+        compose.onNodeWithContentDescription("Close muscle details").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Chest Freshness details").assertDoesNotExist()
+        val after = map.fetchSemanticsNode().boundsInRoot
+        assertEquals(before.left, after.left, 0.5f)
+        assertEquals(before.top, after.top, 0.5f)
+        assertEquals(before.right, after.right, 0.5f)
+        assertEquals(before.bottom, after.bottom, 0.5f)
+    }
+
+    @Test
+    fun activeWorkoutAppearsAfterInvariantFreshnessAndBeforeWorkTracker() {
+        var activeWorkout by mutableStateOf<ActiveWorkout?>(null)
+        compose.setContent {
+            VibeCheckTheme {
+                Box(Modifier.width(411.dp).height(780.dp)) {
+                    HomeScreen(
+                        state = MainUiState(activeWorkout = activeWorkout),
+                        onDayClick = {},
+                        onContinue = {},
+                        onRecencyDayChange = {},
+                        onModeChange = {},
+                    )
+                }
+            }
+        }
+        val map = compose.onNodeWithContentDescription("male front freshness map")
+        val before = map.fetchSemanticsNode().boundsInRoot
+        val home = compose.onNodeWithContentDescription("Home content")
+        val viewport = home.fetchSemanticsNode().boundsInRoot
+        val trackerBefore = compose.onNodeWithContentDescription("Work tracker card")
+            .fetchSemanticsNode().boundsInRoot
+        val initialScrollRange = home.fetchSemanticsNode()
+            .config[SemanticsProperties.VerticalScrollAxisRange]
+        assertEquals(0f, initialScrollRange.value(), 0.5f)
+        assertEquals(0f, initialScrollRange.maxValue(), 0.5f)
+        assertTrue("tracker=$trackerBefore viewport=$viewport", trackerBefore.bottom <= viewport.bottom + 0.5f)
+
+        repeat(10) { iteration ->
+            compose.runOnIdle {
+                activeWorkout = ActiveWorkout(
+                    id = "active-$iteration",
+                    name = "Strength session",
+                    mode = TrainingMode.STRENGTH,
+                    startedAt = iteration.toLong(),
+                    notes = "",
+                    exercises = emptyList(),
+                )
+            }
+            compose.waitUntil(15_000) {
+                home.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].maxValue() > 0f
+            }
+
+            val during = map.fetchSemanticsNode().boundsInRoot
+            assertEquals(before.left, during.left, 0.5f)
+            assertEquals(before.top, during.top, 0.5f)
+            assertEquals(before.right, during.right, 0.5f)
+            assertEquals(before.bottom, during.bottom, 0.5f)
+            val active = compose.onNodeWithText("ACTIVE WORKOUT").fetchSemanticsNode().boundsInRoot
+            val tracker = compose.onNodeWithText("WORK TRACKER").fetchSemanticsNode().boundsInRoot
+            assertTrue(active.top > during.bottom)
+            assertTrue(active.bottom < tracker.top)
+
+            home.performTouchInput { swipeUp() }
+            compose.runOnIdle { activeWorkout = null }
+            compose.waitUntil(15_000) {
+                val range = home.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
+                range.value() == 0f && range.maxValue() == 0f
+            }
+            val after = map.fetchSemanticsNode().boundsInRoot
+            assertEquals(before.left, after.left, 0.5f)
+            assertEquals(before.top, after.top, 0.5f)
+            assertEquals(before.right, after.right, 0.5f)
+            assertEquals(before.bottom, after.bottom, 0.5f)
+            val trackerAfter = compose.onNodeWithContentDescription("Work tracker card")
+                .fetchSemanticsNode().boundsInRoot
+            assertTrue("iteration=$iteration tracker=$trackerAfter viewport=$viewport", trackerAfter.bottom <= viewport.bottom + 0.5f)
+        }
+    }
+
+    @Test
+    fun homeRetainsScrollingForLargeTypeAndConstrainedWidth() {
+        var fontScale by mutableFloatStateOf(1.3f)
+        var viewportWidth by mutableStateOf<Dp>(411.dp)
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                VibeCheckTheme {
+                    Box(Modifier.width(viewportWidth).height(780.dp)) {
+                        HomeScreen(
+                            state = MainUiState(),
+                            onDayClick = {},
+                            onContinue = {},
+                            onRecencyDayChange = {},
+                            onModeChange = {},
+                        )
+                    }
+                }
+            }
+        }
+        fun assertScrollable(label: String) {
+            compose.waitUntil(15_000) {
+                compose.onNodeWithContentDescription("Home content").fetchSemanticsNode()
+                    .config[SemanticsProperties.VerticalScrollAxisRange].maxValue() > 0f
+            }
+            val range = compose.onNodeWithContentDescription("Home content").fetchSemanticsNode()
+                .config[SemanticsProperties.VerticalScrollAxisRange]
+            assertTrue("$label max=${range.maxValue()}", range.maxValue() > 0f)
+        }
+
+        assertScrollable("1.3x font")
+        compose.runOnIdle { fontScale = 2f }
+        assertScrollable("2x font")
+        compose.runOnIdle {
+            fontScale = 1f
+            viewportWidth = 320.dp
+        }
+        assertScrollable("320dp width")
     }
 
     @Test
@@ -156,6 +337,7 @@ class EndUserControlsTest {
             .getSharedPreferences("settings", 0)
         preferences.edit().putBoolean("reducedMotion", true).commit()
         var consumedId: String? = null
+        var completionEvent by mutableStateOf<WorkoutCompletionEvent?>(null)
         compose.mainClock.autoAdvance = false
         compose.setContent {
             VibeCheckTheme {
@@ -165,15 +347,35 @@ class EndUserControlsTest {
                     onContinue = {},
                     onRecencyDayChange = {},
                     onModeChange = {},
-                    completionEvent = WorkoutCompletionEvent("event-1", TrainingMode.STRENGTH, listOf("CHEST")),
+                    completionEvent = completionEvent,
                     onCompletionConsumed = { consumedId = it },
                 )
             }
         }
         compose.mainClock.advanceTimeByFrame()
-        compose.onNodeWithContentDescription("Strength session complete. Freshness updated.").assertExists()
+        val map = compose.onNodeWithContentDescription("male front freshness map")
+        val before = map.fetchSemanticsNode().boundsInRoot
+        compose.runOnIdle {
+            completionEvent = WorkoutCompletionEvent("event-1", TrainingMode.STRENGTH, listOf("CHEST"))
+        }
+        compose.mainClock.advanceTimeBy(100)
+        compose.onNodeWithContentDescription(
+            "Strength session complete. Freshness updated.",
+            useUnmergedTree = true,
+        ).assertExists()
+        compose.onNodeWithText("Session saved", substring = true).assertDoesNotExist()
+        val during = map.fetchSemanticsNode().boundsInRoot
+        assertEquals(before.left, during.left, 0.5f)
+        assertEquals(before.top, during.top, 0.5f)
+        assertEquals(before.right, during.right, 0.5f)
+        assertEquals(before.bottom, during.bottom, 0.5f)
         compose.runOnIdle { assertEquals("event-1", consumedId) }
         compose.mainClock.advanceTimeBy(300)
+        val after = map.fetchSemanticsNode().boundsInRoot
+        assertEquals(before.left, after.left, 0.5f)
+        assertEquals(before.top, after.top, 0.5f)
+        assertEquals(before.right, after.right, 0.5f)
+        assertEquals(before.bottom, after.bottom, 0.5f)
         preferences.edit().remove("reducedMotion").commit()
         compose.mainClock.autoAdvance = true
     }
