@@ -118,7 +118,7 @@ class WorkoutLoggingUiTest {
         compose.onNodeWithText("Stop").performClick()
         compose.onNodeWithText("Apply").performClick()
         compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").assertTextContains("TUT (s)")
-        compose.onNodeWithContentDescription("Total Time for Handstand set 1").assertTextContains("Total (s)")
+        compose.onNodeWithContentDescription("Total Time for Handstand set 1").assertTextContains("Total")
         compose.onNodeWithText("Freestanding sec").assertDoesNotExist()
         compose.onNodeWithText("Total wall sec").assertDoesNotExist()
         compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("99")

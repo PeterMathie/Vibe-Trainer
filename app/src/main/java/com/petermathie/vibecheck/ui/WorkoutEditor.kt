@@ -482,7 +482,7 @@ private fun WorkoutExerciseCard(
                         onValueChange = {
                             updateDraft(draft.copy(timeUnderTension = it, updatedAt = System.currentTimeMillis()))
                         },
-                        label = "Total (s)",
+                        label = "Total",
                         description = "Total Time for ${exercise?.canonicalName.orEmpty()} set $ordinal",
                         modifier = Modifier.width(96.dp).weight(1f),
                         trailingIcon = {
