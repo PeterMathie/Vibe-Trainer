@@ -1,13 +1,18 @@
 package com.petermathie.vibecheck.ui.theme
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -17,6 +22,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 
 /**
  * The single source of visual truth. Screens consume semantic tokens from [LocalVibePalette]
@@ -26,12 +32,23 @@ import androidx.compose.ui.unit.sp
 data class VibePalette(
     val id: String,
     val displayName: String,
+    val isDark: Boolean,
     val background: Color,
     val surface: Color,
     val surfaceRaised: Color,
     val surfaceSelected: Color,
     val accent: Color,
     val onAccent: Color,
+    val accentContainer: Color,
+    val onAccentContainer: Color,
+    val secondary: Color,
+    val onSecondary: Color,
+    val secondaryContainer: Color,
+    val onSecondaryContainer: Color,
+    val tertiary: Color,
+    val onTertiary: Color,
+    val tertiaryContainer: Color,
+    val onTertiaryContainer: Color,
     val textPrimary: Color,
     val textSecondary: Color,
     val textFaint: Color,
@@ -50,112 +67,203 @@ data class VibePalette(
     val heatmapTwo: Color,
     val heatmapThreePlus: Color,
     val danger: Color,
+    val onDanger: Color,
+    val dangerContainer: Color,
+    val onDangerContainer: Color,
 )
 
-object VibePalettes {
-    val MidnightLime = VibePalette(
-        id = "midnight-lime",
-        displayName = "Midnight Lime",
-        background = Color(0xFF081017),
-        surface = Color(0xFF101B23),
-        surfaceRaised = Color(0xFF172630),
-        surfaceSelected = Color(0xFF24343E),
-        accent = Color(0xFFC2F85A),
-        onAccent = Color(0xFF081007),
-        textPrimary = Color(0xFFF1F5F3),
-        textSecondary = Color(0xFFA8B5BC),
-        textFaint = Color(0xFF74838B),
-        border = Color(0xFF31434D),
-        diagramBackground = Color(0xFFF6F7F3),
-        diagramBody = Color(0xFFE5E9E5),
-        diagramLine = Color(0xFF8F9A96),
-        recencyUnder24 = Color(0xFFF0444F),
-        recency24To48 = Color(0xFFF68B42),
-        recency48To72 = Color(0xFFF4CA45),
-        recency3To7 = Color(0xFF5CBF72),
-        recencyOver7 = Color(0xFF5597D1),
-        recencyNever = Color(0xFFD2D8D4),
-        heatmapNeutral = Color(0xFF24323A),
-        heatmapOne = Color(0xFF8CCF91),
-        heatmapTwo = Color(0xFF3E9B5B),
-        heatmapThreePlus = Color(0xFF126B37),
-        danger = Color(0xFFFF6670),
-    )
+@Immutable
+data class VibePalettePreset(
+    val id: String,
+    val displayName: String,
+    val light: VibePalette,
+    val dark: VibePalette,
+)
 
-    val GraphiteCoral = MidnightLime.copy(
-        id = "graphite-coral",
-        displayName = "Graphite Coral",
-        accent = Color(0xFFFF766F),
-        onAccent = Color(0xFF1A0908),
-        surface = Color(0xFF18191D),
-        surfaceRaised = Color(0xFF22242A),
-        surfaceSelected = Color(0xFF30333A),
-        border = Color(0xFF3C3F47),
-    )
+enum class VibeThemeMode(val id: String, val displayName: String) {
+    SYSTEM("system", "Follow system"),
+    DARK("dark", "Dark"),
+    LIGHT("light", "Light");
 
-    val OceanCyan = MidnightLime.copy(
-        id = "ocean-cyan",
-        displayName = "Ocean Cyan",
-        background = Color(0xFF06141F),
-        surface = Color(0xFF0D2230),
-        surfaceRaised = Color(0xFF153243),
-        surfaceSelected = Color(0xFF204657),
-        accent = Color(0xFF55D9F3),
-        onAccent = Color(0xFF001417),
-        border = Color(0xFF2A5264),
-    )
+    companion object {
+        fun fromPreference(value: String?): VibeThemeMode =
+            entries.firstOrNull { it.id == value } ?: SYSTEM
+    }
 
-    val PlumOrchid = MidnightLime.copy(
-        id = "plum-orchid",
-        displayName = "Plum Orchid",
-        background = Color(0xFF160D1C),
-        surface = Color(0xFF24152C),
-        surfaceRaised = Color(0xFF34203E),
-        surfaceSelected = Color(0xFF493052),
-        accent = Color(0xFFE6A6F2),
-        onAccent = Color(0xFF210526),
-        border = Color(0xFF5B4063),
-    )
-
-    val AmberSlate = MidnightLime.copy(
-        id = "amber-slate",
-        displayName = "Amber Slate",
-        background = Color(0xFF15120D),
-        surface = Color(0xFF242019),
-        surfaceRaised = Color(0xFF332D23),
-        surfaceSelected = Color(0xFF484033),
-        accent = Color(0xFFFFC857),
-        onAccent = Color(0xFF211500),
-        border = Color(0xFF5C513F),
-    )
-
-    val ForestMint = MidnightLime.copy(
-        id = "forest-mint",
-        displayName = "Forest Mint",
-        background = Color(0xFF07140F),
-        surface = Color(0xFF10231B),
-        surfaceRaised = Color(0xFF193429),
-        surfaceSelected = Color(0xFF26483A),
-        accent = Color(0xFF79E6B1),
-        onAccent = Color(0xFF001B0F),
-        border = Color(0xFF355C4A),
-    )
-
-    val builtIns: Map<String, VibePalette> = listOf(
-        MidnightLime,
-        GraphiteCoral,
-        OceanCyan,
-        PlumOrchid,
-        AmberSlate,
-        ForestMint,
-    ).associateBy { it.id }
-
-    /** Public factory used by future user-authored palettes and design experiments. */
-    fun custom(id: String, name: String, base: VibePalette = MidnightLime, transform: VibePalette.() -> VibePalette): VibePalette =
-        base.copy(id = id, displayName = name).transform()
+    fun useDarkPalette(systemDark: Boolean): Boolean = when (this) {
+        SYSTEM -> systemDark
+        DARK -> true
+        LIGHT -> false
+    }
 }
 
-val LocalVibePalette = staticCompositionLocalOf { VibePalettes.MidnightLime }
+object VibePalettes {
+    private fun palette(
+        id: String,
+        name: String,
+        isDark: Boolean,
+        background: Long,
+        surface: Long,
+        raised: Long,
+        selected: Long,
+        primary: Long,
+        onPrimary: Long,
+        primaryContainer: Long,
+        onPrimaryContainer: Long,
+        secondary: Long,
+        onSecondary: Long,
+        secondaryContainer: Long,
+        onSecondaryContainer: Long,
+        tertiary: Long,
+        onTertiary: Long,
+        tertiaryContainer: Long,
+        onTertiaryContainer: Long,
+        text: Long,
+        textSecondary: Long,
+        textFaint: Long,
+        outline: Long,
+        coolFresh: Long,
+        heatNeutral: Long,
+        heatOne: Long,
+        heatTwo: Long,
+        heatThree: Long,
+        error: Long,
+        onError: Long,
+        errorContainer: Long,
+        onErrorContainer: Long,
+    ) = VibePalette(
+        id = id,
+        displayName = name,
+        isDark = isDark,
+        background = Color(background),
+        surface = Color(surface),
+        surfaceRaised = Color(raised),
+        surfaceSelected = Color(selected),
+        accent = Color(primary),
+        onAccent = Color(onPrimary),
+        accentContainer = Color(primaryContainer),
+        onAccentContainer = Color(onPrimaryContainer),
+        secondary = Color(secondary),
+        onSecondary = Color(onSecondary),
+        secondaryContainer = Color(secondaryContainer),
+        onSecondaryContainer = Color(onSecondaryContainer),
+        tertiary = Color(tertiary),
+        onTertiary = Color(onTertiary),
+        tertiaryContainer = Color(tertiaryContainer),
+        onTertiaryContainer = Color(onTertiaryContainer),
+        textPrimary = Color(text),
+        textSecondary = Color(textSecondary),
+        textFaint = Color(textFaint),
+        border = Color(outline),
+        diagramBackground = Color(surface),
+        diagramBody = Color(raised),
+        diagramLine = Color(outline),
+        recencyUnder24 = Color(error),
+        recency24To48 = Color(tertiary),
+        recency48To72 = Color(primary),
+        recency3To7 = Color(secondary),
+        recencyOver7 = Color(coolFresh),
+        recencyNever = Color(textFaint),
+        heatmapNeutral = Color(raised),
+        heatmapOne = Color(secondaryContainer),
+        heatmapTwo = Color(secondary),
+        heatmapThreePlus = Color(coolFresh),
+        danger = Color(error),
+        onDanger = Color(onError),
+        dangerContainer = Color(errorContainer),
+        onDangerContainer = Color(onErrorContainer),
+    )
+
+    private fun VibePalette.withScales(
+        freshness: List<Long>,
+        heatmap: List<Long>,
+    ): VibePalette {
+        require(freshness.size == 6)
+        require(heatmap.size == 4)
+        return copy(
+            recencyUnder24 = Color(freshness[0]),
+            recency24To48 = Color(freshness[1]),
+            recency48To72 = Color(freshness[2]),
+            recency3To7 = Color(freshness[3]),
+            recencyOver7 = Color(freshness[4]),
+            recencyNever = Color(freshness[5]),
+            heatmapNeutral = Color(heatmap[0]),
+            heatmapOne = Color(heatmap[1]),
+            heatmapTwo = Color(heatmap[2]),
+            heatmapThreePlus = Color(heatmap[3]),
+        )
+    }
+
+    val Ocean = VibePalettePreset(
+        id = "ocean",
+        displayName = "Ocean",
+        light = palette("ocean", "Ocean", false, 0xFFF5FAFD, 0xFFFFFFFF, 0xFFE5F0F6, 0xFFD4E8F2, 0xFF006782, 0xFFFFFFFF, 0xFFBCE9F8, 0xFF001F29, 0xFF426277, 0xFFFFFFFF, 0xFFCBE7F7, 0xFF001E2C, 0xFF67587A, 0xFFFFFFFF, 0xFFEDDCFF, 0xFF221534, 0xFF132027, 0xFF425E6B, 0xFF657B85, 0xFF718994, 0xFF39769A, 0xFFE5F0F6, 0xFFA8D5E8, 0xFF58A7C7, 0xFF28789A, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
+            listOf(0xFFB3261E, 0xFFC25B20, 0xFF9A7500, 0xFF287F8C, 0xFF315F9C, 0xFF6F6F6F),
+            listOf(0xFFE5F0F6, 0xFFB9DCF2, 0xFF5FA9DC, 0xFF0078D4),
+        ),
+        // Core roles follow https://github.com/microsoft/vscode/blob/main/extensions/theme-defaults/themes/dark_modern.json (2026-09-25).
+        dark = palette("ocean", "Ocean", true, 0xFF181818, 0xFF252525, 0xFF222222, 0xFF2C3250, 0xFF0078D4, 0xFFFFFFFF, 0xFF004F8C, 0xFFFFFFFF, 0xFFC6C6C6, 0xFF181818, 0xFF303030, 0xFFD7D7D7, 0xFF8AAFD4, 0xFF152333, 0xFF29384A, 0xFFE5E5E5, 0xFFD7D7D7, 0xFFC6C6C6, 0xFF868686, 0xFF2B2B2B, 0xFF70A9D7, 0xFF222222, 0xFF294158, 0xFF3D6D94, 0xFF70A9D7, 0xFFFF3B3B, 0xFF181818, 0xFF5C1717, 0xFFFFDAD6).withScales(
+            listOf(0xFFFF3B3B, 0xFFF28C45, 0xFFD6B04A, 0xFF4AA7C8, 0xFF477FB8, 0xFF868686),
+            listOf(0xFF222222, 0xFF24415B, 0xFF17699F, 0xFF0078D4),
+        ),
+    )
+
+    val Sunset = VibePalettePreset(
+        id = "sunset",
+        displayName = "Sunset",
+        light = palette("sunset", "Sunset", false, 0xFFFFF8F6, 0xFFFFFBFF, 0xFFF8EAE5, 0xFFFFDCD2, 0xFF9B3F31, 0xFFFFFFFF, 0xFFFFDAD2, 0xFF3E0500, 0xFF765844, 0xFFFFFFFF, 0xFFFFDCC2, 0xFF2C1608, 0xFF765A00, 0xFFFFFFFF, 0xFFFFDF91, 0xFF251A00, 0xFF271814, 0xFF5D4038, 0xFF816A63, 0xFF947169, 0xFF50799A, 0xFFF8EAE5, 0xFFF3C7A5, 0xFFD98C62, 0xFFB75B43, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
+            listOf(0xFFB3261E, 0xFFB85C1E, 0xFF8A7000, 0xFF4F8270, 0xFF416B91, 0xFF6F6F6F),
+            listOf(0xFFF8EAE5, 0xFFF7D1C3, 0xFFE99170, 0xFFB94F37),
+        ),
+        dark = palette("sunset", "Sunset", true, 0xFF191817, 0xFF211F1E, 0xFF2A2725, 0xFF37302B, 0xFFFFB4A6, 0xFF5E160D, 0xFF7D2A1E, 0xFFFFDAD2, 0xFFE0C1AD, 0xFF432B1B, 0xFF4A3830, 0xFFFFDCC2, 0xFFE7C75C, 0xFF3E2E00, 0xFF574500, 0xFFFFDF91, 0xFFF5F1EF, 0xFFD2C8C3, 0xFF99908B, 0xFF514A46, 0xFF78AEDA, 0xFF2A2725, 0xFF5C4439, 0xFF96634E, 0xFFD8916B, 0xFFFFB4AB, 0xFF690005, 0xFF93000A, 0xFFFFDAD6).withScales(
+            listOf(0xFFFF6B63, 0xFFF39A62, 0xFFD9BA5A, 0xFF84B39A, 0xFF72A9CC, 0xFF99908B),
+            listOf(0xFF2A2725, 0xFF553A31, 0xFFA86246, 0xFFF08A63),
+        ),
+    )
+
+    val Forest = VibePalettePreset(
+        id = "forest",
+        displayName = "Forest",
+        light = palette("forest", "Forest", false, 0xFFF6FBF6, 0xFFFBFDF8, 0xFFE8F1E7, 0xFFD7E8D5, 0xFF356A3D, 0xFFFFFFFF, 0xFFB7F0B8, 0xFF002108, 0xFF52634F, 0xFFFFFFFF, 0xFFD5E8CF, 0xFF101F10, 0xFF5B6146, 0xFFFFFFFF, 0xFFDFE6BD, 0xFF191E08, 0xFF172018, 0xFF455D48, 0xFF6B7D6D, 0xFF758A77, 0xFF47799A, 0xFFE8F1E7, 0xFFB6D7B2, 0xFF6BA873, 0xFF397846, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
+            listOf(0xFFB3261E, 0xFFB26524, 0xFF817600, 0xFF3F8061, 0xFF356F86, 0xFF747474),
+            listOf(0xFFE8F1E7, 0xFFCDE4CD, 0xFF80B889, 0xFF397846),
+        ),
+        dark = palette("forest", "Forest", true, 0xFF151917, 0xFF1D221F, 0xFF252B27, 0xFF2E3831, 0xFF79E6B1, 0xFF003822, 0xFF005233, 0xFF9BF6CA, 0xFFBBCDBD, 0xFF29352B, 0xFF39463B, 0xFFD5E8CF, 0xFFC3CAA1, 0xFF2D321B, 0xFF444931, 0xFFDFE6BD, 0xFFF0F4F1, 0xFFC4CEC7, 0xFF8C9890, 0xFF48524B, 0xFF72B7DE, 0xFF252B27, 0xFF315643, 0xFF4F8262, 0xFF79B58A, 0xFFFFB4AB, 0xFF690005, 0xFF93000A, 0xFFFFDAD6).withScales(
+            listOf(0xFFF27D72, 0xFFD99B62, 0xFFAFBF69, 0xFF67B889, 0xFF66AFC2, 0xFF8C9890),
+            listOf(0xFF252B27, 0xFF2F4937, 0xFF477B58, 0xFF69B982),
+        ),
+    )
+
+    val Mono = VibePalettePreset(
+        id = "mono",
+        displayName = "Mono",
+        light = palette("mono", "Mono", false, 0xFFF8F9FA, 0xFFFFFFFF, 0xFFECEFF1, 0xFFDDE3E7, 0xFF245C75, 0xFFFFFFFF, 0xFFCBE7F5, 0xFF001F2A, 0xFF586168, 0xFFFFFFFF, 0xFFDDE3E7, 0xFF151D21, 0xFF555F64, 0xFFFFFFFF, 0xFFDDE4E7, 0xFF121D21, 0xFF181C1E, 0xFF454B4F, 0xFF6F777B, 0xFF777F83, 0xFF557F94, 0xFFECEFF1, 0xFFCED9DE, 0xFF91A6B0, 0xFF607F8D, 0xFFBA1A1A, 0xFFFFFFFF, 0xFFFFDAD6, 0xFF410002).withScales(
+            listOf(0xFF303030, 0xFF454545, 0xFF5D5D5D, 0xFF747474, 0xFF8B8B8B, 0xFFD8D8D8),
+            listOf(0xFFECEFF1, 0xFFD7DCE0, 0xFF939BA1, 0xFF50565A),
+        ),
+        dark = palette("mono", "Mono", true, 0xFF171819, 0xFF1F2123, 0xFF282B2E, 0xFF33373B, 0xFF9CCFE8, 0xFF17333F, 0xFF304A56, 0xFFD5EDF7, 0xFFC7C9CB, 0xFF303336, 0xFF44484B, 0xFFE0E3E5, 0xFFBBC7CC, 0xFF2B3438, 0xFF3C484D, 0xFFD7E3E8, 0xFFF0F1F2, 0xFFC8CACC, 0xFF92979B, 0xFF50555A, 0xFF73A8C1, 0xFF282B2E, 0xFF40525A, 0xFF607A86, 0xFF87A7B5, 0xFFFFB4AB, 0xFF690005, 0xFF93000A, 0xFFFFDAD6).withScales(
+            listOf(0xFFF2F2F2, 0xFFD0D0D0, 0xFFAEAEAE, 0xFF8C8C8C, 0xFF6B6B6B, 0xFF3A3A3A),
+            listOf(0xFF282B2E, 0xFF3C4145, 0xFF747B80, 0xFFBFC4C7),
+        ),
+    )
+
+    val presets = listOf(Ocean, Sunset, Forest, Mono)
+    val ids = presets.map { it.id }.toSet()
+    private val legacyIds = setOf("midnight-lime", "graphite-coral", "ocean-cyan", "plum-orchid", "amber-slate", "forest-mint", "custom")
+
+    fun normalizeId(value: String?): String = when (value) {
+        in ids -> value!!
+        in legacyIds, null -> Ocean.id
+        else -> Ocean.id
+    }
+
+    fun resolve(value: String?, dark: Boolean): VibePalette {
+        val preset = presets.first { it.id == normalizeId(value) }
+        return if (dark) preset.dark else preset.light
+    }
+}
+
+val LocalVibePalette = staticCompositionLocalOf { VibePalettes.Ocean.dark }
 val LocalVibeReducedMotion = staticCompositionLocalOf { false }
 
 object VibeSpacing {
@@ -184,10 +292,11 @@ private val VibeTypography = Typography(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VibeCheckTheme(
-    palette: VibePalette = VibePalettes.MidnightLime,
+    palette: VibePalette = VibePalettes.Ocean.dark,
     content: @Composable () -> Unit,
 ) {
     val preferences=LocalContext.current.getSharedPreferences("settings",0)
+    val view = LocalView.current
     var reducedMotion by remember { mutableStateOf(preferences.getBoolean("reducedMotion",false)) }
     DisposableEffect(preferences) {
         val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener { p,key ->
@@ -196,9 +305,19 @@ fun VibeCheckTheme(
         preferences.registerOnSharedPreferenceChangeListener(listener)
         onDispose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }
-    val scheme = darkColorScheme(
+    val scheme = if (palette.isDark) darkColorScheme(
         primary = palette.accent,
         onPrimary = palette.onAccent,
+        primaryContainer = palette.accentContainer,
+        onPrimaryContainer = palette.onAccentContainer,
+        secondary = palette.secondary,
+        onSecondary = palette.onSecondary,
+        secondaryContainer = palette.secondaryContainer,
+        onSecondaryContainer = palette.onSecondaryContainer,
+        tertiary = palette.tertiary,
+        onTertiary = palette.onTertiary,
+        tertiaryContainer = palette.tertiaryContainer,
+        onTertiaryContainer = palette.onTertiaryContainer,
         background = palette.background,
         onBackground = palette.textPrimary,
         surface = palette.surface,
@@ -207,8 +326,51 @@ fun VibeCheckTheme(
         onSurfaceVariant = palette.textSecondary,
         outline = palette.border,
         error = palette.danger,
+        onError = palette.onDanger,
+        errorContainer = palette.dangerContainer,
+        onErrorContainer = palette.onDangerContainer,
+    ) else lightColorScheme(
+        primary = palette.accent,
+        onPrimary = palette.onAccent,
+        primaryContainer = palette.accentContainer,
+        onPrimaryContainer = palette.onAccentContainer,
+        secondary = palette.secondary,
+        onSecondary = palette.onSecondary,
+        secondaryContainer = palette.secondaryContainer,
+        onSecondaryContainer = palette.onSecondaryContainer,
+        tertiary = palette.tertiary,
+        onTertiary = palette.onTertiary,
+        tertiaryContainer = palette.tertiaryContainer,
+        onTertiaryContainer = palette.onTertiaryContainer,
+        background = palette.background,
+        onBackground = palette.textPrimary,
+        surface = palette.surface,
+        onSurface = palette.textPrimary,
+        surfaceVariant = palette.surfaceRaised,
+        onSurfaceVariant = palette.textSecondary,
+        outline = palette.border,
+        error = palette.danger,
+        onError = palette.onDanger,
+        errorContainer = palette.dangerContainer,
+        onErrorContainer = palette.onDangerContainer,
     )
+    if (!view.isInEditMode) {
+        SideEffect {
+            view.context.findActivity()?.window?.let { window ->
+                WindowCompat.getInsetsController(window, view).apply {
+                    isAppearanceLightStatusBars = !palette.isDark
+                    isAppearanceLightNavigationBars = !palette.isDark
+                }
+            }
+        }
+    }
     androidx.compose.runtime.CompositionLocalProvider(LocalVibePalette provides palette, LocalVibeReducedMotion provides reducedMotion, LocalRippleConfiguration provides if(reducedMotion) null else RippleConfiguration()) {
         MaterialTheme(colorScheme = scheme, typography = VibeTypography, content = content)
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

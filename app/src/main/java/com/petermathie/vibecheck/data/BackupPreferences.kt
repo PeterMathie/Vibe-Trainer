@@ -1,7 +1,7 @@
 package com.petermathie.vibecheck.data
 
 import android.content.SharedPreferences
-import com.petermathie.vibecheck.domain.style.PaletteContrast
+import com.petermathie.vibecheck.ui.theme.VibePalettes
 import org.json.JSONObject
 
 /** Only durable profile and presentation choices belong in a backup, never running timers. */
@@ -12,7 +12,7 @@ object BackupPreferences {
     fun attach(json: String, preferences: SharedPreferences): String {
         val values = JSONObject()
         preferences.all.forEach { (key, value) ->
-            if (key in booleans || key in colours || key == "palette") values.put(key, value)
+            if (key in booleans || key == "palette" || key == "themeMode") values.put(key, value)
         }
         return JSONObject(json).put("preferences", values).toString(2)
     }
@@ -25,25 +25,29 @@ object BackupPreferences {
                 in booleans -> value is Boolean
                 in colours -> value is Number && value.toDouble() == value.toInt().toDouble()
                 "palette" -> value is String
+                "themeMode" -> value is String
                 else -> false
             }) { "Invalid preference: $key" }
         }
-        if (values.optString("palette") == "custom" && colours.all(values::has)) {
-            require(PaletteContrast.customPaletteError(values.getInt("accent"), values.getInt("background"), values.getInt("surface")) == null) {
-                "Restored custom palette does not meet text contrast requirements"
-            }
+        if (values.has("palette")) values.put("palette", VibePalettes.normalizeId(values.getString("palette")))
+        if (values.has("themeMode")) {
+            values.put("themeMode", com.petermathie.vibecheck.ui.theme.VibeThemeMode.fromPreference(values.getString("themeMode")).id)
         }
+        colours.forEach(values::remove)
         return values
     }
 
     fun restore(values: JSONObject?, preferences: SharedPreferences) {
         if (values == null) return
-        preferences.edit().apply {
+        preferences.edit().remove("accent").remove("background").remove("surface").apply {
             values.keys().forEach { key ->
                 when (key) {
                     in booleans -> putBoolean(key, values.getBoolean(key))
-                    in colours -> putInt(key, values.getInt(key))
-                    "palette" -> putString(key, values.getString(key))
+                    "palette" -> putString(key, VibePalettes.normalizeId(values.getString(key)))
+                    "themeMode" -> putString(
+                        key,
+                        com.petermathie.vibecheck.ui.theme.VibeThemeMode.fromPreference(values.getString(key)).id,
+                    )
                 }
             }
         }.apply()

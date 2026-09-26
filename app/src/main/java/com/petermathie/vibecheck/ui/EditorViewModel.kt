@@ -49,8 +49,27 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     val measurements = dao.measurements().live()
     val error = MutableStateFlow<String?>(null)
     private val writes = Mutex()
-    private fun write(block: suspend () -> Unit) { viewModelScope.launch { writes.withLock { try { block() } catch (e: CancellationException) { throw e } catch (e: Exception) { error.value = e.message ?: "Could not save" } } } }
+    private fun write(onSuccess: () -> Unit = {}, block: suspend () -> Unit) {
+        viewModelScope.launch {
+            writes.withLock {
+                try {
+                    block()
+                    onSuccess()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    error.value = e.message ?: "Could not save"
+                }
+            }
+        }
+    }
     fun save(row: ProgrammeEntity) = write { dao.programme(row) }
+    fun createProgramme(row: ProgrammeEntity, day: ProgrammeDayEntity, onCreated: () -> Unit = {}) = write(onCreated) {
+        db.withTransaction {
+            dao.programme(row)
+            dao.day(day)
+        }
+    }
     fun moveProgramme(id: String, delta: Int) = write {
         moveItem(dao.programmes().first(), id, delta) { it.id }?.let { rows ->
             db.withTransaction { rows.forEachIndexed { i,p -> dao.programme(p.copy(position=i)) } }
@@ -71,7 +90,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
         }
     }
     fun save(row: ProgrammeDayEntity) = write { dao.day(row) }
-    fun save(row: ProgrammeExerciseEntity) = write { dao.entry(row) }
+    fun save(row: ProgrammeExerciseEntity, onSaved: () -> Unit = {}) = write(onSaved) { dao.entry(row) }
     fun save(row: WorkoutEntity) = write { dao.workout(row) }
     fun changeWorkoutDate(row: WorkoutEntity, end: Long) = write {
         val delta=end-(row.finishedAt ?: row.startedAt)
@@ -91,7 +110,6 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
                     exerciseName=definition?.canonicalName.orEmpty(),
                     trackingType=definition?.trackingType.orEmpty(),
                     inputConfig=definition?.inputConfig.orEmpty(),
-                    restSeconds=definition?.restSeconds ?: row.restSeconds,
                 ) else row,
             )
             if(changed) {
@@ -106,7 +124,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun moveTracker(id: String, delta: Int) = write { trackerStore.moveTracker(id, delta) }
     fun save(row: TrackerFieldEntity) = write { trackerStore.saveField(row) }
     fun moveTrackerField(id: String, delta: Int) = write { trackerStore.moveField(id, delta) }
-    fun save(row: TrackerDailyValueEntity) = write { trackerStore.saveValue(row) }
+    fun save(row: TrackerDailyValueEntity, onSaved: () -> Unit = {}) = write(onSaved) { trackerStore.saveValue(row) }
     fun save(row: BodyMeasurementEntity) = write { dao.measurement(row) }
     fun save(row: ExerciseVariationEntity) = write { dao.variation(row) }
     fun attachReferenceVideo(context: Context, exerciseId: String, uri: Uri, displayName: String) = write {

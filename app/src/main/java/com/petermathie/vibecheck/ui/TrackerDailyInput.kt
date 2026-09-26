@@ -45,6 +45,8 @@ internal fun HabitDailyInput(
     epoch: Long?,
     habitColour: Color,
 ) {
+    val haptics = rememberVibeHaptics()
+    val onLogged = { haptics.perform(VibeHapticEvent.SUCCESS) }
     key(field.id, epoch) {
         var text by remember { mutableStateOf(value?.numericValue?.toString() ?: value?.textValue.orEmpty()) }
         if (field.valueType == "BOOLEAN") {
@@ -61,6 +63,7 @@ internal fun HabitDailyInput(
                                 "",
                                 System.currentTimeMillis(),
                             ),
+                            onLogged,
                         )
                     }
                 })
@@ -88,6 +91,7 @@ internal fun HabitDailyInput(
                                 "",
                                 System.currentTimeMillis(),
                             ),
+                            onLogged,
                         )
                     }
                 }
@@ -108,6 +112,7 @@ internal fun HabitDailyInput(
                                         "",
                                         System.currentTimeMillis(),
                                     ),
+                                    onLogged,
                                 )
                             }
                         }

@@ -121,8 +121,8 @@ class HabitUiTest {
                 .fetchSemanticsNode()
                 .config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
         assertEquals(true, greatActions.first { it.label == "Move later" }.action())
-        compose.onNodeWithContentDescription("Light to medium boundary").assertExists()
-        compose.onNodeWithContentDescription("Medium to dark boundary").assertExists()
+        compose.onNodeWithContentDescription("Low to medium boundary").assertExists()
+        compose.onNodeWithContentDescription("Medium to strong boundary").assertExists()
         compose.onNodeWithText("Save").performClick()
         compose.waitUntil(15_000) {
             runBlocking {

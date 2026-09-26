@@ -61,6 +61,7 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Bench press").assertIsDisplayed()
         compose.onNodeWithText("3 sets · 5–8 reps · 120s rest").assertIsDisplayed()
         compose.onNodeWithContentDescription("Edit targets for Bench press").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Edit prescription for Bench press").assertDoesNotExist()
         compose.onNodeWithContentDescription("Edit programme Alpha").performClick()
 
         compose.onNodeWithContentDescription("Back").assertIsDisplayed()
@@ -81,6 +82,7 @@ class ProgrammeUiTest {
         compose.onNodeWithText("Add exercise").assertDoesNotExist()
         compose.onNodeWithContentDescription("Add exercise").assertIsDisplayed()
         compose.onNodeWithContentDescription("Edit targets for Bench press").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Edit prescription for Bench press").assertIsDisplayed()
         compose.onNodeWithContentDescription("Reorder Bench press").assertDoesNotExist()
         compose.onNodeWithText("Exercise settings").assertDoesNotExist()
 
@@ -157,8 +159,44 @@ class ProgrammeUiTest {
     }
 
     @Test
+    fun programmePrescriptionEditorPersistsAssignmentTargets() {
+        seedProgramme()
+        setProgrammeContent { _, _ -> }
+        compose.onNodeWithContentDescription("Edit programme Alpha").performClick()
+        compose.onNodeWithContentDescription("Edit prescription for Bench press").performClick()
+
+        compose.onNodeWithContentDescription("Sets").performTextClearance()
+        compose.onNodeWithContentDescription("Sets").performTextInput("4")
+        compose.onNodeWithContentDescription("Minimum reps").performTextClearance()
+        compose.onNodeWithContentDescription("Minimum reps").performTextInput("6")
+        compose.onNodeWithContentDescription("Maximum reps").performTextClearance()
+        compose.onNodeWithContentDescription("Maximum reps").performTextInput("10")
+        compose.onNodeWithContentDescription("Target RPE").performTextInput("8")
+        compose.onNodeWithContentDescription("Rest seconds").performTextClearance()
+        compose.onNodeWithContentDescription("Rest seconds").performTextInput("90")
+        compose.onNodeWithText("Save").performClick()
+
+        compose.waitUntil(15_000) {
+            runBlocking {
+                database.editorDao().entries().first().single { it.id == "entry-a" }.let {
+                    it.targetSets == 4 &&
+                        it.targetRepsMin == 6 &&
+                        it.targetRepsMax == 10 &&
+                        it.targetRpe == 8.0 &&
+                        it.restSeconds == 90
+                }
+            }
+        }
+    }
+
+    @Test
     fun createRenameDuplicateArchiveAndDeleteRemainInEditContext() {
         createDatabase()
+        runBlocking {
+            database.editorDao().exercise(
+                ExerciseEntity("new-exercise", "New exercise", "STRENGTH", "WEIGHT_REPS", null, null, "custom", true),
+            )
+        }
         setProgrammeContent { _, _ -> }
 
         compose.onNodeWithContentDescription("Add programme").performScrollTo().performClick()
@@ -167,15 +205,24 @@ class ProgrammeUiTest {
         compose.waitUntil(15_000) { activeProgrammes().any { it.name == "My gym plan" } }
 
         val programmeId = activeProgrammes().single().id
-        val dayId = "day-for-history"
+        val dayId = runBlocking {
+            database.editorDao().days().first().single { it.programmeId == programmeId }.id
+        }
+        compose.onNodeWithContentDescription("Add exercise").performClick()
+        compose.onNodeWithText("New exercise").performClick()
+        compose.waitUntil(15_000) {
+            runBlocking {
+                database.editorDao().entries().first().any {
+                    it.programmeDayId == dayId && it.exerciseId == "new-exercise"
+                }
+            }
+        }
         runBlocking {
-            database.editorDao().day(ProgrammeDayEntity(dayId, programmeId, "Push", 0))
             database.editorDao().workout(
-                WorkoutEntity("historical", dayId, "Push", "STRENGTH", "FINISHED", 1, 2, "", null, false),
+                WorkoutEntity("historical", dayId, "Workout", "STRENGTH", "FINISHED", 1, 2, "", null, false),
             )
         }
 
-        compose.onNodeWithContentDescription("Edit programme My gym plan").performClick()
         compose.onNodeWithText("Add workout").assertDoesNotExist()
         compose.onNode(hasSetTextAction()).performTextClearance()
         compose.onNode(hasSetTextAction()).performTextInput("Renamed plan")

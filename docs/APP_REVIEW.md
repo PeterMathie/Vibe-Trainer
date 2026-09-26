@@ -5,7 +5,7 @@
 > **Showcase source:** commit `762b96b3e59cd51f1567c0b1482b2a1826e20aee`  
 > **Debug APK SHA-256:** `603954816717f5c60304edcd04c0f5ab337b3a7e8b8a2b1edf2ab4e71605a61d`
 
-Vibe Check is a local-first native Android training log for people who want one coherent place for strength work, stretching, skill progressions, habits, body measurements and historical context. It records objective history first, then derives explainable views from those records. The muscle map deliberately shows **training recency**, not a speculative claim about fatigue or recovery.
+Vibe Check is a local-first native Android training log for people who want one coherent place for strength work, stretching, skill progressions, habits, body measurements and historical context. It records objective history first, then derives explainable views from those records. The muscle map deliberately shows **freshness derived from training recency**, not a speculative claim about fatigue or recovery.
 
 What distinguishes the app is the connection between detailed workout logging and legible daily feedback: variation-specific set inputs feed stable history, progress scoring, personal records, activity heatmaps and reconstructable historical body maps. Draft workouts remain editable and recoverable without contaminating any derived view.
 
@@ -13,11 +13,11 @@ What distinguishes the app is the connection between detailed workout logging an
 
 All images below come from the exact debug APK identified above, installed on an API 35 emulator using a 1080 × 2424 Pixel 9a-sized portrait display. The app was reset to controlled generated demo data before capture; the images contain no personal information.
 
-### Home: recency and activity
+### Home: freshness and activity
 
-![Home screen with front and back muscle recency maps, historical slider, and five-week activity heatmap](images/app-review/01-home.png)
+![Home screen with front and back freshness maps, calendar-month slider, and activity heatmap](images/app-review/01-home.png)
 
-The Home screen keeps the current strength/stretch context visible, colours the anatomy by the last qualifying finished session, and reconstructs earlier states with the date slider. The activity grid combines finished training and completed habit activity without presenting either as recovery science.
+The Home screen keeps the current strength/stretch context visible, colours the anatomy by the last qualifying finished session, and reconstructs earlier states with a calendar-month date slider. Its vertical colour key runs from most recent to least recent with no-data separate. The activity grid combines finished training and completed habit activity without presenting either as recovery science. Successful persisted sessions return Home with one accessible, reduced-motion-aware affected-muscle celebration.
 
 ### Programmes and a coherent editor
 
@@ -51,7 +51,7 @@ Habits are open-ended trackers, not streak obligations. A day can contain Boolea
 
 ![Mood habit settings with colour, icon, reordered choices, and visual light-to-dark shade boundaries](images/app-review/08-habit-configuration.png)
 
-Choice-based habits keep their values and heatmap shade mapping together in one visual editor. Values can be added, removed and reordered, and the boundaries between light, medium and dark are visible without a separate configuration maze.
+Choice-based habits keep their values and heatmap intensity mapping together in one visual editor. Values can be added, removed and reordered, and the boundaries between low, medium and strong are visible without a separate configuration maze.
 
 ### Fixed navigation, More and Archive
 
@@ -81,7 +81,7 @@ Bodyweight is available as a trend and a calendar so a value is easy to find in 
 
 ![Settings and data screen with unit, anatomy, rest, haptics, reduced motion, timer permissions, JSON backup/import, CSV export, demo removal, and notices](images/app-review/13-settings.png)
 
-Settings use switches for binary preferences and direct actions for operations. Colour palettes and custom semantic colours live behind **Colour palette**. JSON backup/import, CSV export, timer permission routes, demo-data removal and open-source notices are deliberately visible rather than hidden in platform menus.
+Settings use switches for binary preferences and direct actions for operations. The Ocean, Sunset, Forest and Mono presets live behind **Colour palette** and update the app immediately; **Follow system** is the default appearance, with persistent **Dark** and **Light** overrides. JSON backup/import, CSV export, timer permission routes, demo-data removal and open-source notices are deliberately visible rather than hidden in platform menus.
 
 ## Feature overview
 
@@ -95,14 +95,14 @@ Settings use switches for binary preferences and direct actions for operations. 
 - Substitute an exercise for one workout without merging unlike histories.
 - Retain previous performance, exercise notes, variation snapshots, supersets and circuit-level rest behavior.
 - Recover the active workout and unfinished set input after interruption or process recreation.
-- Keep drafts out of recency, progress, PR and history calculations until finish.
+- Keep drafts out of freshness, progress, PR and history calculations until finish.
 
 ### Derived training views
 
-- Separate strength and stretching recency maps with male/female anatomy profiles.
+- Separate strength and stretching freshness maps with male/female anatomy profiles.
 - Primary and secondary muscle dose expressed as explainable set-equivalents.
 - Historical map reconstruction for any recorded day.
-- Five-week activity heatmap combining completed training and qualifying habit activity.
+- Calendar-month activity heatmap combining completed training and qualifying habit activity.
 - Exercise-specific performance scoring, rolling trends and personal records.
 - Variation-aware assisted and skill comparisons so unlike performances are not ranked together.
 
@@ -116,7 +116,7 @@ Settings use switches for binary preferences and direct actions for operations. 
 
 ### Personalization and platform behavior
 
-- kg/lb preference, selectable anatomy, multiple built-in palettes and custom semantic colours.
+- kg/lb preference, selectable anatomy, and four curated light/dark palettes with matching Freshness scales.
 - Reduced motion removes app-owned transition animation and touch ripples.
 - Notification and precise-alarm settings are linked for background rest timers.
 - Content descriptions, scalable Compose layouts and consistent controls support accessibility review.

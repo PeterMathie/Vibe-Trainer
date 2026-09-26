@@ -39,6 +39,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.petermathie.vibecheck.data.local.TrackerFieldEntity
 import com.petermathie.vibecheck.domain.tracker.HabitFieldForm
+import com.petermathie.vibecheck.ui.theme.LocalVibePalette
+import com.petermathie.vibecheck.ui.theme.habitHeatmapColors
 import java.util.UUID
 
 private data class ChoiceDraft(val id: String, val value: String)
@@ -178,20 +180,21 @@ internal fun ChoiceScaleEditor(
         choices.add(to, item)
         syncChoices()
     }
+    val heatmapColors = LocalVibePalette.current.habitHeatmapColors(habitColour)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         choiceOrder.ordered(choices) { it.id }.forEachIndexed { index, choice ->
             val shade = when {
-                index <= lightThrough -> "Light"
-                index >= darkFrom -> "Dark"
+                index <= lightThrough -> "Low"
+                index >= darkFrom -> "Strong"
                 else -> "Medium"
             }
-            val alpha = when (shade) {
-                "Light" -> 0.38f
-                "Medium" -> 0.68f
-                else -> 1f
+            val shadeColor = when (shade) {
+                "Low" -> heatmapColors.low
+                "Medium" -> heatmapColors.medium
+                else -> heatmapColors.strong
             }
             Surface(
-                color = habitColour.copy(alpha = alpha),
+                color = shadeColor,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -241,10 +244,10 @@ internal fun ChoiceScaleEditor(
                 }
             }
             if (index == lightThrough) {
-                ShadeBoundary("LIGHT", "MEDIUM", "Light to medium boundary")
+                ShadeBoundary("LOW", "MEDIUM", "Low to medium boundary")
             }
             if (index == darkFrom - 1) {
-                ShadeBoundary("MEDIUM", "DARK", "Medium to dark boundary")
+                ShadeBoundary("MEDIUM", "STRONG", "Medium to strong boundary")
             }
         }
         Button(

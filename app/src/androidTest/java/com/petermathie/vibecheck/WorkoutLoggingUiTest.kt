@@ -152,9 +152,9 @@ class WorkoutLoggingUiTest {
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         runBlocking {
             DatabaseSeeder(context, database).seedIfNeeded()
-            database.editorDao().variations().first()
+            database.editorDao().entries().first()
                 .filter { it.exerciseId == "core:handstand" }
-                .forEach { database.editorDao().variation(it.copy(targetSets = 1)) }
+                .forEach { database.editorDao().entry(it.copy(targetSets = 1)) }
         }
         val workoutId = startPushWorkout(context)
         val viewModel = EditorViewModel(database)

@@ -345,6 +345,7 @@ private fun SettingToggle(
 
 @Composable
 fun MeasurementsScreen(vm:EditorViewModel) {
+    val haptics = rememberVibeHaptics()
     val rows by vm.measurements.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -451,7 +452,10 @@ fun MeasurementsScreen(vm:EditorViewModel) {
                 todayMeasurement?.let { row ->
                     Row {
                         Text("Bodyweight: ${formatBodyweight(row.value)} ${row.unit}", Modifier.weight(1f))
-                        TextButton(onClick = { editing = row }) { Text("Edit") }
+                        TextButton(onClick = {
+                            haptics.perform(VibeHapticEvent.EDIT)
+                            editing = row
+                        }) { Text("Edit") }
                         TextButton(onClick = { vm.removeMeasurement(row.id) }) { Text("Delete") }
                     }
                 }

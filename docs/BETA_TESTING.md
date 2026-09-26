@@ -26,7 +26,7 @@ Hold timers fill an editable result. Rest timers can start manually or after a s
 
 ## Interpretation
 
-The body map shows training **recency**, not measured fatigue or recovery. Band widths are a relative assistance proxy within one exercise variation, not calibrated force. Overall skill indices include ordered variation levels and should be read alongside the actual performance.
+The body map shows **freshness derived from training recency**, not measured fatigue or recovery. Band widths are a relative assistance proxy within one exercise variation, not calibrated force. Overall skill indices include ordered variation levels and should be read alongside the actual performance.
 
 Cloud sync and detailed habit metric charts remain intentionally deferred. Backups contain structured records and profile preferences; photographs export as a separate ZIP.
 

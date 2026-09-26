@@ -6,20 +6,27 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.petermathie.vibecheck.domain.model.AnatomySex
+import com.petermathie.vibecheck.domain.model.MuscleRecencyBand
 import com.petermathie.vibecheck.ui.anatomy.AnatomyView
+import com.petermathie.vibecheck.ui.anatomy.FreshnessLegend
 import com.petermathie.vibecheck.ui.anatomy.MuscleMap
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
+import com.petermathie.vibecheck.ui.theme.VibePalettes
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class MuscleMapUiTest {
@@ -61,7 +68,7 @@ class MuscleMapUiTest {
         AnatomySex.entries.forEach { sex ->
             AnatomyView.entries.forEach { view ->
                 val map = compose.onNodeWithContentDescription(
-                    "${sex.name.lowercase()} ${view.name.lowercase()} muscle recency map",
+                    "${sex.name.lowercase()} ${view.name.lowercase()} freshness map",
                 )
                 map.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "No muscle selected"))
                 val labels = map.fetchSemanticsNode().config[SemanticsActions.CustomActions]
@@ -71,17 +78,88 @@ class MuscleMapUiTest {
             }
         }
 
-        val front = compose.onNodeWithContentDescription("male front muscle recency map")
+        val front = compose.onNodeWithContentDescription("male front freshness map")
         val inspectChest = front.fetchSemanticsNode().config[SemanticsActions.CustomActions]
             .first { it.label.startsWith("Inspect CHEST") }
         compose.runOnIdle { inspectChest.action() }
         front.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Selected chest"))
 
-        val back = compose.onNodeWithContentDescription("male back muscle recency map")
+        val back = compose.onNodeWithContentDescription("male back freshness map")
         val inspectLats = back.fetchSemanticsNode().config[SemanticsActions.CustomActions]
             .first { it.label.startsWith("Inspect LATS") }
         compose.runOnIdle { inspectLats.action() }
         back.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Selected lats"))
         front.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "No muscle selected"))
+    }
+
+    @Test
+    fun neutralOutlineLayerRendersTheCompleteSilhouette() {
+        compose.setContent {
+            VibeCheckTheme {
+                MuscleMap(
+                    sex = AnatomySex.MALE,
+                    view = AnatomyView.FRONT,
+                    states = emptyMap(),
+                    onMuscleTap = {},
+                    modifier = androidx.compose.ui.Modifier.width(240.dp),
+                )
+            }
+        }
+
+        val pixels = compose.onNodeWithContentDescription("male front freshness map").captureToImage().toPixelMap()
+        val background = pixels[0, 0]
+        var headPixels = 0
+        var feetPixels = 0
+        for (x in 0 until pixels.width) {
+            for (y in 0 until pixels.height) {
+                val pixel = pixels[x, y]
+                val differsFromBackground =
+                    abs(pixel.red - background.red) > 0.04f ||
+                        abs(pixel.green - background.green) > 0.04f ||
+                        abs(pixel.blue - background.blue) > 0.04f ||
+                        abs(pixel.alpha - background.alpha) > 0.04f
+                if (differsFromBackground) {
+                    if (y < pixels.height * 0.15f) headPixels++
+                    if (y > pixels.height * 0.87f) feetPixels++
+                }
+            }
+        }
+        assertTrue("Expected rendered head outline, found $headPixels pixels", headPixels > 20)
+        assertTrue("Expected rendered feet outline, found $feetPixels pixels", feetPixels > 20)
+    }
+
+    @Test
+    fun allPresetModesRenderTheSharedFreshnessScaleAndAccessibleLegend() {
+        val palettes = VibePalettes.presets.flatMap { listOf(it.light, it.dark) }
+        val activePalette = mutableStateOf(palettes.first())
+        compose.setContent {
+            VibeCheckTheme(activePalette.value) {
+                Column {
+                    MuscleMap(
+                        sex = AnatomySex.MALE,
+                        view = AnatomyView.FRONT,
+                        states = mapOf(
+                            "CHEST" to MuscleRecencyBand.UNDER_24_HOURS,
+                            "CORE" to MuscleRecencyBand.HOURS_48_TO_72,
+                            "QUADS" to MuscleRecencyBand.OVER_7_DAYS,
+                        ),
+                        onMuscleTap = {},
+                        modifier = androidx.compose.ui.Modifier.width(240.dp),
+                    )
+                    FreshnessLegend(androidx.compose.ui.Modifier.width(74.dp))
+                }
+            }
+        }
+
+        palettes.forEach { palette ->
+            compose.runOnIdle { activePalette.value = palette }
+            compose.waitForIdle()
+            compose.onNodeWithContentDescription("male front freshness map").assertExists()
+            compose.onNodeWithContentDescription(
+                "Freshness colour scale. Most recent under 24 hours at the top; " +
+                    "24 to 48 hours; 48 to 72 hours; 3 to 7 days; least recent over 7 days at the bottom. " +
+                    "No data is separate.",
+            ).assertExists()
+        }
     }
 }

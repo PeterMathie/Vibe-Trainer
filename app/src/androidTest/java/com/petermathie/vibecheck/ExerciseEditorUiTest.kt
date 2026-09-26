@@ -46,22 +46,22 @@ class ExerciseEditorUiTest {
             }
         }
 
-        compose.onNodeWithText("Exercise settings").assertIsDisplayed()
+        compose.onNodeWithText("Exercise measurements").assertIsDisplayed()
         compose.onNodeWithContentDescription("Weight (lb)").assertExists()
         compose.onNodeWithContentDescription("Weight (kg)").assertDoesNotExist()
         compose.onNodeWithContentDescription("Time Under Tension (seconds)").assertExists()
         compose.onNodeWithContentDescription("Total Time (seconds)").performClick()
-        compose.onNodeWithContentDescription("Sets").performTextInput("4")
-        compose.onNodeWithContentDescription("Rest seconds").performTextClearance()
-        compose.onNodeWithContentDescription("Rest seconds").performTextInput("90")
+        compose.onNodeWithContentDescription("Sets").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Target RPE").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Rest seconds").assertDoesNotExist()
         compose.onNodeWithText("Save").performClick()
 
         val result = requireNotNull(saved)
         val config = ExerciseInputConfig.decode(result.inputConfig, result.trackingType)
         assertTrue(config.timeHeld)
         assertTrue(config.timeUnderTension)
-        assertEquals(4, result.targetSets)
-        assertEquals(90, result.restSeconds)
+        assertEquals(null, result.targetSets)
+        assertEquals(120, result.restSeconds)
         preferences.edit().putBoolean("lb", false).commit()
     }
 

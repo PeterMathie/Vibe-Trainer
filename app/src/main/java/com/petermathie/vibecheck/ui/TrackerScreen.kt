@@ -27,6 +27,7 @@ import java.time.LocalDate
 
 @Composable
 fun TrackerScreen(vm: EditorViewModel) {
+    val haptics = rememberVibeHaptics()
     val trackers by vm.trackers.collectAsStateWithLifecycle()
     val fields by vm.fields.collectAsStateWithLifecycle()
     val values by vm.values.collectAsStateWithLifecycle()
@@ -73,7 +74,10 @@ fun TrackerScreen(vm: EditorViewModel) {
                     Spacer(Modifier.width(10.dp))
                     Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                     IconButton(
-                        onClick = { settings = tracker },
+                        onClick = {
+                            haptics.perform(VibeHapticEvent.EDIT)
+                            settings = tracker
+                        },
                         modifier = Modifier.semantics {
                             contentDescription = "Edit ${tracker.name} settings"
                         },
@@ -206,6 +210,7 @@ private fun HabitSettingsDialog(
     onMoveMeasurement: (String, Int) -> Unit,
     onArchiveHabit: () -> Unit,
 ) {
+    val haptics = rememberVibeHaptics()
     var name by remember(tracker.id) { mutableStateOf(tracker.name) }
     var colour by remember(tracker.id) { mutableLongStateOf(tracker.colourArgb) }
     var iconName by remember(tracker.id) { mutableStateOf(tracker.iconName) }
@@ -320,7 +325,10 @@ private fun HabitSettingsDialog(
                                     }
                                     Text(habitTypeLabel(habitField.valueType), modifier = Modifier.weight(1f))
                                     if (habitField.valueType != HabitFieldForm.CHOICE) {
-                                        TextButton(onClick = { onEditMeasurement(habitField) }) { Text("Edit") }
+                                        TextButton(onClick = {
+                                            haptics.perform(VibeHapticEvent.EDIT)
+                                            onEditMeasurement(habitField)
+                                        }) { Text("Edit") }
                                     }
                                 }
                                 choiceForms[habitField.id]?.let { form ->

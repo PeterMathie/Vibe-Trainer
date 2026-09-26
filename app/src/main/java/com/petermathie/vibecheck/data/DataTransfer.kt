@@ -53,6 +53,30 @@ object DataTransfer {
                 val seen=mutableSetOf<List<Any>>()
                 repeat(rows.length()) { i ->
                     val row=rows.getJSONObject(i)
+                    if (table == "workout_exercises" && !row.has("targetSets")) {
+                        val assignment = sql.query(
+                            """
+                            SELECT pe.targetSets,pe.targetRepsMin,pe.targetRepsMax,pe.targetHoldSeconds,pe.targetRpe
+                            FROM workouts w
+                            JOIN programme_exercises pe ON pe.programmeDayId=w.programmeDayId
+                            WHERE w.id=? AND pe.exerciseId=? AND pe.position=?
+                            LIMIT 1
+                            """.trimIndent(),
+                            arrayOf(
+                                row.getString("workoutId"),
+                                row.getString("plannedExerciseId"),
+                                row.getInt("position"),
+                            ),
+                        )
+                        assignment.use {
+                            val found = it.moveToFirst()
+                            row.put("targetSets", if (found && !it.isNull(0)) it.getInt(0) else JSONObject.NULL)
+                            row.put("targetRepsMin", if (found && !it.isNull(1)) it.getInt(1) else JSONObject.NULL)
+                            row.put("targetRepsMax", if (found && !it.isNull(2)) it.getInt(2) else JSONObject.NULL)
+                            row.put("targetHoldSeconds", if (found && !it.isNull(3)) it.getInt(3) else JSONObject.NULL)
+                            row.put("targetRpe", if (found && !it.isNull(4)) it.getDouble(4) else JSONObject.NULL)
+                        }
+                    }
                     if (table == "workout_sets" && !row.has("variationRankSnapshot")) {
                         val rank = row.optString("variationId").takeIf(String::isNotBlank)?.let { variationId ->
                             sql.query("SELECT progressionRank FROM exercise_variations WHERE id=?", arrayOf(variationId)).use { if (it.moveToFirst()) it.getInt(0) else null }

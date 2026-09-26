@@ -227,11 +227,23 @@ class DatabaseSeeder @Inject constructor(
                                 0 -> "Holding a steady plateau"
                                 else -> "Recent performance has declined"
                             },
-                            restSeconds = definition.restSeconds,
+                            restSeconds = planned.restSeconds,
                             supersetGroup = null,
                             exerciseName = definition.canonicalName,
                             trackingType = definition.trackingType,
                             inputConfig = definition.inputConfig,
+                            targetSets = planned.targetSets,
+                            targetRepsMin = planned.targetRepsMin,
+                            targetRepsMax = planned.targetRepsMax,
+                            targetHoldSeconds = planned.targetHoldSeconds,
+                            targetRpe = planned.targetRpe,
+                            targets = com.petermathie.vibecheck.domain.programme.prescriptionSummary(
+                                planned.targetSets,
+                                planned.targetRepsMin,
+                                planned.targetRepsMax,
+                                planned.targetHoldSeconds,
+                                planned.targetRpe,
+                            ),
                         )
                         rows += row
                         repeat(3) { ordinal ->

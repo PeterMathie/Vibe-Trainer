@@ -2,7 +2,7 @@
 
 ## Product truth
 
-Vibe Check is a local-first native Android training log. It records objective history and derives explainable views from that history. Version one must not claim to know muscle fatigue or recovery. The strength SVG displays **training recency**; set-equivalents describe recent training dose. A future, separately labelled fatigue estimate may use RPE, subjective readiness and wearable data.
+Vibe Check is a local-first native Android training log. It records objective history and derives explainable views from that history. Version one must not claim to know muscle fatigue or recovery. The strength SVG displays **freshness** derived from training recency; set-equivalents describe recent training dose. A future, separately labelled fatigue estimate may use RPE, subjective readiness and wearable data.
 
 ## Installation and test data
 
@@ -52,7 +52,7 @@ Each set is logged in one compact row: one performance field, an optional RPE co
 
 ## Muscle maps
 
-Male/female front/back anatomy is a changeable profile setting. Left/right set results remain separate, but muscle recency is bilateral. Every relevant path is tappable.
+Male/female front/back anatomy is a changeable profile setting. Left/right set results remain separate, but muscle freshness is bilateral. Every relevant path is tappable.
 
 Strength and stretching maintain separate histories. A completed non-zero working set updates every mapped primary and secondary muscle. Warm-ups, zero attempts and drafts do not.
 
@@ -63,9 +63,11 @@ Strength and stretching maintain separate histories. A completed non-zero workin
 - Blue: over 7 days.
 - Neutral: never recorded.
 
-Primary sets contribute 1 set-equivalent and secondary sets 0.5. Set-equivalents describe dose only; they do not gate recency.
+Primary sets contribute 1 set-equivalent and secondary sets 0.5. Set-equivalents describe dose only; they do not gate freshness.
 
 The daily historical scrubber reconstructs maps from records at the end of the selected day and never stores screenshots.
+
+Finishing a valid strength or stretching session persists it before returning Home. Home then announces completion once, highlights only the mapped muscles affected by that session in deterministic order and shows a brief palette-themed celebration. Sessions without mapped muscles receive a generic acknowledgement; reduced motion removes confetti and staggered movement.
 
 ## Progress
 
@@ -77,11 +79,13 @@ The daily historical scrubber reconstructs maps from records at the end of the s
 - Rolling three-session line plus Rising/Flat/Falling label.
 - Graph points expose raw performance, RPE and the exercise note recorded for that session.
 - PRs for weight, reps, estimated 1RM, holds and calculated performance.
-- ROM measurements live inside relevant stretches and remain separate from stretch recency.
+- ROM measurements live inside relevant stretches and remain separate from stretch freshness.
 
 ## Homepage and history
 
-The homepage contains the recency SVG and a GitHub-style five-week activity heatmap:
+The homepage contains the freshness SVG and a calendar-month activity heatmap. The selected freshness date is authoritative: the slider exposes one step per selectable day in that displayed month, past months include every day, and the current month stops at today. The front/back figures use the same anatomy coordinates and hit regions with a 10% vertical presentation stretch; width is preserved and the full head, hands and feet remain visible.
+
+A compact vertical key beside the maps uses the exact active preset's continuous Freshness scale from most recent at the top to least recent at the bottom. Its five ordered bands are under 24 hours, 24–48 hours, 48–72 hours, 3–7 days and over 7 days. Adjacent dated states blend in OKLab while scrubbing; no-data is a separate neutral and is never interpolated as an age stop.
 
 - 0 activities: neutral.
 - 1: light green.
@@ -103,6 +107,7 @@ Trackers contain any combination of Boolean, number, duration, count, rating, te
 - Structured backup excludes photographs; photographs export separately.
 - Searchable/editable history, bodyweight, measurements and progress photos.
 - kg/lb, plate calculator, haptics, reduced motion and accessibility.
+- Brief interaction haptics respect the haptics preference; body-map history colours interpolate while scrubbing unless reduced motion is enabled.
 - No dead placeholder controls in test builds.
 
 ## Engineering sequence
@@ -114,4 +119,6 @@ Trackers contain any combination of Boolean, number, duration, count, rating, te
 
 ## Visual system
 
-Every screen consumes semantic tokens for colour, typography, spacing, shape and motion. Built-in or custom palettes replace token values without screen changes.
+Every screen consumes semantic tokens for colour, typography, spacing, shape and motion. The four curated Ocean, Sunset, Forest and Mono presets provide complete light/dark Material roles and matching Freshness colours without screen-specific overrides. Appearance defaults to **Follow system**, while explicit **Dark** and **Light** choices persist across launches and backups. Dark variants use restrained layered neutral surfaces; Ocean dark maps its core roles to the official [VS Code Dark Modern theme](https://github.com/microsoft/vscode/blob/main/extensions/theme-defaults/themes/dark_modern.json) while retaining Vibe Check's own semantic Freshness colours and mobile state treatments.
+
+Habit heat maps use a separate four-state scale: neutral/no activity, low, medium and strong. Every preset preserves that perceptual order; dark themes increase visual intensity rather than making low values disappear into the background. Habit choice previews, calendars and legends use the same centralized scale.

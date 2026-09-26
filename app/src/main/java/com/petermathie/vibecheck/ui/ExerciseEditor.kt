@@ -111,7 +111,9 @@ fun ExerciseEditor(vm: EditorViewModel) {
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     VibeActionButton("Settings", { configuring=e }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
-                    VibeActionButton(if(e.isCustom)"Edit" else "Duplicate", { selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id) }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
+                    VibeActionButton(if(e.isCustom)"Edit" else "Duplicate", {
+                        selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id)
+                    }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
                     VibeActionButton("Variation", { variation=e.id }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
                 }
                 if(e.isCustom) VibeActionButton("Archive", { vm.saveExercise(e.copy(isArchived=true),aliases.filter { it.exerciseId==e.id }.map { it.alias },mappings.filter { it.exerciseId==e.id }.associate { it.muscleId to it.role }) }, importance = ActionImportance.SECONDARY)
@@ -161,11 +163,6 @@ fun ExerciseEditor(vm: EditorViewModel) {
                     isSeeded = false,
                     trackingType = parent?.trackingType.orEmpty(),
                     inputConfig = parent?.inputConfig.orEmpty(),
-                    targetSets = parent?.targetSets,
-                    targetRepsMin = parent?.targetRepsMin,
-                    targetRepsMax = parent?.targetRepsMax,
-                    targetRpe = parent?.targetRpe,
-                    restSeconds = parent?.restSeconds ?: 120,
                 ),
             )
             variation=null
@@ -254,22 +251,12 @@ private fun VariationSettingsDialog(
             source = "variation",
             isCustom = !variation.isSeeded,
             inputConfig = variation.inputConfig.ifBlank { parent?.inputConfig.orEmpty() },
-            targetSets = variation.targetSets,
-            targetRepsMin = variation.targetRepsMin,
-            targetRepsMax = variation.targetRepsMax,
-            targetRpe = variation.targetRpe,
-            restSeconds = variation.restSeconds,
         )
         ExerciseSettingsDialog(effective, onDismiss) { settings ->
             onSave(
                 variation.copy(
                     trackingType = settings.trackingType,
                     inputConfig = settings.inputConfig,
-                    targetSets = settings.targetSets,
-                    targetRepsMin = settings.targetRepsMin,
-                    targetRepsMax = settings.targetRepsMax,
-                    targetRpe = settings.targetRpe,
-                    restSeconds = settings.restSeconds,
                 ),
             )
     }
@@ -287,14 +274,9 @@ internal fun ExerciseSettingsDialog(
             val decoded = ExerciseInputConfig.decode(exercise.inputConfig, exercise.trackingType)
             mutableStateOf(if (decoded.weightUnit == null) decoded else decoded.copy(weightUnit = weightUnit))
         }
-        var sets by remember(exercise.id) { mutableStateOf(exercise.targetSets?.toString().orEmpty()) }
-        var minimum by remember(exercise.id) { mutableStateOf(exercise.targetRepsMin?.toString().orEmpty()) }
-        var maximum by remember(exercise.id) { mutableStateOf(exercise.targetRepsMax?.toString().orEmpty()) }
-        var rpe by remember(exercise.id) { mutableStateOf(exercise.targetRpe?.toString().orEmpty()) }
-        var rest by remember(exercise.id) { mutableStateOf(exercise.restSeconds.toString()) }
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Exercise settings") },
+            title = { Text("Exercise measurements") },
             text = {
                 LazyColumn {
                     item {
@@ -323,13 +305,6 @@ internal fun ExerciseSettingsDialog(
                         ExerciseSettingCheckbox("Track repetitions", config.reps) {
                             config = config.copy(reps = it)
                         }
-                        EditField("Sets", sets) { sets = it }
-                        EditField("Minimum target", minimum) { minimum = it }
-                        EditField("Upper target", maximum) { maximum = it }
-                        EditField("Target RPE", rpe) { rpe = it }
-                        HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                        Text("Rest", style = MaterialTheme.typography.titleMedium)
-                        EditField("Rest seconds", rest) { rest = it }
                     }
                 }
             },
@@ -339,11 +314,6 @@ internal fun ExerciseSettingsDialog(
                         onSave(
                             exercise.copy(
                                 inputConfig = config.encode(),
-                                targetSets = sets.toIntOrNull(),
-                                targetRepsMin = minimum.toIntOrNull(),
-                                targetRepsMax = maximum.toIntOrNull(),
-                                targetRpe = rpe.toDoubleOrNull(),
-                                restSeconds = rest.toIntOrNull() ?: 120,
                             ),
                         )
                     },

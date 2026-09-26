@@ -22,7 +22,7 @@ Every future treatment must have an accessible reduced-motion equivalent, respec
 
 After real-phone dogfooding, the first personality experiment should be a signature **Finish workout** moment:
 
-1. Show the previous muscle-map state transitioning to the newly derived recency colours.
+1. Show the previous muscle-map state transitioning to the newly derived freshness colours.
 2. Use a restrained completion animation and light haptic.
 3. Present a concise factual summary: work recorded, duration, exercises and sets.
 4. Reserve stronger tiers for a genuine PR, newly established baseline or programme milestone.
@@ -68,7 +68,7 @@ Potential configurable widgets:
 |---|---|
 | Habit heatmap | One selected habit and recent intensity |
 | Quick entry | Boolean completion or one value field |
-| Training recency | Compact current muscle map |
+| Freshness | Compact current muscle map |
 | Weekly summary | Factual training and habit totals |
 
 Widget design must consider lock-screen and launcher privacy, stale-data disclosure, battery cost, update cadence and behavior when the app database is unavailable.

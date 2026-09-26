@@ -102,13 +102,18 @@ class WorkoutEntryDraftTest {
         dao.deleteEntryDraft(exerciseId, 1)
         assertNull(dao.entryDraft(exerciseId))
 
-        dao.entryDraft(pendingDraft(exerciseId).copy(performance = "11"))
+        val finishDraft = pendingDraft(exerciseId).copy(performance = "11")
+        dao.entryDraft(finishDraft)
         val recencyBeforeFinish = repository.observeMuscleRecency(TrainingMode.STRENGTH).first()
+        assertNull(repository.finishWorkout(workoutId))
+        assertEquals(finishDraft, dao.entryDraft(exerciseId))
+        assertEquals(recencyBeforeFinish, repository.observeMuscleRecency(TrainingMode.STRENGTH).first())
+
+        dao.set(pendingSet(finishDraft, reps = 11))
         repository.finishWorkout(workoutId)
         assertNull(dao.entryDraft(exerciseId))
         dao.persistEntryDraft(pendingDraft(exerciseId).copy(performance = "stale write"))
         assertNull(dao.entryDraft(exerciseId))
-        assertEquals(recencyBeforeFinish, repository.observeMuscleRecency(TrainingMode.STRENGTH).first())
 
         val (nextWorkoutId, nextExerciseId) = startWorkout()
         dao.entryDraft(pendingDraft(nextExerciseId).copy(performance = "12"))

@@ -50,7 +50,7 @@ fun ProgressScreen(vm:EditorViewModel) {
     var exerciseId by remember { mutableStateOf<String?>(null) };var picker by remember { mutableStateOf(false) };var filter by remember { mutableStateOf<String?>(null) };var selected by remember { mutableStateOf<Int?>(null) }
     var variationMenu by remember { mutableStateOf(false) };var methodology by remember { mutableStateOf(false) }
     var selectedWeight by remember { mutableStateOf<Int?>(null) };var selectedPhoto by remember { mutableStateOf<File?>(null) }
-    var expandedCards by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var collapsedCards by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val points=exerciseId?.let { SessionProgress.points(it,workouts,rows,sets,links,bands,filter,variations) }.orEmpty()
     val finishedIds=workouts.filter { it.status=="FINISHED" }.map { it.id }.toSet()
     val trackableSetRowIds = sets.filter { SessionProgress.valid(it) || it.romValue != null }.map { it.workoutExerciseId }.toSet()
@@ -131,9 +131,9 @@ fun ProgressScreen(vm:EditorViewModel) {
                             cardKey.startsWith("habit:") -> activeTrackers.find { "habit:${it.id}" == cardKey }?.name.orEmpty()
                             else -> cardKey
                         }
-                        val expanded = expandedCards.contains(cardKey)
+                        val expanded = !collapsedCards.contains(cardKey)
                         val toggleExpanded = {
-                            expandedCards = if (expanded) expandedCards.filterNot { it == cardKey } else expandedCards + cardKey
+                            collapsedCards = if (expanded) collapsedCards + cardKey else collapsedCards.filterNot { it == cardKey }
                         }
                         when {
                             cardKey == "overall" -> ProgressCardShell(progressOrder, cardKey, cardIndex, title, expanded, toggleExpanded) {
@@ -423,11 +423,11 @@ private fun habitIntensityDescription(
     unit: String?,
 ): String = when {
     fields.any { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") } ->
-        "Light < ${formatAxis(tracker.heatmapLightBelow)}${unitSuffix(unit)} · " +
-            "medium < ${formatAxis(tracker.heatmapMediumBelow)}${unitSuffix(unit)} · dark above"
+        "Low < ${formatAxis(tracker.heatmapLightBelow)}${unitSuffix(unit)} · " +
+            "medium < ${formatAxis(tracker.heatmapMediumBelow)}${unitSuffix(unit)} · strong at or above"
     fields.any { it.valueType == HabitFieldForm.CHOICE } ->
-        "Choices run from light to dark in the order configured."
-    fields.any { it.valueType == "BOOLEAN" } -> "No is light · Yes is dark"
+        "Choices run from low to strong in the order configured."
+    fields.any { it.valueType == "BOOLEAN" } -> "No is low · Yes is strong"
     else -> "A written entry uses the medium shade."
 }
 

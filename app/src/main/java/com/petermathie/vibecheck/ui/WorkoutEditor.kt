@@ -30,7 +30,13 @@ fun emptySet(id: String, ordinal: Int) = WorkoutSetEntity(newId(), id, ordinal, 
 fun emptyEntryDraft(id: String, ordinal: Int) = WorkoutEntryDraftEntity(id, newId(), ordinal, "", "", false, false, false, "[]", null, "", "", "", "", "", "cm", System.currentTimeMillis())
 
 @Composable
-fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit, onFinish: (String) -> Unit) {
+fun WorkoutEditor(
+    vm: EditorViewModel,
+    workoutId: String?,
+    onChoose: () -> Unit,
+    onFinish: (String) -> Unit,
+    onDoneEditing: () -> Unit = onChoose,
+) {
     val workouts by vm.workouts.collectAsStateWithLifecycle()
     val snapshots by vm.workoutExercises.collectAsStateWithLifecycle()
     val sets by vm.sets.collectAsStateWithLifecycle()
@@ -73,7 +79,22 @@ fun WorkoutEditor(vm: EditorViewModel, workoutId: String?, onChoose: () -> Unit,
         }
         item {
             VibeActionButton("Add exercise to workout", { add = true }, importance = ActionImportance.SECONDARY)
-            Button(onClick = { onFinish(workout.id) }, modifier = Modifier.fillMaxWidth()) { Text(if (workout.status == "FINISHED") "Done editing" else "Finish workout") }
+            val canFinish = logged.any { set ->
+                set.result == "COMPLETED" && listOf(
+                    set.reps?.toDouble(),
+                    set.holdMillis?.toDouble(),
+                    set.leftReps?.toDouble(),
+                    set.rightReps?.toDouble(),
+                    set.leftHoldMillis?.toDouble(),
+                    set.rightHoldMillis?.toDouble(),
+                    set.romValue,
+                ).any { (it ?: 0.0) > 0.0 }
+            }
+            Button(
+                onClick = { if (workout.status == "FINISHED") onDoneEditing() else onFinish(workout.id) },
+                enabled = workout.status == "FINISHED" || canFinish,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (workout.status == "FINISHED") "Done editing" else "Finish workout") }
         }
     }
     if (bodyweight) NameDialog("Bodyweight in kg", workout.bodyweightKg?.toString().orEmpty(), { bodyweight = false }) { it.toDoubleOrNull()?.takeIf { n -> n > 0 }?.let { n -> vm.save(workout.copy(bodyweightKg = n)) }; bodyweight = false }
@@ -117,7 +138,7 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
         )
     }
     var stopwatchOrdinal by remember { mutableStateOf<Int?>(null) }
-    val targetSets = defaultVariation?.targetSets
+    val targetSets = row.targetSets
         ?: row.targets.substringBefore(" sets").toIntOrNull()?.coerceAtLeast(1)
         ?: 3
     LaunchedEffect(row.id) {
@@ -197,9 +218,8 @@ private fun WorkoutExerciseCard(vm: EditorViewModel, row: WorkoutExerciseEntity,
     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(exercise?.canonicalName.orEmpty(), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-            val configuredRest = defaultVariation?.restSeconds ?: restSeconds
-            IconButton(onClick = { RestTimer.start(context, configuredRest) }) {
-                Icon(Icons.Outlined.Timer, contentDescription = "Start ${configuredRest} second rest for ${exercise?.canonicalName.orEmpty()}")
+            IconButton(onClick = { RestTimer.start(context, restSeconds) }) {
+                Icon(Icons.Outlined.Timer, contentDescription = "Start ${restSeconds} second rest for ${exercise?.canonicalName.orEmpty()}")
             }
         }
         if(row.targets.isNotBlank())Text(row.targets,style=MaterialTheme.typography.bodySmall)

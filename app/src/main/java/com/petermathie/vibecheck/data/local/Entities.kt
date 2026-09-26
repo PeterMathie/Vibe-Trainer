@@ -247,6 +247,11 @@ data class WorkoutExerciseEntity(
     @androidx.room.ColumnInfo(defaultValue = "''") val trackingType: String = "",
     @androidx.room.ColumnInfo(defaultValue = "''") val targets: String = "",
     @androidx.room.ColumnInfo(defaultValue = "''") val inputConfig: String = "",
+    val targetSets: Int? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null,
+    val targetHoldSeconds: Int? = null,
+    val targetRpe: Double? = null,
 )
 
 @Entity(tableName="workout_muscles",primaryKeys=["workoutExerciseId","muscleId"],foreignKeys=[ForeignKey(entity=WorkoutExerciseEntity::class,parentColumns=["id"],childColumns=["workoutExerciseId"],onDelete=ForeignKey.CASCADE)],indices=[Index("workoutExerciseId")])
