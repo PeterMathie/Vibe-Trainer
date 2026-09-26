@@ -265,6 +265,9 @@ class ProgrammeUiTest {
             database.editorDao().days().first().single { it.programmeId == programmeId }.id
         }
         compose.onNodeWithContentDescription("Add exercise or stretch").performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithText("New exercise").fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText("New exercise").performClick()
         compose.waitUntil(30_000) {
             runBlocking {
