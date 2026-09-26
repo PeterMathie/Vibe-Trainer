@@ -1,6 +1,13 @@
 # Work status and agent handoff
 
-Updated: 24 September 2026. Owner of the current pass: GitHub Copilot session `33304680-6464-408c-b019-2abe27a4f884`.
+Updated: 26 September 2026. Owner of the current pass: GitHub Copilot release session.
+
+Current release task: **Vibe Check 0.4.0 Beta 2 release preparation is in
+progress** from exact merged `main` source
+`b012adc4a534233f8d17b524f56f2dcbc2fb6bd2`. The candidate identity is
+`0.4.0-beta.2` (`versionCode 5`) with Room schema 15. Publication remains
+gated on local validation, release-prep PR CI/merge, exact merged-main CI,
+protected signed workflow verification and fresh/update API 35 validation.
 
 Current implementation task: **ID-01 Vibe Check identity migration is complete** on `pmathie-cicpilot-persist-workout-drafts`. Checkpoint `0703a1d` changes the display name to Vibe Check, Android namespace/application ID to `com.petermathie.vibecheck`, Kotlin source/test package trees, Room schema FQCN path, launcher/workflow component names and app-owned filenames. The release identity is Vibe Check 0.4.0 Beta 1 (`versionName 0.4.0-beta.1`, `versionCode 4`). Vibe Check is intentionally a distinct Android install; Vibe Trainer app-private data does not transfer automatically. Legacy JSON `format: "vibe-trainer"` and catalogue source marker `vibe-trainer` remain stable compatibility identifiers. Focused identity, legacy-import and Room migration validation passed after a clean build.
 
