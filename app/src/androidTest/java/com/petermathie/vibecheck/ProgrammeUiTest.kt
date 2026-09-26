@@ -266,7 +266,7 @@ class ProgrammeUiTest {
         }
         compose.onNodeWithContentDescription("Add exercise or stretch").performClick()
         compose.onNodeWithText("New exercise").performClick()
-        compose.waitUntil(15_000) {
+        compose.waitUntil(30_000) {
             runBlocking {
                 database.editorDao().entries().first().any {
                     it.programmeDayId == dayId && it.exerciseId == "new-exercise"

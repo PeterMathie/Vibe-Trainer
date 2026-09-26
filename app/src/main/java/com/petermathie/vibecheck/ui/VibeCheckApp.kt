@@ -636,6 +636,12 @@ internal fun HomeScreen(
                     selectedDate = selectedRecencyDate,
                     today = today,
                     compact = compactHomeChrome,
+                    expandRows = compactHomeChrome && state.activeWorkout == null,
+                    modifier = if (compactHomeChrome && state.activeWorkout == null) {
+                        Modifier.weight(1f, fill = true)
+                    } else {
+                        Modifier
+                    },
                     onDayClick = { date ->
                         onRecencyDayChange(date.toEpochDay())
                         onDayClick(date.toEpochDay())
@@ -697,6 +703,8 @@ private fun MonthlyActivityHeatmap(
     selectedDate: LocalDate,
     today: LocalDate,
     compact: Boolean = false,
+    expandRows: Boolean = false,
+    modifier: Modifier = Modifier,
     onDayClick: (LocalDate) -> Unit,
     onMonthChange: (YearMonth) -> Unit,
 ) {
@@ -706,62 +714,80 @@ private fun MonthlyActivityHeatmap(
     val counts = days.associate { it.epochDay to it.activityCount }
     val leadingDays = range.firstDate.dayOfWeek.value % 7
     val weekCount = (leadingDays + range.dayCount + 6) / 7
-    Row(
-        Modifier.fillMaxWidth().semantics { contentDescription = "Freshness month navigation" },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    Column(
+        modifier.fillMaxWidth(),
     ) {
-        VibeActionButton("Earlier", { onMonthChange(range.month.minusMonths(1)) }, importance = ActionImportance.COMPACT)
-        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            if (compact) {
-                Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelSmall)
+        Row(
+            Modifier.fillMaxWidth().semantics { contentDescription = "Freshness month navigation" },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            VibeActionButton("Earlier", { onMonthChange(range.month.minusMonths(1)) }, importance = ActionImportance.COMPACT)
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (compact) {
+                    Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelSmall)
+                }
+                Text(
+                    range.month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
             }
-            Text(
-                range.month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            VibeActionButton(
+                "Later",
+                { onMonthChange(range.month.plusMonths(1)) },
+                importance = ActionImportance.COMPACT,
+                enabled = range.month < YearMonth.from(today),
             )
         }
-        VibeActionButton(
-            "Later",
-            { onMonthChange(range.month.plusMonths(1)) },
-            importance = ActionImportance.COMPACT,
-            enabled = range.month < YearMonth.from(today),
-        )
-    }
-    val outerCount = if (compact) 7 else weekCount
-    val innerCount = if (compact) weekCount else 7
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        repeat(outerCount) { outer ->
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                repeat(innerCount) { inner ->
-                    val week = if (compact) inner else outer
-                    val weekday = if (compact) outer else inner
-                    val dayOfMonth = week * 7 + weekday - leadingDays + 1
-                    if (dayOfMonth in 1..range.dayCount) {
-                        val date = range.month.atDay(dayOfMonth)
-                        val count = counts[date.toEpochDay()] ?: 0
-                        val color = heatmapColors.forLevel(count.coerceAtMost(3))
-                        val outlineColor = when {
-                            date == selectedDate || date == today -> palette.heatmapOutlineColor(color)
-                            else -> Color.Transparent
+        val outerCount = if (compact) 7 else weekCount
+        val innerCount = if (compact) weekCount else 7
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .then(if (expandRows) Modifier.weight(1f, fill = true) else Modifier)
+                .semantics { contentDescription = "Activity heatmap grid, $weekCount weeks" },
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            repeat(outerCount) { outer ->
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .then(if (expandRows) Modifier.fillMaxHeight() else Modifier),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    repeat(innerCount) { inner ->
+                        val week = if (compact) inner else outer
+                        val weekday = if (compact) outer else inner
+                        val dayOfMonth = week * 7 + weekday - leadingDays + 1
+                        val cellModifier = Modifier
+                            .fillMaxWidth()
+                            .then(if (expandRows) Modifier.weight(1f, fill = true) else Modifier.height(14.dp))
+                        if (dayOfMonth in 1..range.dayCount) {
+                            val date = range.month.atDay(dayOfMonth)
+                            val count = counts[date.toEpochDay()] ?: 0
+                            val color = heatmapColors.forLevel(count.coerceAtMost(3))
+                            val outlineColor = when {
+                                date == selectedDate || date == today -> palette.heatmapOutlineColor(color)
+                                else -> Color.Transparent
+                            }
+                            Box(
+                                cellModifier
+                                    .semantics {
+                                        contentDescription = "$date: $count activities" +
+                                            if (date == selectedDate) ", selected freshness date" else ""
+                                    }
+                                    .background(color, RoundedCornerShape(VibeShapes.tooltip))
+                                    .border(
+                                        width = if (date == selectedDate) 2.dp else 1.dp,
+                                        color = outlineColor,
+                                        shape = RoundedCornerShape(VibeShapes.tooltip),
+                                    )
+                                    .clickable { onDayClick(date) },
+                            )
+                        } else {
+                            Spacer(cellModifier)
                         }
-                        Box(
-                            Modifier.fillMaxWidth().height(14.dp)
-                                .semantics {
-                                    contentDescription = "$date: $count activities" +
-                                        if (date == selectedDate) ", selected freshness date" else ""
-                                }
-                                .background(color, RoundedCornerShape(VibeShapes.tooltip))
-                                .border(
-                                    width = if (date == selectedDate) 2.dp else 1.dp,
-                                    color = outlineColor,
-                                    shape = RoundedCornerShape(VibeShapes.tooltip),
-                                )
-                                .clickable { onDayClick(date) },
-                        )
-                    } else {
-                        Spacer(Modifier.fillMaxWidth().height(14.dp))
                     }
                 }
             }

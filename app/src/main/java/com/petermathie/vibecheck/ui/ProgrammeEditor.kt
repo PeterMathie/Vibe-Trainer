@@ -129,7 +129,7 @@ fun ProgrammeEditor(
             owner = Destination.PROGRAMMES,
             destination = AppFabDestination.AddProgrammeItem,
             enabled = availableAddTypes.isNotEmpty(),
-            visible = !programmeModalOpen,
+            visible = !programmeModalOpen && availableAddTypes.isNotEmpty(),
             onClick = ::requestAddProgrammeItem,
         )
     }
