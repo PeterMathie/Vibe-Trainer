@@ -234,6 +234,7 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
                         },
                         onChoose = { destination = Destination.PROGRAMMES },
                         onDoneEditing = { destination = Destination.HOME },
+                        onDeleted = { destination = Destination.HOME },
                     )
                     Destination.EXERCISES -> ExerciseEditor(editor)
                     Destination.PROGRESS -> ProgressScreen(editor)

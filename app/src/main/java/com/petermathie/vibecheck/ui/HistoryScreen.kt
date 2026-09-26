@@ -21,7 +21,7 @@ fun HistoryScreen(vm:EditorViewModel,onMap:(Long)->Unit) {
     var query by remember { mutableStateOf("") };var selected by remember { mutableStateOf<String?>(null) };var date by remember { mutableStateOf(LocalDate.now().toString()) }
     val filteredWorkouts = workouts.filter { workout -> workout.status=="FINISHED"&&(workout.name.contains(query,true)||exerciseRows.any { row -> row.workoutId==workout.id && (row.notes.contains(query,true)||row.exerciseName.contains(query,true)||exercises.any { it.id==row.actualExerciseId && it.canonicalName.contains(query,true) }) }) }
     BackHandler(selected!=null){selected=null}
-    if(selected!=null) { Column(Modifier.fillMaxSize()) { VibeActionButton("Back to history", { selected=null }, importance = ActionImportance.COMPACT);Box(Modifier.weight(1f)){WorkoutEditor(vm,selected,{}, {selected=null})} };return }
+    if(selected!=null) { Column(Modifier.fillMaxSize()) { VibeActionButton("Back to history", { selected=null }, importance = ActionImportance.COMPACT);Box(Modifier.weight(1f)){WorkoutEditor(vm,selected,{}, {selected=null}, onDoneEditing = { selected=null }, onDeleted = { selected=null })} };return }
     ScreenList {
         item {
             Text("History",style=MaterialTheme.typography.headlineSmall)

@@ -189,7 +189,7 @@ class EditorViewModel @Inject constructor(private val db: VibeDatabase) : ViewMo
     fun removeDay(id: String) = write { dao.deleteDay(id) }
     fun removeEntry(id: String) = write { dao.deleteEntry(id) }
     fun removeSet(id: String) = write { dao.deleteSet(id) }
-    fun removeWorkout(id: String) = write { dao.deleteWorkout(id) }
+    fun removeWorkout(id: String, onRemoved: () -> Unit = {}) = write(onRemoved) { dao.deleteWorkout(id) }
     fun clearValue(id: String, day: Long) = write { trackerStore.clearValue(id, day) }
     fun removeMeasurement(id: String) = write { dao.deleteMeasurement(id) }
     fun saveSet(row: WorkoutSetEntity, bandIds: List<String>) = write {

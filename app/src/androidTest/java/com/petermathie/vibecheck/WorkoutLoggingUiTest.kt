@@ -127,6 +127,7 @@ class WorkoutLoggingUiTest {
         val heldBounds = compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").fetchSemanticsNode().boundsInRoot
         val tensionBounds = compose.onNodeWithContentDescription("Total Time for Handstand set 1").fetchSemanticsNode().boundsInRoot
         val rpeBounds = compose.onNodeWithContentDescription("RPE for Handstand set 1").fetchSemanticsNode().boundsInRoot
+        val stopwatchBounds = compose.onNodeWithContentDescription("Open Total Time stopwatch for set 1").fetchSemanticsNode().boundsInRoot
         assertTrue(
             "TUT, Total, and RPE should share a row: TUT=$heldBounds Total=$tensionBounds RPE=$rpeBounds",
             kotlin.math.abs(heldBounds.center.y - tensionBounds.center.y) < 2f,
@@ -134,6 +135,10 @@ class WorkoutLoggingUiTest {
         assertTrue(
             "TUT, Total, and RPE should share a row: TUT=$heldBounds Total=$tensionBounds RPE=$rpeBounds",
             kotlin.math.abs(heldBounds.center.y - rpeBounds.center.y) < 2f,
+        )
+        assertTrue(
+            "Stopwatch should occupy the right side of Total Time: Total=$tensionBounds stopwatch=$stopwatchBounds",
+            stopwatchBounds.left >= tensionBounds.center.x && stopwatchBounds.right <= tensionBounds.right,
         )
 
         val handstandId = runBlocking {
@@ -316,6 +321,47 @@ class WorkoutLoggingUiTest {
         compose.onNodeWithText("Complete or correct the highlighted number").assertExists()
         compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasText("Finish workout"))
         compose.onNodeWithText("Finish workout").assertIsNotEnabled()
+    }
+
+    @Test
+    fun finishedWorkoutDeletionRequiresExplicitConfirmation() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
+        val workoutId = startPushWorkout(context)
+        runBlocking {
+            val workout = database.editorDao().workouts().first().first { it.id == workoutId }
+            database.editorDao().workout(
+                workout.copy(status = "FINISHED", finishedAt = System.currentTimeMillis()),
+            )
+        }
+        var deleted = false
+        val viewModel = EditorViewModel(database)
+        compose.setContent {
+            VibeCheckTheme {
+                WorkoutEditor(
+                    viewModel,
+                    workoutId,
+                    onChoose = {},
+                    onFinish = {},
+                    onDeleted = { deleted = true },
+                )
+            }
+        }
+
+        compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasText("Delete workout"))
+        compose.onNodeWithText("Delete workout").performClick()
+        compose.onNodeWithText("Delete workout?").assertIsDisplayed()
+        compose.onNodeWithText("Are you sure you want to delete", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("No").performClick()
+        assertTrue(runBlocking { database.editorDao().workouts().first().any { it.id == workoutId } })
+
+        compose.onNodeWithText("Delete workout").performClick()
+        compose.onNodeWithText("Yes, delete").performClick()
+        compose.waitUntil(15_000) {
+            deleted && runBlocking {
+                database.editorDao().workouts().first().none { it.id == workoutId }
+            }
+        }
     }
 
     private fun startPushWorkout(context: Context) = runBlocking {

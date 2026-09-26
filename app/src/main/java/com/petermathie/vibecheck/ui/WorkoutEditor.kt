@@ -54,6 +54,7 @@ fun WorkoutEditor(
     onChoose: () -> Unit,
     onFinish: (String) -> Unit,
     onDoneEditing: () -> Unit = onChoose,
+    onDeleted: () -> Unit = onChoose,
 ) {
     val workouts by vm.workouts.collectAsStateWithLifecycle()
     val snapshots by vm.workoutExercises.collectAsStateWithLifecycle()
@@ -68,6 +69,7 @@ fun WorkoutEditor(
     var add by remember { mutableStateOf(false) }
     var bodyweight by remember { mutableStateOf(false) }
     var editDate by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     if (workout == null) {
         Button(
             onClick = onChoose,
@@ -138,6 +140,16 @@ fun WorkoutEditor(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
             ) { Text(if (workout.status == "FINISHED") "Done editing" else "Finish workout") }
+            OutlinedButton(
+                onClick = { confirmDelete = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Icon(Icons.Outlined.Delete, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Delete workout")
+            }
         }
     }
     if (bodyweight) {
@@ -156,6 +168,25 @@ fun WorkoutEditor(
             val end=date.atTime(old.toLocalTime()).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
             vm.changeWorkoutDate(workout,end);editDate=false
         }
+    }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete workout?") },
+            text = { Text("Are you sure you want to delete “${workout.name}”? This cannot be undone.") },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("No") }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        vm.removeWorkout(workout.id, onDeleted)
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) { Text("Yes, delete") }
+            },
+        )
     }
     if (add) ExercisePicker(vm, { add = false }) { e -> vm.save(WorkoutExerciseEntity(newId(), workout.id, e.id, e.id, rows.size, "", 120, null)); add = false }
 }
@@ -454,6 +485,11 @@ private fun WorkoutExerciseCard(
                         label = "Total (s)",
                         description = "Total Time for ${exercise?.canonicalName.orEmpty()} set $ordinal",
                         modifier = Modifier.width(96.dp).weight(1f),
+                        trailingIcon = {
+                            IconButton(onClick = { stopwatchOrdinal = ordinal }) {
+                                Icon(Icons.Outlined.Timer, contentDescription = "Open Total Time stopwatch for set $ordinal")
+                            }
+                        },
                     )
                     QuantitativeTextField(
                         value = draft.rpe,
@@ -466,9 +502,6 @@ private fun WorkoutExerciseCard(
                         maximum = 10.0,
                         modifier = Modifier.width(76.dp).weight(1f),
                     )
-                    if (inputConfig.timeUnderTension) IconButton(onClick = { stopwatchOrdinal = ordinal }) {
-                        Icon(Icons.Outlined.Timer, contentDescription = "Open Total Time stopwatch for set $ordinal")
-                    }
                 }
                 if (inputConfig.addedWeight) QuantitativeTextField(
                     value = draft.addedWeight,
@@ -564,6 +597,7 @@ private fun QuantitativeTextField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     maximum: Double = 1_000_000_000.0,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val parsed = quantitativeInput(value, maximum)
     val error = when {
@@ -587,6 +621,7 @@ private fun QuantitativeTextField(
         supportingText = if (error == null) null else ({ Text(error) }),
         isError = error != null,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        trailingIcon = trailingIcon,
         singleLine = true,
         modifier = modifier.semantics {
             contentDescription = description
