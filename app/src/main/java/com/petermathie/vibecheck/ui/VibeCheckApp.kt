@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -464,13 +465,24 @@ internal fun HomeScreen(
     val freshnessPanelHeight = (LocalConfiguration.current.screenHeightDp.dp * 0.62f)
         .coerceIn(420.dp, 560.dp)
     val horizontalGutter = ((screenWidth - 840.dp) / 2).coerceAtLeast(VibeSpacing.medium)
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = horizontalGutter, vertical = VibeSpacing.medium),
-        verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
-    ) {
+    val scrollState = rememberScrollState()
+    LaunchedEffect(state.activeWorkout?.id) {
+        if (state.activeWorkout == null) scrollState.scrollTo(0)
+    }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val compactHomeChrome = LocalDensity.current.fontScale <= 1.05f &&
+            maxWidth >= 360.dp &&
+            maxHeight >= 700.dp
+        val verticalPadding = if (compactHomeChrome) VibeSpacing.xSmall else VibeSpacing.medium
+        val sectionSpacing = if (compactHomeChrome) VibeSpacing.xSmall else VibeSpacing.medium
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .semantics { contentDescription = "Home content" }
+                .padding(horizontal = horizontalGutter, vertical = verticalPadding),
+            verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+        ) {
         VibeCard(modifier = Modifier.height(freshnessPanelHeight), fillHeight = true) {
             TechnicalBackdrop(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -588,21 +600,43 @@ internal fun HomeScreen(
                 }
             }
         }
-        VibeCard {
-            Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelLarge)
-            MonthlyActivityHeatmap(
-                days = state.activityDays,
-                selectedDate = selectedRecencyDate,
-                today = today,
-                onDayClick = { date ->
-                    onRecencyDayChange(date.toEpochDay())
-                    onDayClick(date.toEpochDay())
-                },
-                onMonthChange = { month ->
-                    onRecencyDayChange(freshnessDateInMonth(selectedRecencyDate, month, today).toEpochDay())
-                },
-            )
-            Text("0 none · 1 low · 2 medium · 3+ strong", color = palette.textFaint, style = MaterialTheme.typography.bodyMedium)
+            val trackerContent: @Composable ColumnScope.() -> Unit = {
+                if (!compactHomeChrome) {
+                    Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelLarge)
+                }
+                MonthlyActivityHeatmap(
+                    days = state.activityDays,
+                    selectedDate = selectedRecencyDate,
+                    today = today,
+                    compact = compactHomeChrome,
+                    onDayClick = { date ->
+                        onRecencyDayChange(date.toEpochDay())
+                        onDayClick(date.toEpochDay())
+                    },
+                    onMonthChange = { month ->
+                        onRecencyDayChange(freshnessDateInMonth(selectedRecencyDate, month, today).toEpochDay())
+                    },
+                )
+                Text(
+                    "0 none · 1 low · 2 medium · 3+ strong",
+                    color = palette.textFaint,
+                    style = if (compactHomeChrome) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium,
+                )
+            }
+            if (compactHomeChrome) {
+                VibeSurface(
+                    level = VibeSurfaceLevel.CARD,
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Work tracker card" },
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(horizontal = VibeSpacing.small, vertical = VibeSpacing.xSmall),
+                        verticalArrangement = Arrangement.spacedBy(VibeSpacing.xSmall),
+                        content = trackerContent,
+                    )
+                }
+            } else {
+                VibeCard(content = trackerContent)
+            }
         }
     }
     selectedMuscle?.let { muscleId ->
@@ -629,6 +663,7 @@ private fun MonthlyActivityHeatmap(
     days: List<ActivityDay>,
     selectedDate: LocalDate,
     today: LocalDate,
+    compact: Boolean = false,
     onDayClick: (LocalDate) -> Unit,
     onMonthChange: (YearMonth) -> Unit,
 ) {
@@ -644,12 +679,16 @@ private fun MonthlyActivityHeatmap(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         VibeActionButton("Earlier", { onMonthChange(range.month.minusMonths(1)) }, importance = ActionImportance.COMPACT)
-        Text(
-            range.month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-            Modifier.weight(1f),
-            style = MaterialTheme.typography.labelSmall,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        )
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (compact) {
+                Text("WORK TRACKER", color = palette.accent, style = MaterialTheme.typography.labelSmall)
+            }
+            Text(
+                range.month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+        }
         VibeActionButton(
             "Later",
             { onMonthChange(range.month.plusMonths(1)) },
@@ -657,10 +696,14 @@ private fun MonthlyActivityHeatmap(
             enabled = range.month < YearMonth.from(today),
         )
     }
+    val outerCount = if (compact) 7 else weekCount
+    val innerCount = if (compact) weekCount else 7
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        repeat(weekCount) { week ->
+        repeat(outerCount) { outer ->
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                repeat(7) { weekday ->
+                repeat(innerCount) { inner ->
+                    val week = if (compact) inner else outer
+                    val weekday = if (compact) outer else inner
                     val dayOfMonth = week * 7 + weekday - leadingDays + 1
                     if (dayOfMonth in 1..range.dayCount) {
                         val date = range.month.atDay(dayOfMonth)

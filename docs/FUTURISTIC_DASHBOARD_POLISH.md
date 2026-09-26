@@ -376,6 +376,12 @@ This phase must not:
 | Dialogs / sheets / menus | L3/L4 surfaces, focus ring, inset content groups, consistent actions, responsive max width | Validation, dismiss semantics, destructive confirmations and explicit errors |
 | Empty / error / loading | Shared `VibeStatePanel`; stable layout, actionable copy, static skeletons, explicit retry/error | No fake data, no silent fallback, no dead controls |
 
+### Home viewport invariant
+
+On the standard 411×891 dp API 35 reference viewport at the default font scale, Home with no active workout is a single non-scrolling dashboard: the complete invariant-height Freshness panel and Work tracker card fit within the visible content viewport, and the vertical scroll range is exactly zero. The compact presentation changes only lower-priority Work tracker chrome: its section label shares the month-navigation row, the calendar uses weekday columns to reduce vertical rows, and surrounding/card spacing is tightened without changing data, date navigation, cell semantics, touch targets, or either Freshness SVG's bounds.
+
+An active-workout card remains between Freshness and Work tracker and may introduce vertical scrolling; removing, cancelling, or finishing that workout removes all of its reserved height and clamps Home's scroll position and range back to zero immediately. Freshness retains identical measured bounds before, during, and after that transition. At 1.3× and 2× font scales, below 360 dp width, or below 700 dp available content height, Home deliberately uses the spacious stacked presentation and scrolls rather than clipping text, reducing touch targets, or shrinking the Freshness figures.
+
 ### Pointer-anchored reorder behavior
 
 All drag-to-reorder tile and card lists use the same pointer-anchored reorder primitive. The active item is an elevated overlay whose root-coordinate translation preserves the original grab point through every keyed list relayout; only displaced neighbors animate into their new positions. Candidate crossings use measured item geometry plus a directional dead zone, with one haptic per accepted crossing and one haptic after a successful drop. Persistence occurs once, on successful drop only. Cancellation, Back, or pointer interruption restores the source order without persistence.
