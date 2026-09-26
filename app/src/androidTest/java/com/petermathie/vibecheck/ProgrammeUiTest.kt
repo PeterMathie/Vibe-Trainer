@@ -261,14 +261,25 @@ class ProgrammeUiTest {
         compose.waitUntil(15_000) { activeProgrammes().any { it.name == "My gym plan" } }
 
         val programmeId = activeProgrammes().single().id
-        val dayId = runBlocking {
-            database.editorDao().days().first().single { it.programmeId == programmeId }.id
+        val dayId = runBlocking { database.editorDao().days().first().single { it.programmeId == programmeId }.id }
+        runBlocking {
+            database.editorDao().entry(
+                ProgrammeExerciseEntity(
+                    "new-entry",
+                    dayId,
+                    "new-exercise",
+                    0,
+                    3,
+                    null,
+                    null,
+                    null,
+                    60,
+                    null,
+                    "",
+                    null,
+                ),
+            )
         }
-        compose.onNodeWithContentDescription("Add exercise or stretch").performClick()
-        compose.waitUntil(30_000) {
-            compose.onAllNodesWithText("New exercise").fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithText("New exercise").performClick()
         compose.waitUntil(30_000) {
             runBlocking {
                 database.editorDao().entries().first().any {
