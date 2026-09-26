@@ -2,7 +2,6 @@ package com.petermathie.vibecheck
 
 import android.content.Context
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
@@ -22,7 +21,6 @@ import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import com.petermathie.vibecheck.domain.programme.ExerciseInputConfig
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -31,19 +29,20 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class WorkoutLoggingUiTest {
-    @get:Rule
-    val compose = createComposeRule()
     private lateinit var database: VibeDatabase
 
-    @After
-    fun close() = database.close()
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+    private val compose get() = lifecycle.compose
 
     @Test
     fun workoutLoggerHidesSetConfigurationAndPersistsExerciseNotes() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         val workoutId = startPushWorkout(context)
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             VibeCheckTheme { WorkoutEditor(viewModel, workoutId, {}, {}) }
         }
@@ -69,7 +68,7 @@ class WorkoutLoggingUiTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         val workoutId = startPushWorkout(context)
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
         compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Time Under Tension for Handstand set 1").fetchSemanticsNodes().isNotEmpty() }
@@ -105,7 +104,7 @@ class WorkoutLoggingUiTest {
             TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao(), context)
                 .startWorkout("demo-day-push")
         }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
         compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").performTextInput("12")
@@ -169,7 +168,7 @@ class WorkoutLoggingUiTest {
                 .forEach { database.editorDao().entry(it.copy(targetSets = 1)) }
         }
         val workoutId = startPushWorkout(context)
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         runBlocking { viewModel.variations.first { rows -> rows.any { it.id == "handstand-wall" } } }
         compose.setContent { VibeCheckTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
@@ -204,7 +203,7 @@ class WorkoutLoggingUiTest {
         val workoutId = startPushWorkout(context)
         val bench = runBlocking { database.editorDao().workoutExercises().first().first { it.workoutId == workoutId && it.actualExerciseId == "core:bench-press" } }
         runBlocking { database.editorDao().set(emptySet(bench.id, 1).copy(weightKg = 50.0, reps = 5.0)) }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
         compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasContentDescription("More actions for Bench", substring = true))
@@ -242,7 +241,7 @@ class WorkoutLoggingUiTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         val workoutId = startPushWorkout(context)
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
@@ -271,7 +270,7 @@ class WorkoutLoggingUiTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         val workoutId = startPushWorkout(context)
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
         compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Set 1 for Handstand").fetchSemanticsNodes().isNotEmpty() }
@@ -306,7 +305,7 @@ class WorkoutLoggingUiTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, VibeDatabase::class.java).build()
         val workoutId = startPushWorkout(context)
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
         compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasContentDescription("Set 1 for Bench press"))
@@ -335,7 +334,7 @@ class WorkoutLoggingUiTest {
             )
         }
         var deleted = false
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             VibeCheckTheme {
                 WorkoutEditor(

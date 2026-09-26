@@ -8,7 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -23,21 +22,19 @@ import com.petermathie.vibecheck.ui.MoreScreen
 import com.petermathie.vibecheck.ui.PrimaryNavigationBar
 import com.petermathie.vibecheck.ui.TrackerScreen
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
-import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class NavigationUiTest {
-    @get:Rule
-    val compose = createComposeRule()
     private lateinit var database: VibeDatabase
 
-    @After
-    fun close() {
-        if (::database.isInitialized) database.close()
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
     }
+    private val compose get() = lifecycle.compose
 
     @Test
     fun fixedNavigationDirectlyExposesHabitsAndBody() {
@@ -45,7 +42,7 @@ class NavigationUiTest {
             ApplicationProvider.getApplicationContext<Context>(),
             VibeDatabase::class.java,
         ).build()
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             VibeCheckTheme {
                 var destination by remember { mutableStateOf(Destination.HOME) }
@@ -85,7 +82,7 @@ class NavigationUiTest {
             )
             database.editorDao().tracker(TrackerEntity("archived-habit", "Old habit", false, true))
         }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             VibeCheckTheme {
                 var destination by remember { mutableStateOf(Destination.MORE) }

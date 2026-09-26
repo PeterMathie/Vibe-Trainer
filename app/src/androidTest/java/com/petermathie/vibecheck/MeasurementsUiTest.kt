@@ -3,7 +3,6 @@ package com.petermathie.vibecheck
 import android.content.Context
 import java.time.LocalDate
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -16,7 +15,6 @@ import com.petermathie.vibecheck.ui.MeasurementsScreen
 import com.petermathie.vibecheck.ui.theme.VibeCheckTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -24,13 +22,13 @@ import org.junit.Test
 
 @android.annotation.SuppressLint("ViewModelConstructorInComposable")
 class MeasurementsUiTest {
-    @get:Rule
-    val compose = createComposeRule()
     private lateinit var database: VibeDatabase
 
-    @After
-    fun close() = database.close()
-
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+    private val compose get() = lifecycle.compose
 
     private fun scrollUntilVisible(text: String) {
         repeat(8) {
@@ -47,9 +45,10 @@ class MeasurementsUiTest {
             ApplicationProvider.getApplicationContext<Context>(),
             VibeDatabase::class.java,
         ).build()
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             VibeCheckTheme {
-                MeasurementsScreen(EditorViewModel(database))
+                MeasurementsScreen(viewModel)
             }
         }
 
@@ -91,10 +90,11 @@ class MeasurementsUiTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         context.getSharedPreferences("body-layout", android.content.Context.MODE_PRIVATE).edit().clear().commit()
         val generation = androidx.compose.runtime.mutableIntStateOf(0)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             VibeCheckTheme {
                 androidx.compose.runtime.key(generation.intValue) {
-                    MeasurementsScreen(EditorViewModel(database))
+                    MeasurementsScreen(viewModel)
                 }
             }
         }

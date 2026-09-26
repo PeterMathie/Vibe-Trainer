@@ -2,7 +2,6 @@ package com.petermathie.vibecheck
 
 import android.content.Context
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,7 +18,6 @@ import com.petermathie.vibecheck.ui.HabitFieldDialog
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -27,12 +25,13 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class HabitUiTest {
-    @get:Rule
-    val compose = createComposeRule()
     private lateinit var database: VibeDatabase
 
-    @After
-    fun close() = database.close()
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+    private val compose get() = lifecycle.compose
 
     @Test(timeout = 120_000)
     fun configureAndRecordChoiceField() {
@@ -60,7 +59,7 @@ class HabitUiTest {
                 ),
             )
         }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { TrackerScreen(viewModel) } }
 
         compose.onNodeWithText("Date (YYYY-MM-DD)").assertDoesNotExist()
@@ -155,7 +154,7 @@ class HabitUiTest {
             )
         }
 
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { TrackerScreen(viewModel) } }
 
         compose.waitUntil(15_000) {
@@ -205,7 +204,7 @@ class HabitUiTest {
             database.trackerDao().insertTrackers(listOf(TrackerEntity("tracker", "Mood", false)))
             database.trackerDao().insertFields(listOf(field))
         }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent {
             VibeCheckTheme {
                 HabitFieldDialog(viewModel, field, Color(0xFF42A5F5), {})

@@ -2,7 +2,6 @@ package com.petermathie.vibecheck
 
 import android.content.Context
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -27,14 +26,17 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class ProgressUiTest {
-    @get:Rule
-    val compose = createComposeRule()
     private lateinit var database: VibeDatabase
     private var preservedPhotoNames: Set<String>? = null
 
+    @get:Rule
+    val lifecycle = ComposeRoomLifecycleRule {
+        if (::database.isInitialized) database else null
+    }
+    private val compose get() = lifecycle.compose
+
     @After
-    fun close() {
-        database.close()
+    fun cleanUpPhotos() {
         preservedPhotoNames?.let { preserved ->
             File(ApplicationProvider.getApplicationContext<Context>().filesDir, "progress-photos")
                 .listFiles()
@@ -82,7 +84,7 @@ class ProgressUiTest {
             }
             bitmap.recycle()
         }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { ProgressScreen(viewModel) } }
 
         compose.onNodeWithText("Overall training trend").assertExists()
@@ -224,7 +226,7 @@ class ProgressUiTest {
                 )
             }
         }
-        val viewModel = EditorViewModel(database)
+        val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { ProgressScreen(viewModel) } }
         compose.waitUntil(15_000) {
             runCatching {
