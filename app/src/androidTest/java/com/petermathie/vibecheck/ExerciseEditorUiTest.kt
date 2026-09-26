@@ -81,6 +81,9 @@ class ExerciseEditorUiTest {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Handstand"))
         assertTrue(compose.onAllNodesWithText("Primary", substring = true).fetchSemanticsNodes().isNotEmpty())
         assertTrue(compose.onAllNodesWithText("Secondary", substring = true).fetchSemanticsNodes().isNotEmpty())
+        compose.onNodeWithContentDescription("Edit Handstand").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings for Handstand").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Duplicate Handstand").assertIsDisplayed()
         assertTrue(compose.onAllNodesWithText("Attach reference video").fetchSemanticsNodes().isNotEmpty())
         compose.onNodeWithContentDescription("Settings for Wall handstand").performClick()
         compose.onNodeWithContentDescription("Time Under Tension (seconds)").assertIsOn()
@@ -89,5 +92,13 @@ class ExerciseEditorUiTest {
         compose.onNodeWithContentDescription("Settings for Freestanding handstand").performClick()
         compose.onNodeWithContentDescription("Time Under Tension (seconds)").assertIsOff()
         compose.onNodeWithContentDescription("Total Time (seconds)").assertIsOn()
+        compose.onNodeWithText("Cancel").performClick()
+
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Stretch"))
+        compose.onNodeWithText("Stretch").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Front split"))
+        compose.onNodeWithContentDescription("Edit Front split").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Settings for Front split").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Duplicate Front split").assertIsDisplayed()
     }
 }

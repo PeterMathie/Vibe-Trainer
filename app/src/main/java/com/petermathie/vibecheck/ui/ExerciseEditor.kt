@@ -7,7 +7,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.*
@@ -95,27 +97,61 @@ fun ExerciseEditor(vm: EditorViewModel) {
         }
         items(visibleExercises,key={it.id}) { e ->
             VibeCard {
-                Text(e.canonicalName,style=MaterialTheme.typography.titleMedium)
-                listOf("PRIMARY" to "Primary", "SECONDARY" to "Secondary").forEach { (role, label) ->
-                    val names = mappings.filter { it.exerciseId == e.id && it.role == role }
-                        .mapNotNull { mapping -> muscles.find { it.id == mapping.muscleId }?.displayName }
-                    if (names.isNotEmpty()) Text(
-                        buildAnnotatedString {
-                            pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                            append("$label  ")
-                            pop()
-                            append(names.joinToString())
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(e.canonicalName,style=MaterialTheme.typography.titleMedium)
+                        listOf("PRIMARY" to "Primary", "SECONDARY" to "Secondary").forEach { (role, label) ->
+                            val names = mappings.filter { it.exerciseId == e.id && it.role == role }
+                                .mapNotNull { mapping -> muscles.find { it.id == mapping.muscleId }?.displayName }
+                            if (names.isNotEmpty()) Text(
+                                buildAnnotatedString {
+                                    pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                                    append("$label  ")
+                                    pop()
+                                    append(names.joinToString())
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                    Row {
+                        IconButton(
+                            onClick = {
+                                selected = if (e.isCustom) {
+                                    e
+                                } else {
+                                    e.copy(
+                                        id = newId(),
+                                        canonicalName = "${e.canonicalName} (custom)",
+                                        isCustom = true,
+                                        source = e.id,
+                                    )
+                                }
+                            },
+                        ) {
+                            Icon(Icons.Outlined.Edit, contentDescription = "Edit ${e.canonicalName}")
+                        }
+                        IconButton(onClick = { configuring = e }) {
+                            Icon(Icons.Outlined.Settings, contentDescription = "Settings for ${e.canonicalName}")
+                        }
+                        IconButton(
+                            onClick = {
+                                selected = e.copy(
+                                    id = newId(),
+                                    canonicalName = "${e.canonicalName} (copy)",
+                                    isCustom = true,
+                                    source = e.id,
+                                )
+                            },
+                        ) {
+                            Icon(Icons.Outlined.ContentCopy, contentDescription = "Duplicate ${e.canonicalName}")
+                        }
+                    }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    VibeActionButton("Settings", { configuring=e }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
-                    VibeActionButton(if(e.isCustom)"Edit" else "Duplicate", {
-                        selected=if(e.isCustom)e else e.copy(id=newId(),canonicalName=e.canonicalName+" (custom)",isCustom=true,source=e.id)
-                    }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
-                    VibeActionButton("Variation", { variation=e.id }, modifier = Modifier.weight(1f), importance = ActionImportance.SECONDARY)
-                }
+                VibeActionButton("Variation", { variation=e.id }, Modifier.fillMaxWidth(), ActionImportance.SECONDARY)
                 if(e.isCustom) VibeActionButton("Archive", { vm.saveExercise(e.copy(isArchived=true),aliases.filter { it.exerciseId==e.id }.map { it.alias },mappings.filter { it.exerciseId==e.id }.associate { it.muscleId to it.role }) }, importance = ActionImportance.SECONDARY)
                 val seededVariations = variations.filter { it.exerciseId==e.id && it.isSeeded }.sortedBy { it.progressionRank }
                 val customVariations = variations.filter { it.exerciseId==e.id && !it.isSeeded }.sortedBy { it.progressionRank }
