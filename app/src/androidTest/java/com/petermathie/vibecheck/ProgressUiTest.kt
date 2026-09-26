@@ -99,6 +99,20 @@ class ProgressUiTest {
         compose.onNodeWithContentDescription("Piano icon").assertExists()
         compose.onNodeWithContentDescription("Meditation icon").assertExists()
         compose.onNodeWithContentDescription("Protein icon").assertExists()
+        listOf("Piano", "Meditation", "Protein", "Mood", "Journal", "Reading").forEach { habit ->
+            compose
+                .onNodeWithContentDescription("${habit.lowercase()} intensity date navigation")
+                .performScrollTo()
+            val headerBounds = compose.onNodeWithText(habit).fetchSemanticsNode().boundsInRoot
+            val navigationBounds = compose
+                .onNodeWithContentDescription("${habit.lowercase()} intensity date navigation")
+                .fetchSemanticsNode()
+                .boundsInRoot
+            assertTrue(
+                "$habit heat map must start below its header: header=$headerBounds navigation=$navigationBounds",
+                navigationBounds.top >= headerBounds.bottom,
+            )
+        }
         compose.waitUntil(15_000) {
             compose.onAllNodesWithContentDescription("kg", substring = true).fetchSemanticsNodes().isNotEmpty()
         }

@@ -166,28 +166,28 @@ fun ProgressScreen(vm:EditorViewModel) {
                                 activeTrackers.find { "habit:${it.id}" == cardKey }?.let { tracker ->
                                     ReorderItem(progressOrder, cardKey, cardIndex, Modifier.fillMaxWidth()) {
                                         VibeCard {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable(onClickLabel = if (expanded) "Collapse ${tracker.name}" else "Expand ${tracker.name}") { toggleExpanded() },
-                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                                        ) {
-                                            Icon(HabitIconCatalog.icon(tracker.iconName), contentDescription = "${tracker.name} icon", tint = Color(tracker.colourArgb.toInt()))
-                                            Spacer(Modifier.width(8.dp))
-                                            Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                                            ReorderHandle(progressOrder, cardKey, tracker.name)
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable(onClickLabel = if (expanded) "Collapse ${tracker.name}" else "Expand ${tracker.name}") { toggleExpanded() },
+                                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                            ) {
+                                                Icon(HabitIconCatalog.icon(tracker.iconName), contentDescription = "${tracker.name} icon", tint = Color(tracker.colourArgb.toInt()))
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(tracker.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                                                ReorderHandle(progressOrder, cardKey, tracker.name)
                                             }
-                                        }
-                                        if (expanded) {
-                                            val trackerFields = fields.filter { it.trackerId == tracker.id && !it.isArchived }
-                                            val fieldIds = trackerFields.map { it.id }.toSet()
-                                            val habitDays = values.filter { it.fieldId in fieldIds }
-                                                .groupBy { it.epochDay }
-                                                .map { (epochDay, dailyValues) -> ActivityDay(epochDay, habitHeatmapLevel(tracker, trackerFields, dailyValues)) }
-                                            val numericField = trackerFields.firstOrNull { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") }
-                                            val unit = numericField?.unit
-                                            Text(habitIntensityDescription(tracker, trackerFields, unit), style = MaterialTheme.typography.bodySmall)
-                                            ActivityHeatmap(days = habitDays, onDayClick = {}, activityColor = Color(tracker.colourArgb.toInt()), itemLabel = "${tracker.name.lowercase()} intensity")
+                                            if (expanded) {
+                                                val trackerFields = fields.filter { it.trackerId == tracker.id && !it.isArchived }
+                                                val fieldIds = trackerFields.map { it.id }.toSet()
+                                                val habitDays = values.filter { it.fieldId in fieldIds }
+                                                    .groupBy { it.epochDay }
+                                                    .map { (epochDay, dailyValues) -> ActivityDay(epochDay, habitHeatmapLevel(tracker, trackerFields, dailyValues)) }
+                                                val numericField = trackerFields.firstOrNull { it.valueType in setOf("NUMBER", "COUNT", "DURATION", "RATING") }
+                                                val unit = numericField?.unit
+                                                Text(habitIntensityDescription(tracker, trackerFields, unit), style = MaterialTheme.typography.bodySmall)
+                                                ActivityHeatmap(days = habitDays, onDayClick = {}, activityColor = Color(tracker.colourArgb.toInt()), itemLabel = "${tracker.name.lowercase()} intensity")
+                                            }
                                         }
                                     }
                                 }

@@ -709,7 +709,7 @@ fun ActivityHeatmap(
     val cellSpacing = if (compact) 4.dp else 6.dp
     val cellHeight = if (compact) 14.dp else 22.dp
     Row(
-        Modifier.fillMaxWidth().semantics { contentDescription = "Activity date navigation" },
+        Modifier.fillMaxWidth().semantics { contentDescription = "$itemLabel date navigation" },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
