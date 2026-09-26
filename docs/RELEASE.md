@@ -77,6 +77,13 @@ their programme assignments. It also includes:
 Schema 15 also preserves decimal rep inputs while retaining legacy integer
 snapshots. The schema 14 to 15 migration and exported schema are committed.
 
+The verified prerelease is available from the
+[Vibe Check 0.4.0 Beta 2 release page](https://github.com/PeterMathie/vibe-check/releases/tag/v0.4.0-beta.2)
+and as the direct
+[signed APK download](https://github.com/PeterMathie/vibe-check/releases/download/v0.4.0-beta.2/Vibe-Check-beta.apk).
+Its SHA-256 is
+`dca788df81febba3ced761e46825344b84c086a44c071653d6aaa99cb6e76c8b`.
+
 ## Build readiness
 
 Use JDK 17 and the Android 36 SDK:
