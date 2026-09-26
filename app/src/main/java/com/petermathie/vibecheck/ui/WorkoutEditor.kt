@@ -87,7 +87,10 @@ fun WorkoutEditor(
     val logged = sets.filter { s -> rows.any { it.id == s.workoutExerciseId } }
     val validEntryRows = remember(workout.id) { mutableStateMapOf<String, Boolean>() }
     LazyColumn(
-        Modifier.fillMaxSize().imePadding(),
+        Modifier
+            .fillMaxSize()
+            .imePadding()
+            .semantics { contentDescription = "Workout exercise list" },
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

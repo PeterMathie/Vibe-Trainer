@@ -206,8 +206,14 @@ class WorkoutLoggingUiTest {
         val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
-        compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasContentDescription("More actions for Bench", substring = true))
-        compose.onNodeWithContentDescription("More actions for Bench", substring = true).performClick()
+        compose.waitUntil("Workout and Bench row were not ready", 15_000) {
+            viewModel.workouts.value.any { it.id == workoutId } &&
+                viewModel.workoutExercises.value.any { it.id == bench.id } &&
+                compose.onAllNodesWithContentDescription("Workout exercise list").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription("Workout exercise list")
+            .performScrollToNode(hasContentDescription("More actions for Bench press"))
+        compose.onNodeWithContentDescription("More actions for Bench press").performClick()
         compose.onNodeWithText("Substitute exercise").performScrollTo().performClick()
         compose.waitUntil(5_000) { compose.onAllNodesWithText("Choose exercise").fetchSemanticsNodes().isNotEmpty() }
         compose.onNode(hasText("Name, alias or muscle") and hasSetTextAction()).performTextInput("Dip")
