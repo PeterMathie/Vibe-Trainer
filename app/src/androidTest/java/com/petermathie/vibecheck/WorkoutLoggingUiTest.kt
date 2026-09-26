@@ -5,7 +5,9 @@ import androidx.compose.ui.test.*
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.room.Room
@@ -107,13 +109,16 @@ class WorkoutLoggingUiTest {
         val viewModel = lifecycle.own(EditorViewModel(database))
         compose.setContent { VibeCheckTheme { WorkoutEditor(viewModel, workoutId, {}, {}) } }
 
+        assertHandstandQuantitativeFieldsShareRow()
         compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").performTextInput("12")
         compose.onNodeWithContentDescription("Total Time for Handstand set 1").performTextInput("30")
         compose.onNodeWithContentDescription("Open Total Time stopwatch for set 1").performClick()
         compose.onNodeWithText("Total Time stopwatch").assertExists()
         compose.onNodeWithText("Reset").performClick()
         compose.onNodeWithText("Start").performClick()
-        Thread.sleep(150)
+        compose.waitUntil("Stopwatch did not reach 100 ms", 5_000) {
+            compose.onAllNodes(stopwatchElapsedAtLeast(100)).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText("Stop").performClick()
         compose.onNodeWithText("Apply").performClick()
         compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").assertTextContains("TUT (s)")
@@ -123,18 +128,8 @@ class WorkoutLoggingUiTest {
         compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("99")
         compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextClearance()
         compose.onNodeWithContentDescription("RPE for Handstand set 1").performTextInput("8")
-        val heldBounds = compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").fetchSemanticsNode().boundsInRoot
-        val tensionBounds = compose.onNodeWithContentDescription("Total Time for Handstand set 1").fetchSemanticsNode().boundsInRoot
-        val rpeBounds = compose.onNodeWithContentDescription("RPE for Handstand set 1").fetchSemanticsNode().boundsInRoot
+        val (heldBounds, tensionBounds, rpeBounds) = assertHandstandQuantitativeFieldsShareRow()
         val stopwatchBounds = compose.onNodeWithContentDescription("Open Total Time stopwatch for set 1").fetchSemanticsNode().boundsInRoot
-        assertTrue(
-            "TUT, Total, and RPE should share a row: TUT=$heldBounds Total=$tensionBounds RPE=$rpeBounds",
-            kotlin.math.abs(heldBounds.center.y - tensionBounds.center.y) < 2f,
-        )
-        assertTrue(
-            "TUT, Total, and RPE should share a row: TUT=$heldBounds Total=$tensionBounds RPE=$rpeBounds",
-            kotlin.math.abs(heldBounds.center.y - rpeBounds.center.y) < 2f,
-        )
         assertTrue(
             "Stopwatch should occupy the right side of Total Time: Total=$tensionBounds stopwatch=$stopwatchBounds",
             stopwatchBounds.left >= tensionBounds.center.x && stopwatchBounds.right <= tensionBounds.right,
@@ -265,11 +260,100 @@ class WorkoutLoggingUiTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithContentDescription("Variation for Handstand set 1: Wall handstand").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Total Time for Handstand set 1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Time Under Tension for Handstand set 1")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertTextContains("TUT (s)")
+        compose.onNodeWithContentDescription("Total Time for Handstand set 1")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertTextContains("Total")
+        compose.onNodeWithContentDescription("RPE for Handstand set 1")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertTextContains("RPE")
+        assertHandstandQuantitativeFieldsRemainOrdered()
         compose.onAllNodes(hasScrollAction())[0].performScrollToNode(hasText("Finish workout"))
         compose.onNodeWithText("Finish workout").assertIsDisplayed()
     }
+
+    private fun assertHandstandQuantitativeFieldsShareRow(): List<Rect> {
+        val bounds = awaitHandstandQuantitativeFieldBounds(requireSameRow = true)
+        val (heldBounds, tensionBounds, rpeBounds) = bounds
+        assertTrue(
+            "TUT, Total, and RPE should share a row: TUT=$heldBounds Total=$tensionBounds RPE=$rpeBounds",
+            kotlin.math.abs(heldBounds.center.y - tensionBounds.center.y) < 2f,
+        )
+        assertTrue(
+            "TUT, Total, and RPE should share a row: TUT=$heldBounds Total=$tensionBounds RPE=$rpeBounds",
+            kotlin.math.abs(heldBounds.center.y - rpeBounds.center.y) < 2f,
+        )
+        assertOrderedAndNonOverlapping(bounds)
+        return bounds
+    }
+
+    private fun assertHandstandQuantitativeFieldsRemainOrdered() {
+        assertOrderedAndNonOverlapping(awaitHandstandQuantitativeFieldBounds(requireSameRow = false))
+    }
+
+    private fun awaitHandstandQuantitativeFieldBounds(requireSameRow: Boolean): List<Rect> {
+        var previousBounds: List<Rect>? = null
+        var stableSamples = 0
+        compose.waitUntil("Handstand quantitative fields did not settle into their expected layout", 15_000) {
+            val bounds = handstandQuantitativeFieldBounds() ?: return@waitUntil false
+            val aligned = bounds.drop(1).all {
+                kotlin.math.abs(bounds.first().center.y - it.center.y) < 2f
+            }
+            val expectedLayout = !requireSameRow || aligned
+            stableSamples = if (expectedLayout && bounds == previousBounds) stableSamples + 1 else 0
+            previousBounds = bounds
+            stableSamples >= 2
+        }
+        compose.waitForIdle()
+        return checkNotNull(handstandQuantitativeFieldBounds())
+    }
+
+    private fun assertOrderedAndNonOverlapping(bounds: List<Rect>) {
+        val (heldBounds, tensionBounds, rpeBounds) = bounds
+        assertTrue(
+            "TUT, Total, and RPE should retain readable, ordered bounds: TUT=$heldBounds Total=$tensionBounds RPE=$rpeBounds",
+            bounds.all { it.width > 0f && it.height > 0f } &&
+                bounds.zipWithNext().all { (first, second) ->
+                    val sameRow = kotlin.math.abs(first.center.y - second.center.y) < 2f
+                    if (sameRow) first.right <= second.left else first.bottom <= second.top
+                },
+        )
+    }
+
+    private fun handstandQuantitativeFieldBounds(): List<Rect>? {
+        return listOf(
+            "Time Under Tension for Handstand set 1",
+            "Total Time for Handstand set 1",
+            "RPE for Handstand set 1",
+        ).map { description ->
+            compose.onAllNodesWithContentDescription(description)
+                .fetchSemanticsNodes()
+                .singleOrNull()
+                ?.boundsInRoot
+                ?: return null
+        }
+    }
+
+    private fun stopwatchElapsedAtLeast(minimumMillis: Long) =
+        SemanticsMatcher("stopwatch elapsed at least $minimumMillis ms") { node ->
+            if (!node.config.contains(SemanticsProperties.Text)) {
+                false
+            } else {
+                node.config[SemanticsProperties.Text]
+                    .asSequence()
+                    .mapNotNull { text ->
+                        val match = STOPWATCH_TIME.matchEntire(text.text) ?: return@mapNotNull null
+                        match.groupValues[1].toLong() * 60_000L +
+                            (match.groupValues[2].toDouble() * 1_000L).toLong()
+                    }
+                    .any { it >= minimumMillis }
+            }
+        }
 
     @Test
     fun programmedRowsUseSeparateFieldsAndPlusAddsAnExtraSet() {
@@ -373,5 +457,9 @@ class WorkoutLoggingUiTest {
         DatabaseSeeder(context, database).seedIfNeeded()
         val repository = TrainingRepository(database, database.programmeDao(), database.workoutDao(), database.trackerDao(), context)
         repository.startWorkout(repository.observeProgrammeDays().first().first { it.id == "demo-day-push" }.id)
+    }
+
+    private companion object {
+        private val STOPWATCH_TIME = Regex("""(\d{2}):(\d{2}\.\d{2})""")
     }
 }
