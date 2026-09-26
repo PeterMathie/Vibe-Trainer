@@ -1,14 +1,12 @@
 # Vibe Check
 
-**Vibe Check 0.4.0 Beta 1**
+**Vibe Check 0.4.0 Beta 2**
 
 Native, local-first Android strength, flexibility and open-ended activity tracking.
 
 ## Download Vibe Check Beta APK
 
-[Download Vibe Check 0.4.0 Beta 1](https://github.com/PeterMathie/vibe-check/releases/download/v0.4.0-beta.1/Vibe-Check-beta.apk)
-
-APK SHA-256: `b2117c6e0e64e14a827d218090513f4dab3f714a04ac38fb596eab03aaea75bb`
+Vibe Check 0.4.0 Beta 2 download pending publication and verification.
 
 This is beta software distributed outside Google Play. Android will ask you to
 allow installation from the browser or file manager used to open the APK.
@@ -30,8 +28,8 @@ The greenfield architecture uses Kotlin, Jetpack Compose, Room, Hilt and an expl
 Visual styling is isolated behind semantic tokens and interchangeable palettes. Production builds seed application knowledge but no personal programmes or history; debug builds add removable representative data.
 
 See [`docs/PRODUCT_REQUIREMENTS.md`](docs/PRODUCT_REQUIREMENTS.md) for the product contract.
-The current Android identity is `com.petermathie.vibecheck`, version `0.4.0-beta.1`
-(`versionCode 4`). This is a distinct install from the former Vibe Trainer
+The current Android identity is `com.petermathie.vibecheck`, version `0.4.0-beta.2`
+(`versionCode 5`). This is a distinct install from the former Vibe Trainer
 package; use its JSON export/import flow to move structured records.
 
 For the current implementation, verified builds and agent-ready tasks, start with

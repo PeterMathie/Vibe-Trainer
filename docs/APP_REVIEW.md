@@ -1,7 +1,9 @@
 # Vibe Check reviewer showcase
 
-> **Status:** Vibe Check 0.4.0 Beta 1; not a signed public release yet  
-> **Screenshots shown:** pre-rename `0.3.0` UI at commit `762b96b`; the visible screens remain representative of Vibe Check 0.4.0 Beta 1  
+> **Status:** Vibe Check 0.4.0 Beta 2 release candidate; signed publication pending
+>
+> **Screenshots shown:** historical pre-rename `0.3.0` UI at commit `762b96b`; workflows remain illustrative, but Beta 2 has a redesigned visual system
+>
 > **Showcase source:** commit `762b96b3e59cd51f1567c0b1482b2a1826e20aee`  
 > **Debug APK SHA-256:** `603954816717f5c60304edcd04c0f5ab337b3a7e8b8a2b1edf2ab4e71605a61d`
 

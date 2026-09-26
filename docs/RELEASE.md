@@ -6,10 +6,10 @@ defines the release gates; it does not authorise signing, publishing or merging.
 ## Current version
 
 - Application ID: `com.petermathie.vibecheck`
-- Release identity: **Vibe Check 0.4.0 Beta 1**
-- Version name: `0.4.0-beta.1`
-- Version code: `4`
-- Room schema version: `12`
+- Release identity: **Vibe Check 0.4.0 Beta 2**
+- Version name: `0.4.0-beta.2`
+- Version code: `5`
+- Room schema version: `15`
 - Minimum Android SDK: `23`
 - Target Android SDK: `36`
 
@@ -39,7 +39,7 @@ Before distributing a build:
 5. Install over the previous distributed build and verify launch and data
    access on an emulator and a real phone.
 
-The repository contains Room migrations through schema version 12 and tests for
+The repository contains Room migrations through schema version 15 and tests for
 the recent migration chain. Distribution to an authentic version-1 install is
 blocked by DATA-01 until an authentic v1 schema/database fixture is available;
 the repository must not substitute an invented fixture. The v5 historical
@@ -58,6 +58,24 @@ files from Vibe Trainer do not update or transfer automatically. Export
 structured JSON and photos from the old app before moving. Vibe Check continues
 to import version-1 backups whose envelope is `format: "vibe-trainer"`; that
 legacy value is intentionally stable compatibility data, not current branding.
+
+## Vibe Check 0.4.0 Beta 2
+
+Beta 2 fixes programme exercise creation and moves workout prescriptions to
+their programme assignments. It also includes:
+
+- a redesigned Freshness experience with audited palettes, a clear legend,
+  motion and muscle detail sheets;
+- haptic feedback and futuristic dashboard polish across Home, Progress, Body,
+  Habits, History and workouts;
+- explicit Light, Medium and Dark habit-choice groups, preserving existing
+  choices through the schema 13 to 14 migration;
+- stable pointer-anchored card reordering;
+- denser active-workout controls with stricter numeric validation; and
+- Home single-viewport layout and visual-regression fixes.
+
+Schema 15 also preserves decimal rep inputs while retaining legacy integer
+snapshots. The schema 14 to 15 migration and exported schema are committed.
 
 ## Build readiness
 
