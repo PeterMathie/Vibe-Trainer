@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -72,6 +73,13 @@ class EndUserControlsTest {
         val frontMapBounds = compose.onNodeWithContentDescription("male front freshness map").fetchSemanticsNode().boundsInRoot
         val backMapBounds = compose.onNodeWithContentDescription("male back freshness map").fetchSemanticsNode().boundsInRoot
         val legendBounds = legend.fetchSemanticsNode().boundsInRoot
+        val texture = compose.onNodeWithContentDescription("Freshness panel texture")
+        val textureBounds = texture.fetchSemanticsNode().boundsInRoot
+        val titleBounds = compose.onNodeWithText("FRESHNESS").fetchSemanticsNode().boundsInRoot
+        val texturePixels = texture.captureToImage().toPixelMap()
+        assertTrue("texture=$textureBounds title=$titleBounds", textureBounds.top < titleBounds.top)
+        assertTrue("texture=$textureBounds map=$frontMapBounds", textureBounds.bottom > frontMapBounds.bottom)
+        assertTrue(texturePixels.width > 0 && texturePixels.height > 0)
         assertTrue(
             "front=$frontMapBounds legend=$legendBounds",
             kotlin.math.abs(frontMapBounds.top - legendBounds.top) < 2f,
@@ -247,7 +255,10 @@ class EndUserControlsTest {
             .config[SemanticsProperties.VerticalScrollAxisRange]
         assertEquals(0f, initialScrollRange.value(), 0.5f)
         assertEquals(0f, initialScrollRange.maxValue(), 0.5f)
-        assertTrue("tracker=$trackerBefore viewport=$viewport", trackerBefore.bottom <= viewport.bottom + 0.5f)
+        assertTrue(
+            "tracker=$trackerBefore viewport=$viewport",
+            viewport.bottom - trackerBefore.bottom in 0f..12f,
+        )
 
         repeat(10) { iteration ->
             compose.runOnIdle {
@@ -288,6 +299,47 @@ class EndUserControlsTest {
             val trackerAfter = compose.onNodeWithContentDescription("Work tracker card")
                 .fetchSemanticsNode().boundsInRoot
             assertTrue("iteration=$iteration tracker=$trackerAfter viewport=$viewport", trackerAfter.bottom <= viewport.bottom + 0.5f)
+        }
+    }
+
+    @Test
+    fun noWorkoutTrackerConsumesRemainingReferenceViewportsWithoutChangingFreshness() {
+        var viewportWidth by mutableStateOf<Dp>(411.dp)
+        var viewportHeight by mutableStateOf<Dp>(761.dp)
+        compose.setContent {
+            VibeCheckTheme {
+                Box(Modifier.width(viewportWidth).height(viewportHeight)) {
+                    HomeScreen(
+                        state = MainUiState(),
+                        onDayClick = {},
+                        onContinue = {},
+                        onRecencyDayChange = {},
+                        onModeChange = {},
+                    )
+                }
+            }
+        }
+
+        val referenceMapBounds = compose.onNodeWithContentDescription("male front freshness map")
+            .fetchSemanticsNode().boundsInRoot
+        listOf(
+            411.dp to 761.dp,
+            411.dp to 891.dp,
+        ).forEach { (width, height) ->
+            compose.runOnIdle {
+                viewportWidth = width
+                viewportHeight = height
+            }
+            compose.waitForIdle()
+            val home = compose.onNodeWithContentDescription("Home content").fetchSemanticsNode()
+            val viewport = home.boundsInRoot
+            val range = home.config[SemanticsProperties.VerticalScrollAxisRange]
+            val tracker = compose.onNodeWithContentDescription("Work tracker card").fetchSemanticsNode().boundsInRoot
+            val map = compose.onNodeWithContentDescription("male front freshness map").fetchSemanticsNode().boundsInRoot
+            assertEquals("$width x $height scroll", 0f, range.maxValue(), 0.5f)
+            assertTrue("$width x $height tracker=$tracker viewport=$viewport", viewport.bottom - tracker.bottom in 0f..12f)
+            assertEquals(referenceMapBounds.width, map.width, 0.5f)
+            assertEquals(referenceMapBounds.height, map.height, 0.5f)
         }
     }
 

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,6 +47,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,6 +64,9 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -174,6 +179,7 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
 
     VibeCheckTheme(palette) {
         val motion = LocalVibeMotion.current
+        val reducedMotion = LocalVibeReducedMotion.current
         val travelPx = with(LocalDensity.current) { motion.travelDp.dp.roundToPx() }
         if (state.selectedHistoryDay != null) {
             BackHandler { viewModel.selectHistoryDay(null) }
@@ -185,12 +191,30 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
             return@VibeCheckTheme
         }
 
-        Scaffold(
-            containerColor = palette.background,
-            bottomBar = {
-                PrimaryNavigationBar(destination) { destination = it }
-            },
-        ) { padding ->
+        val fabHost = remember(destination) { AppFabHostState(destination) }
+        val density = LocalDensity.current
+        val imeVisible = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(density) > 0
+        val fabAction = fabHost.action.visibleUnlessBlocked(fabHost.dragging, imeVisible)
+        androidx.compose.runtime.CompositionLocalProvider(
+            LocalAppFabHost provides fabHost,
+            LocalAppFabClearance provides if (fabAction == null) 0.dp else 88.dp,
+        ) {
+            Scaffold(
+                containerColor = palette.background,
+                floatingActionButtonPosition = FabPosition.Start,
+                floatingActionButton = {
+                    AnimatedVisibility(
+                        visible = fabAction != null,
+                        enter = if (reducedMotion) EnterTransition.None else fadeIn(),
+                        exit = if (reducedMotion) ExitTransition.None else fadeOut(),
+                    ) {
+                        fabAction?.let { AppFloatingAction(it, fabHost) }
+                    }
+                },
+                bottomBar = {
+                    PrimaryNavigationBar(destination) { destination = it }
+                },
+            ) { padding ->
             BackHandler(destination in moreDestinations) { destination = Destination.MORE }
             Column(Modifier.fillMaxSize().padding(padding)) {
                 if(error != null) TextButton(onClick = { editor.error.value = null }) { Text(error.orEmpty(),color=MaterialTheme.colorScheme.error) }
@@ -253,6 +277,7 @@ fun VibeCheckApp(viewModel: MainViewModel = hiltViewModel()) {
                         { themeMode = it; prefs.edit().putString("themeMode", it.id).apply() },
                     ) { result -> viewModel.removeDemoData(result) }
                     Destination.ARCHIVE -> ArchiveScreen(editor)
+                }
                 }
                 }
             }
@@ -483,17 +508,19 @@ internal fun HomeScreen(
                 .padding(horizontal = horizontalGutter, vertical = verticalPadding),
             verticalArrangement = Arrangement.spacedBy(sectionSpacing),
         ) {
-        VibeCard(modifier = Modifier.height(freshnessPanelHeight), fillHeight = true) {
-            TechnicalBackdrop(Modifier.fillMaxWidth()) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "FRESHNESS",
-                        modifier = Modifier.weight(1f),
-                        color = palette.accent,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                    ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
-                }
+        VibeCard(
+            modifier = Modifier.height(freshnessPanelHeight),
+            fillHeight = true,
+            technicalBackdrop = true,
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "FRESHNESS",
+                    modifier = Modifier.weight(1f),
+                    color = palette.accent,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                ModeSelector(state.mode, onModeChange, Modifier.weight(1.45f))
             }
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 Column(
@@ -626,10 +653,16 @@ internal fun HomeScreen(
             if (compactHomeChrome) {
                 VibeSurface(
                     level = VibeSurfaceLevel.CARD,
-                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Work tracker card" },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (state.activeWorkout == null) Modifier.weight(1f, fill = true) else Modifier)
+                        .semantics { contentDescription = "Work tracker card" },
                 ) {
                     Column(
-                        Modifier.fillMaxWidth().padding(horizontal = VibeSpacing.small, vertical = VibeSpacing.xSmall),
+                        Modifier
+                            .fillMaxWidth()
+                            .then(if (state.activeWorkout == null) Modifier.fillMaxHeight() else Modifier)
+                            .padding(horizontal = VibeSpacing.small, vertical = VibeSpacing.xSmall),
                         verticalArrangement = Arrangement.spacedBy(VibeSpacing.xSmall),
                         content = trackerContent,
                     )
@@ -817,6 +850,7 @@ private fun ExerciseLibraryScreen(exercises: List<ExerciseSummary>, onSearch: (S
 internal fun VibeCard(
    modifier: Modifier = Modifier,
    fillHeight: Boolean = false,
+   technicalBackdrop: Boolean = false,
    content: @Composable ColumnScope.() -> Unit,
 ) {
     VibeSurface(
@@ -824,7 +858,25 @@ internal fun VibeCard(
         modifier = modifier.fillMaxWidth(),
     ) {
         val contentModifier = if (fillHeight) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
-        Column(contentModifier.padding(VibeSpacing.medium), verticalArrangement = Arrangement.spacedBy(VibeSpacing.small)) { content() }
+        val cardContent: @Composable () -> Unit = {
+            Column(
+                contentModifier.padding(VibeSpacing.medium),
+                verticalArrangement = Arrangement.spacedBy(VibeSpacing.small),
+            ) {
+                content()
+            }
+        }
+        if (technicalBackdrop) {
+            TechnicalBackdrop(
+                Modifier
+                    .fillMaxSize()
+                    .semantics { contentDescription = "Freshness panel texture" },
+            ) {
+                cardContent()
+            }
+        } else {
+            cardContent()
+        }
     }
 }
 
@@ -844,7 +896,12 @@ internal fun ScreenList(
                     modifier = Modifier
                         .fillMaxSize()
                         .reorderScrollViewport(reorderContext),
-                    contentPadding = PaddingValues(horizontal = sidePadding, vertical = VibeSpacing.medium),
+                    contentPadding = PaddingValues(
+                        start = sidePadding,
+                        top = VibeSpacing.medium,
+                        end = sidePadding,
+                        bottom = VibeSpacing.medium + LocalAppFabClearance.current,
+                    ),
                     verticalArrangement = Arrangement.spacedBy(VibeSpacing.medium),
                     content = content,
                 )
